@@ -1,56 +1,79 @@
-# Welcome to your Expo app 👋
+# CoinLab Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+CoinLab'in Expo (React Native) mobil uygulamasi. Kullanici Google ile giris yapar, 24 saatlik kazim oturumu baslatir ve CLB puanini ile kazim hizini (Th/s) takip eder. iOS, Android ve web'de calisir.
 
-## Get started
+## Ekranlar
 
-1. Install dependencies
+| Rota | Dosya | Aciklama |
+|---|---|---|
+| `/` | `src/app/index.tsx` | Google ile giris. Kayitli oturum varsa dogrudan dashboard'a yonlendirir. |
+| `/dashboard` | `src/app/dashboard.tsx` | "Kazimi Baslat" butonu, 24 saatlik geri sayim, canli CLB puani ve Th/s hiz gostergesi. |
 
-   ```bash
-   npm install
-   ```
+Navigasyon basliksiz bir `Stack` ile yapilir (`src/app/_layout.tsx`).
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Kurulum ve calistirma
 
 ```bash
-npm run reset-project
+npm install
+npx expo start        # QR kod ile Expo Go / development build
+npm run web           # tarayicida
+npm run android       # Android emulator
+npm run ios           # iOS simulator (macOS)
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Proje yapisi
 
-### Other setup steps
+```
+src/
+  app/                  Expo Router rotalari (giris, dashboard, kok layout)
+  components/           Acilis animasyonu (animated-icon)
+  constants/config.ts   Backend adresi, Google client ID, URL scheme
+  services/
+    auth-storage.ts     Oturumu (token, isim) AsyncStorage'da saklar
+    mining-api.ts       Kazim API istemcisi + gecici sahte veri
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Backend
 
-## Learn more
+Backend adresi `src/constants/config.ts` icindeki `API_URL` degeridir (su an `https://coinlab-backend-production.up.railway.app`).
 
-To learn more about developing your project with Expo, look at the following resources:
+- **Giris:** `POST /auth/signin` Google access token'i ile cagrilir, donen `token` AsyncStorage'a `coinlab_auth` anahtariyla kaydedilir.
+- **Kazim:** Diger istekler `Authorization: Bearer <token>` basligi ile gonderilir.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Kazim ucnoktalari (henuz backend'de yok)
 
-## Join the community
+Dashboard su an **sahte veriyle** calisir: `src/services/mining-api.ts` icinde `USE_MOCK_MINING = true` ve ekranda "Demo veri" etiketi gorunur. Sahte oturum AsyncStorage'da saklanir; 12.5 Th/s hiz ve saatte 0.25 CLB kullanir.
 
-Join our community of developers creating universal apps.
+Istemci, backend'in su iki ucnoktayi saglamasini bekler:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- `GET /mining/status`
+- `POST /mining/start`: 24 saatlik oturumu baslatir; aktif oturum varsa yenisini acmadan mevcut durumu dondurur.
+
+Ikisi de ayni yaniti dondurur:
+
+```json
+{
+  "isActive": true,
+  "startedAt": "2026-09-23T10:00:00.000Z",
+  "endsAt": "2026-09-24T10:00:00.000Z",
+  "balance": 12.5,
+  "pointsPerHour": 0.25,
+  "hashrateThs": 12.5
+}
+```
+
+`balance`, calisan oturumun kazanci haric kesinlesmis puandir; uygulama anlik puani `pointsPerHour` ile kendisi hesaplar. Oturum bitince kazanilan puani `balance`'a eklemek backend'in isidir.
+
+Ucnoktalar hazir olunca `USE_MOCK_MINING = false` yapmak yeterli. Yol veya alan adlari farkli olursa sadece `mining-api.ts` degisir.
+
+## Tip kontrolu ve CI
+
+```bash
+npx tsc --noEmit
+```
+
+GitHub Actions (`.github/workflows/ci.yml`), `main`'e gelen push ve PR'larda tip kontrolu calistirir. `expo-env.d.ts` `.gitignore`'da oldugu icin (Expo onu `expo start` sirasinda uretir) CI bu dosyayi tip kontrolunden once kendisi olusturur.
+
+## Bilinen notlar
+
+- **Codespaces'te Metro dosya degisikliklerini gormeyebilir.** Degisiklik ekrana yansimiyorsa sunucuyu `npx expo start --clear` ile yeniden baslat.
