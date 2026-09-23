@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, GOOGLE_CLIENT_ID } from '@/constants/config';
+import { loadStoredAuth, saveStoredAuth } from '@/services/auth-storage';
 import * as AuthSession from 'expo-auth-session';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -8,13 +8,6 @@ import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 WebBrowser.maybeCompleteAuthSession();
-
-const AUTH_STORAGE_KEY = 'coinlab_auth';
-
-type StoredAuth = {
-  token: string;
-  name: string;
-};
 
 const discovery = {
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -152,22 +145,6 @@ export default function SignInScreen() {
       </View>
     </SafeAreaView>
   );
-}
-
-async function loadStoredAuth(): Promise<StoredAuth | null> {
-  try {
-    const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.token !== 'string' || typeof parsed?.name !== 'string') return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-async function saveStoredAuth(auth: StoredAuth) {
-  await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
 }
 
 const styles = StyleSheet.create({
