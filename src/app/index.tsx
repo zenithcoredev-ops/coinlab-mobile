@@ -1,18 +1,15 @@
-import { API_URL, GOOGLE_CLIENT_ID } from '@/constants/config';
+import { API_URL } from '@/constants/config';
 import { loadStoredAuth, saveStoredAuth } from '@/services/auth-storage';
-import * as AuthSession from 'expo-auth-session';
+import {
+  consumeGoogleRedirect,
+  describeGoogleError,
+  GoogleAccount,
+  signInWithGoogle,
+} from '@/services/google-auth';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const discovery = {
-  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-  tokenEndpoint: 'https://oauth2.googleapis.com/token',
-};
 
 export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
@@ -20,24 +17,19 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const redirectUri = AuthSession.makeRedirectUri();
-
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
-    {
-      clientId: GOOGLE_CLIENT_ID,
-      scopes: ['openid', 'profile', 'email'],
-      redirectUri,
-      responseType: AuthSession.ResponseType.Token,
-      usePKCE: false,
-    },
-    discovery
-  );
-
-  // Restore a previously saved session so the app doesn't show the sign-in
-  // screen again after a reload, unless a fresh OAuth redirect is in flight.
+  // Finish a web OAuth redirect if one is in flight; otherwise restore a saved
+  // session so the app doesn't show the sign-in screen again after a reload.
   useEffect(() => {
     (async () => {
-      if (Platform.OS === 'web' && window.location.hash.includes('access_token=')) {
+      try {
+        const account = await consumeGoogleRedirect();
+        if (account) {
+          setBootstrapping(false);
+          await completeSignIn(account);
+          return;
+        }
+      } catch (e) {
+        setError(describeGoogleError(e));
         setBootstrapping(false);
         return;
       }
@@ -52,54 +44,31 @@ export default function SignInScreen() {
     })();
   }, []);
 
-  // Native flow: expo-auth-session resolves the OAuth result via `response`.
-  useEffect(() => {
-    if (response?.type === 'success') {
-      handleGoogleToken(response.authentication?.accessToken);
-    } else if (response?.type === 'error') {
-      setError(response.error?.message ?? 'Giris hatasi');
-    }
-  }, [response]);
-
-  // Web flow: Google redirects back with the access token in the URL hash.
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const hash = window.location.hash;
-    if (!hash.includes('access_token=')) return;
-
-    const token = new URLSearchParams(hash.substring(1)).get('access_token');
-    window.history.replaceState(null, '', window.location.pathname);
-    if (token) handleGoogleToken(token);
-  }, []);
-
-  function startWebLogin() {
-    const url =
-      'https://accounts.google.com/o/oauth2/v2/auth' +
-      `?client_id=${GOOGLE_CLIENT_ID}` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      '&response_type=token' +
-      `&scope=${encodeURIComponent('openid profile email')}`;
-    window.location.href = url;
-  }
-
-  async function handleGoogleToken(accessToken?: string) {
-    if (!accessToken) return;
+  async function onGooglePress() {
     setLoading(true);
     setError(null);
     try {
-      const userInfoRes = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const userInfo = await userInfoRes.json();
+      const account = await signInWithGoogle();
+      if (account) await completeSignIn(account);
+    } catch (e) {
+      setError(describeGoogleError(e));
+    } finally {
+      setLoading(false);
+    }
+  }
 
+  async function completeSignIn(account: GoogleAccount) {
+    setLoading(true);
+    setError(null);
+    try {
       const signinRes = await fetch(`${API_URL}/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: 'google',
-          providerToken: accessToken,
-          email: userInfo.email,
-          name: userInfo.name,
+          providerToken: account.accessToken,
+          email: account.email,
+          name: account.name,
         }),
       });
       const data = await signinRes.json();
@@ -136,8 +105,8 @@ export default function SignInScreen() {
 
         <TouchableOpacity
           style={styles.button}
-          disabled={!request || loading}
-          onPress={() => (Platform.OS === 'web' ? startWebLogin() : promptAsync())}>
+          disabled={loading}
+          onPress={onGooglePress}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Google ile Giris Yap</Text>}
         </TouchableOpacity>
 
