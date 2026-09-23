@@ -19,4 +19,8 @@ jobs:
 
       - run: npm ci
 
+      # expo-env.d.ts is gitignored (Expo generates it on start); it pulls in
+      # expo/types, which declares CSS module imports.
+      - run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
+
       - run: npx tsc --noEmit
