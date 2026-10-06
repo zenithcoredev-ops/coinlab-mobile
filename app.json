@@ -39,6 +39,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a675391d-550c-412a-83c7-6d3150f1deb4"
+      }
+    },
+    "owner": "zenithcore"
   }
 }
