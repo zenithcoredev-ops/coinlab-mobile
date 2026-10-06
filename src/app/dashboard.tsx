@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,9 +12,14 @@ import {
   startMining,
   USE_MOCK_MINING,
 } from '@/services/mining-api';
+import { Palette } from '@/constants/theme';
+import { useAppTheme } from '@/context/app-theme';
 
 export default function Dashboard() {
+  const { colors } = useAppTheme();
+  const styles = makeStyles(colors);
   const { name } = useLocalSearchParams<{ name?: string }>();
+  const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<MiningStatus | null>(null);
   const [starting, setStarting] = useState(false);
@@ -82,7 +87,12 @@ export default function Dashboard() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}>Hos geldin {name}</Text>
-        {USE_MOCK_MINING && <Text style={styles.mockBadge}>Demo veri</Text>}
+        <View style={styles.headerActions}>
+          {USE_MOCK_MINING && <Text style={styles.mockBadge}>Demo veri</Text>}
+          <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="Ayarlar">
+            <Text style={styles.settingsIcon}>⚙</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.statsRow}>
@@ -106,14 +116,14 @@ export default function Dashboard() {
         </View>
 
         {status === null && !error ? (
-          <ActivityIndicator color="#fff" style={styles.loader} />
+          <ActivityIndicator color={colors.text} style={styles.loader} />
         ) : (
           <TouchableOpacity
             style={[styles.button, (isMining || starting || !token) && styles.buttonDisabled]}
             disabled={isMining || starting || !token}
             onPress={onStart}>
             {starting ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.onPrimary} />
             ) : (
               <Text style={styles.buttonText}>{isMining ? 'Kazim Aktif' : 'Kazimi Baslat'}</Text>
             )}
@@ -134,47 +144,51 @@ function formatDuration(ms: number) {
   return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0F19', padding: 24 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  greeting: { color: '#fff', fontSize: 22, fontWeight: 'bold', flexShrink: 1 },
-  mockBadge: {
-    color: '#FBBF24',
-    fontSize: 12,
-    borderColor: '#FBBF24',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  statsRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  statCard: { flex: 1, backgroundColor: '#151B2B', borderRadius: 16, padding: 16 },
-  statLabel: { color: '#9CA3AF', fontSize: 13, marginBottom: 6 },
-  statValue: { color: '#fff', fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  statUnit: { color: '#9CA3AF', fontSize: 14, fontWeight: '500' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  countdownLabel: { color: '#9CA3AF', fontSize: 14, marginBottom: 8 },
-  countdown: { color: '#fff', fontSize: 48, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
-  progressTrack: {
-    width: '80%',
-    height: 6,
-    backgroundColor: '#1F2937',
-    borderRadius: 3,
-    marginTop: 16,
-    marginBottom: 40,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%', backgroundColor: '#4F46E5' },
-  loader: { height: 56 },
-  button: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 18,
-    paddingHorizontal: 40,
-    borderRadius: 16,
-    minWidth: 240,
-    alignItems: 'center',
-  },
-  buttonDisabled: { backgroundColor: '#312E81' },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  error: { color: '#EF4444', marginTop: 16, textAlign: 'center' },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background, padding: 24 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    settingsIcon: { color: c.mutedText, fontSize: 22 },
+    greeting: { color: c.text, fontSize: 22, fontWeight: 'bold', flexShrink: 1 },
+    mockBadge: {
+      color: c.warning,
+      fontSize: 12,
+      borderColor: c.warning,
+      borderWidth: 1,
+      borderRadius: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    statsRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
+    statCard: { flex: 1, backgroundColor: c.card, borderRadius: 16, padding: 16 },
+    statLabel: { color: c.mutedText, fontSize: 13, marginBottom: 6 },
+    statValue: { color: c.text, fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
+    statUnit: { color: c.mutedText, fontSize: 14, fontWeight: '500' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    countdownLabel: { color: c.mutedText, fontSize: 14, marginBottom: 8 },
+    countdown: { color: c.text, fontSize: 48, fontWeight: 'bold', fontVariant: ['tabular-nums'] },
+    progressTrack: {
+      width: '80%',
+      height: 6,
+      backgroundColor: c.track,
+      borderRadius: 3,
+      marginTop: 16,
+      marginBottom: 40,
+      overflow: 'hidden',
+    },
+    progressFill: { height: '100%', backgroundColor: c.primary },
+    loader: { height: 56 },
+    button: {
+      backgroundColor: c.primary,
+      paddingVertical: 18,
+      paddingHorizontal: 40,
+      borderRadius: 16,
+      minWidth: 240,
+      alignItems: 'center',
+    },
+    buttonDisabled: { backgroundColor: c.primaryDisabled },
+    buttonText: { color: c.onPrimary, fontSize: 18, fontWeight: '700' },
+    error: { color: c.error, marginTop: 16, textAlign: 'center' },
+  });
+}

@@ -6,12 +6,16 @@ import {
   GoogleAccount,
   signInWithGoogle,
 } from '@/services/google-auth';
+import { Palette } from '@/constants/theme';
+import { useAppTheme } from '@/context/app-theme';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignInScreen() {
+  const { colors } = useAppTheme();
+  const styles = makeStyles(colors);
   const [loading, setLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +95,7 @@ export default function SignInScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.text} />
         </View>
       </SafeAreaView>
     );
@@ -107,7 +111,7 @@ export default function SignInScreen() {
           style={styles.button}
           disabled={loading}
           onPress={onGooglePress}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Google ile Giris Yap</Text>}
+          {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Google ile Giris Yap</Text>}
         </TouchableOpacity>
 
         {error && <Text style={styles.error}>{error}</Text>}
@@ -116,19 +120,21 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0F19' },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#9CA3AF', marginBottom: 40 },
-  button: {
-    backgroundColor: '#4F46E5',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    minWidth: 240,
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  error: { color: '#EF4444', marginTop: 16, textAlign: 'center' },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+    title: { fontSize: 36, fontWeight: 'bold', color: c.text, marginBottom: 8 },
+    subtitle: { fontSize: 16, color: c.mutedText, marginBottom: 40 },
+    button: {
+      backgroundColor: c.primary,
+      paddingVertical: 14,
+      paddingHorizontal: 32,
+      borderRadius: 12,
+      minWidth: 240,
+      alignItems: 'center',
+    },
+    buttonText: { color: c.onPrimary, fontSize: 16, fontWeight: '600' },
+    error: { color: c.error, marginTop: 16, textAlign: 'center' },
+  });
+}
