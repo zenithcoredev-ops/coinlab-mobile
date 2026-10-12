@@ -1,118 +1,95 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { API_URL } from '@/constants/config';
 
-// The backend mounts an authenticated `/mining` router, but its routes and
-// response shapes are not documented yet. Until they are confirmed, the app
-// runs against the local mock below. Flip this once the endpoints exist.
-export const USE_MOCK_MINING = true;
-
+// Fixed session length the backend uses; mirrors `endsAt - startedAt`. Only
+// needed client-side as the progress-bar denominator while idle.
 export const MINING_SESSION_MS = 24 * 60 * 60 * 1000;
 
+export type MiningSession = {
+  /** Pass to POST /mining/:sessionId/complete. */
+  id: string;
+  /** ISO-8601 UTC. */
+  startedAt: string;
+  /** ISO-8601 UTC. */
+  endsAt: string;
+  /** Ad boosts watched this session so far (max 8). */
+  adBoosts: number;
+  /** Milliseconds left as of `serverTime`. */
+  remainingMs: number;
+  /** CLB earned by this session so far; not yet settled into `balance`. */
+  accruedClb: number;
+};
+
 export type MiningStatus = {
-  /** True while a 24h session is running. */
-  isActive: boolean;
-  /** ISO timestamp; null when no session is running. */
-  startedAt: string | null;
-  /** ISO timestamp; null when no session is running. */
-  endsAt: string | null;
-  /** Settled CLB balance, excluding the running session's accrual. */
-  balance: number;
-  /** CLB earned per hour while a session is active. */
-  pointsPerHour: number;
-  /** Current mining speed in Th/s. */
-  hashrateThs: number;
+  /** ISO-8601 UTC; use it, not the device clock, if you need absolute time. */
+  serverTime: string;
+  /** Settled CLB balance, excluding the running session's accrual. Decimal, sent as a string. */
+  balance: string;
+  /** Current mining speed in Th/s (0 when idle). */
+  currentThs: number;
+  /** Null when no session is running. */
+  session: MiningSession | null;
+};
+
+export type CompletedSession = {
+  id: string;
+  userId: string;
+  startedAt: string;
+  endsAt: string;
+  status: string;
+  /** Decimal, sent as a string. */
+  clbEarned: string;
+  adBoosts: number;
 };
 
 export class MiningApiError extends Error {
   constructor(
     message: string,
-    public status?: number
+    public status?: number,
+    /** Present on 429s - seconds to wait before retrying. */
+    public retryAfterSec?: number
   ) {
     super(message);
   }
 }
 
 /** Balance including what the running session has earned so far. */
-export function liveBalance(status: MiningStatus, now = Date.now()): number {
-  if (!status.isActive || !status.startedAt || !status.endsAt) return status.balance;
-  const start = Date.parse(status.startedAt);
-  const end = Date.parse(status.endsAt);
-  const elapsedMs = Math.max(0, Math.min(now, end) - start);
-  return status.balance + (elapsedMs / 3_600_000) * status.pointsPerHour;
+export function liveBalance(status: MiningStatus): number {
+  return parseFloat(status.balance) + (status.session?.accruedClb ?? 0);
 }
 
 export function getMiningStatus(token: string): Promise<MiningStatus> {
-  return USE_MOCK_MINING ? mockGetStatus() : request(token, 'GET', '/mining/status');
+  return request(token, 'GET', '/mining/status');
 }
 
 export function startMining(token: string): Promise<MiningStatus> {
-  return USE_MOCK_MINING ? mockStart() : request(token, 'POST', '/mining/start');
+  return request(token, 'POST', '/mining/start');
 }
 
-async function request(token: string, method: 'GET' | 'POST', path: string): Promise<MiningStatus> {
+/** Call after an ad finishes playing. Limited to one call per 30s, 8 per session. */
+export function watchAd(token: string): Promise<MiningStatus> {
+  return request(token, 'POST', '/mining/watch-ad');
+}
+
+/** Settles a session early. Not required - an expired session closes itself on the next status/start call. */
+export function completeSession(token: string, sessionId: string): Promise<CompletedSession> {
+  return request(token, 'POST', `/mining/${sessionId}/complete`);
+}
+
+async function request<T>(token: string, method: 'GET' | 'POST', path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new MiningApiError(data?.error ?? `Istek basarisiz (${res.status})`, res.status);
+    const retryAfterSec = data?.retryAfterSec ?? parseRetryAfter(res.headers.get('Retry-After'));
+    throw new MiningApiError(data?.error ?? `Istek basarisiz (${res.status})`, res.status, retryAfterSec);
   }
-  return data as MiningStatus;
+  return data as T;
 }
 
-// --- Mock implementation -----------------------------------------------------
-// Persisted in AsyncStorage so the countdown survives app reloads.
-
-const MOCK_STORAGE_KEY = 'coinlab_mock_mining';
-const MOCK_POINTS_PER_HOUR = 0.25;
-const MOCK_HASHRATE_THS = 12.5;
-
-const idleStatus: MiningStatus = {
-  isActive: false,
-  startedAt: null,
-  endsAt: null,
-  balance: 0,
-  pointsPerHour: MOCK_POINTS_PER_HOUR,
-  hashrateThs: 0,
-};
-
-async function readMock(): Promise<MiningStatus> {
-  try {
-    const raw = await AsyncStorage.getItem(MOCK_STORAGE_KEY);
-    return raw ? { ...idleStatus, ...JSON.parse(raw) } : idleStatus;
-  } catch {
-    return idleStatus;
-  }
-}
-
-async function writeMock(status: MiningStatus) {
-  await AsyncStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(status));
-}
-
-async function mockGetStatus(): Promise<MiningStatus> {
-  const status = await readMock();
-  if (status.isActive && status.endsAt && Date.parse(status.endsAt) <= Date.now()) {
-    // Session finished: settle the earned points and go idle.
-    const settled = { ...idleStatus, balance: liveBalance(status) };
-    await writeMock(settled);
-    return settled;
-  }
-  return status;
-}
-
-async function mockStart(): Promise<MiningStatus> {
-  const current = await mockGetStatus();
-  if (current.isActive) return current;
-  const now = Date.now();
-  const next: MiningStatus = {
-    ...current,
-    isActive: true,
-    startedAt: new Date(now).toISOString(),
-    endsAt: new Date(now + MINING_SESSION_MS).toISOString(),
-    hashrateThs: MOCK_HASHRATE_THS,
-  };
-  await writeMock(next);
-  return next;
+function parseRetryAfter(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const seconds = Number(header);
+  return Number.isFinite(seconds) ? seconds : undefined;
 }

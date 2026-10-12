@@ -4,16 +4,13 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { loadStoredAuth } from '@/services/auth-storage';
-import {
-  getMiningStatus,
-  liveBalance,
-  MINING_SESSION_MS,
-  MiningStatus,
-  startMining,
-  USE_MOCK_MINING,
-} from '@/services/mining-api';
+import { getMiningStatus, liveBalance, MINING_SESSION_MS, MiningStatus, startMining } from '@/services/mining-api';
 import { Palette } from '@/constants/theme';
 import { useAppTheme } from '@/context/app-theme';
+
+// Re-poll while mining so accrued CLB and ad boosts stay current; the
+// countdown itself ticks locally between polls (see `remainingMs` below).
+const POLL_MS = 30_000;
 
 export default function Dashboard() {
   const { colors } = useAppTheme();
@@ -22,6 +19,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<MiningStatus | null>(null);
+  const [fetchedAt, setFetchedAt] = useState(0);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -32,6 +30,7 @@ export default function Dashboard() {
     refreshingRef.current = true;
     try {
       setStatus(await getMiningStatus(authToken));
+      setFetchedAt(Date.now());
       setError(null);
     } catch (e: any) {
       setError(e.message ?? 'Durum alinamadi');
@@ -57,14 +56,24 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  const endsAtMs = status?.endsAt ? Date.parse(status.endsAt) : null;
-  const remainingMs = status?.isActive && endsAtMs ? Math.max(0, endsAtMs - now) : 0;
+  useEffect(() => {
+    if (!token || !status?.session) return;
+    const id = setInterval(() => refresh(token), POLL_MS);
+    return () => clearInterval(id);
+  }, [token, status?.session, refresh]);
+
+  const session = status?.session ?? null;
+  // The server only gives us a snapshot of `remainingMs` at fetch time; tick
+  // it down locally using elapsed wall-clock time since then, not the device
+  // clock's absolute notion of "now".
+  const elapsedSinceFetch = fetchedAt ? Math.max(0, now - fetchedAt) : 0;
+  const remainingMs = session ? Math.max(0, session.remainingMs - elapsedSinceFetch) : 0;
   const isMining = remainingMs > 0;
 
   // When the session runs out, fetch the settled balance from the source.
   useEffect(() => {
-    if (token && status?.isActive && remainingMs === 0) refresh(token);
-  }, [token, status?.isActive, remainingMs, refresh]);
+    if (token && session && remainingMs === 0) refresh(token);
+  }, [token, session, remainingMs, refresh]);
 
   async function onStart() {
     if (!token) return;
@@ -72,6 +81,7 @@ export default function Dashboard() {
     setError(null);
     try {
       setStatus(await startMining(token));
+      setFetchedAt(Date.now());
     } catch (e: any) {
       setError(e.message ?? 'Kazim baslatilamadi');
     } finally {
@@ -79,20 +89,20 @@ export default function Dashboard() {
     }
   }
 
-  const balance = status ? liveBalance(status, now) : 0;
-  const hashrate = isMining ? (status?.hashrateThs ?? 0) : 0;
-  const progress = isMining ? 1 - remainingMs / MINING_SESSION_MS : 0;
+  const balance = status ? liveBalance(status) : 0;
+  const hashrate = status?.currentThs ?? 0;
+  const sessionDurationMs = session
+    ? Math.max(1, Date.parse(session.endsAt) - Date.parse(session.startedAt))
+    : MINING_SESSION_MS;
+  const progress = isMining ? 1 - remainingMs / sessionDurationMs : 0;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}>Hos geldin {name}</Text>
-        <View style={styles.headerActions}>
-          {USE_MOCK_MINING && <Text style={styles.mockBadge}>Demo veri</Text>}
-          <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="Ayarlar">
-            <Text style={styles.settingsIcon}>⚙</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="Ayarlar">
+          <Text style={styles.settingsIcon}>⚙</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.statsRow}>
@@ -110,7 +120,7 @@ export default function Dashboard() {
 
       <View style={styles.center}>
         <Text style={styles.countdownLabel}>{isMining ? 'Kalan sure' : 'Oturum suresi'}</Text>
-        <Text style={styles.countdown}>{formatDuration(isMining ? remainingMs : MINING_SESSION_MS)}</Text>
+        <Text style={styles.countdown}>{formatDuration(isMining ? remainingMs : sessionDurationMs)}</Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
         </View>
@@ -148,18 +158,8 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background, padding: 24 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     settingsIcon: { color: c.mutedText, fontSize: 22 },
     greeting: { color: c.text, fontSize: 22, fontWeight: 'bold', flexShrink: 1 },
-    mockBadge: {
-      color: c.warning,
-      fontSize: 12,
-      borderColor: c.warning,
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-    },
     statsRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
     statCard: { flex: 1, backgroundColor: c.card, borderRadius: 16, padding: 16 },
     statLabel: { color: c.mutedText, fontSize: 13, marginBottom: 6 },
