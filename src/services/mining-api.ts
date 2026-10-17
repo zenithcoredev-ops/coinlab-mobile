@@ -1,4 +1,4 @@
-import { API_URL } from '@/constants/config';
+import { apiRequest } from '@/services/api';
 
 // Fixed session length the backend uses; mirrors `endsAt - startedAt`. Only
 // needed client-side as the progress-bar denominator while idle.
@@ -41,55 +41,25 @@ export type CompletedSession = {
   adBoosts: number;
 };
 
-export class MiningApiError extends Error {
-  constructor(
-    message: string,
-    public status?: number,
-    /** Present on 429s - seconds to wait before retrying. */
-    public retryAfterSec?: number
-  ) {
-    super(message);
-  }
-}
-
 /** Balance including what the running session has earned so far. */
 export function liveBalance(status: MiningStatus): number {
   return parseFloat(status.balance) + (status.session?.accruedClb ?? 0);
 }
 
 export function getMiningStatus(token: string): Promise<MiningStatus> {
-  return request(token, 'GET', '/mining/status');
+  return apiRequest(token, 'GET', '/mining/status');
 }
 
 export function startMining(token: string): Promise<MiningStatus> {
-  return request(token, 'POST', '/mining/start');
+  return apiRequest(token, 'POST', '/mining/start');
 }
 
 /** Call after an ad finishes playing. Limited to one call per 30s, 8 per session. */
 export function watchAd(token: string): Promise<MiningStatus> {
-  return request(token, 'POST', '/mining/watch-ad');
+  return apiRequest(token, 'POST', '/mining/watch-ad');
 }
 
 /** Settles a session early. Not required - an expired session closes itself on the next status/start call. */
 export function completeSession(token: string, sessionId: string): Promise<CompletedSession> {
-  return request(token, 'POST', `/mining/${sessionId}/complete`);
-}
-
-async function request<T>(token: string, method: 'GET' | 'POST', path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    const retryAfterSec = data?.retryAfterSec ?? parseRetryAfter(res.headers.get('Retry-After'));
-    throw new MiningApiError(data?.error ?? `Istek basarisiz (${res.status})`, res.status, retryAfterSec);
-  }
-  return data as T;
-}
-
-function parseRetryAfter(header: string | null): number | undefined {
-  if (!header) return undefined;
-  const seconds = Number(header);
-  return Number.isFinite(seconds) ? seconds : undefined;
+  return apiRequest(token, 'POST', `/mining/${sessionId}/complete`);
 }

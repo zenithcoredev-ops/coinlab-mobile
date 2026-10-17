@@ -6,6 +6,7 @@ import {
 } from '@react-native-google-signin/google-signin';
 
 import { GOOGLE_WEB_CLIENT_ID } from '@/constants/config';
+import type { Translate } from '@/i18n/translate';
 
 export type GoogleAccount = {
   accessToken: string;
@@ -34,16 +35,16 @@ export async function consumeGoogleRedirect(): Promise<GoogleAccount | null> {
   return null;
 }
 
-export function describeGoogleError(error: unknown): string {
+export function describeGoogleError(error: unknown, t: Translate): string {
   if (isErrorWithCode(error)) {
     switch (error.code) {
       case statusCodes.IN_PROGRESS:
-        return 'Giris zaten devam ediyor';
+        return t('signin.alreadyInProgress');
       case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-        return 'Google Play Hizmetleri bulunamadi veya guncel degil';
+        return t('signin.playServices');
       case DEVELOPER_ERROR:
-        return 'Google yapilandirma hatasi: Android OAuth istemcisinin paket adi ve SHA-1 degerini kontrol et';
+        return t('signin.developerError');
     }
   }
-  return 'Hata: ' + (error instanceof Error ? error.message : String(error));
+  return t('signin.error', { detail: error instanceof Error ? error.message : String(error) });
 }

@@ -1,31 +1,48 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { AppThemeProvider, useAppTheme } from '@/context/app-theme';
+import { SessionProvider } from '@/context/session';
+import { I18nProvider } from '@/i18n';
+import { fontAssets, theme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  return (
-    <AppThemeProvider>
-      <ThemedStack />
-    </AppThemeProvider>
-  );
-}
+const navigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: theme.colors.background,
+    card: theme.colors.tabBar,
+    text: theme.colors.text,
+    primary: theme.colors.accent,
+    border: theme.colors.border,
+  },
+};
 
-function ThemedStack() {
-  const { theme } = useAppTheme();
+export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts(fontAssets);
+  const ready = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
+
   return (
-    <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
-      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-      <AnimatedSplashOverlay />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="dashboard" />
-        <Stack.Screen name="settings" />
-      </Stack>
-    </ThemeProvider>
+    <I18nProvider>
+      <SessionProvider>
+        <ThemeProvider value={navigationTheme}>
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+        </ThemeProvider>
+      </SessionProvider>
+    </I18nProvider>
   );
 }
