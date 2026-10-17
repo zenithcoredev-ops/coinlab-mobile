@@ -50,6 +50,8 @@ const tr: Record<TranslationKey, string> = {
 
   'streak.days_one': '{count} gün',
   'streak.days_other': '{count} gün',
+  'streak.atRisk_one': '{count} günlük serini korumak için 00:00 UTC’den önce kazı',
+  'streak.atRisk_other': '{count} günlük serini korumak için 00:00 UTC’den önce kazı',
 
   'placeholder.soon': 'Çok yakında',
 };

@@ -10,7 +10,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { useMining } from '@/context/mining';
 import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
-import { formatClb, formatDuration, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
+import { formatClb, formatDuration, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
 
@@ -96,6 +96,9 @@ export default function MineScreen() {
           <Text style={styles.status}>
             {isMining ? t('mine.timeLeftValue', { time: formatDuration(remainingMs) }) : t('mine.tapToStart')}
           </Text>
+          {status && isStreakAtRisk(status) && !isMining ? (
+            <Text style={styles.streakWarning}>{t('streak.atRisk', { count: status.streak })}</Text>
+          ) : null}
           {!!error || (!status && !!error) ? (
             <Text style={styles.error}>{error || t('mine.statusFailed')}</Text>
           ) : null}
@@ -170,6 +173,13 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSizes.sm,
     textAlign: 'center',
     width: ringSize + 60,
+  },
+  streakWarning: {
+    color: theme.colors.danger,
+    fontFamily: theme.fonts.bodyMedium,
+    fontSize: theme.fontSizes.sm,
+    marginTop: theme.spacing.md,
+    textAlign: 'center',
   },
   error: {
     color: theme.colors.danger,

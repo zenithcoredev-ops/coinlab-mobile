@@ -1,12 +1,13 @@
 import type { MiningStatus } from '@/services/mining-api';
 
-import { formatDuration, liveBalanceAt, remainingSinceFetch, sessionProgress } from '../mining-math';
+import { formatDuration, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress } from '../mining-math';
 
 function status(over: Partial<MiningStatus> = {}, session: Partial<NonNullable<MiningStatus['session']>> | null = {}): MiningStatus {
   return {
     serverTime: '2026-01-01T00:00:00Z',
     balance: '10',
     streak: 0,
+    streakMinedToday: false,
     currentThs: 1,
     thsBreakdown: { base: 1, friends: 0, ads: 0, league: 0, steps: 0 },
     session:
@@ -70,5 +71,14 @@ describe('formatDuration', () => {
     expect(formatDuration(0)).toBe('00:00:00');
     expect(formatDuration(86_399_000)).toBe('23:59:59');
     expect(formatDuration(3_661_000)).toBe('01:01:01');
+  });
+});
+
+describe('isStreakAtRisk', () => {
+  it('is true only for a live streak not yet extended today', () => {
+    expect(isStreakAtRisk(status({ streak: 3, streakMinedToday: false }))).toBe(true);
+    expect(isStreakAtRisk(status({ streak: 3, streakMinedToday: true }))).toBe(false);
+    expect(isStreakAtRisk(status({ streak: 0, streakMinedToday: false }))).toBe(false);
+    expect(isStreakAtRisk(null)).toBe(false);
   });
 });

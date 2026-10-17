@@ -48,6 +48,8 @@ const en = {
 
   'streak.days_one': '{count} day',
   'streak.days_other': '{count} days',
+  'streak.atRisk_one': 'Mine before 00:00 UTC to keep your {count}-day streak',
+  'streak.atRisk_other': 'Mine before 00:00 UTC to keep your {count}-day streak',
 
   'placeholder.soon': 'Coming soon',
 } as const;
