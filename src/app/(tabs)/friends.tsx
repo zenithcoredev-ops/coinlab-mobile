@@ -18,26 +18,16 @@ import { Button, Card, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
-import type { TranslationKey } from '@/i18n';
-import { ApiError } from '@/services/api';
 import {
   Friend,
   FriendOverview,
   getFriends,
-  InviteErrorCode,
+  inviteErrorKey,
   isInviteCodeFormat,
   normalizeInviteCode,
   submitInviteCode,
 } from '@/services/friends-api';
 import { theme } from '@/theme';
-
-const INVITE_ERRORS: Record<InviteErrorCode, TranslationKey> = {
-  invalid_format: 'friends.err.invalidFormat',
-  not_found: 'friends.err.notFound',
-  own_code: 'friends.err.ownCode',
-  cycle: 'friends.err.cycle',
-  already_referred: 'friends.err.alreadyReferred',
-};
 
 export default function FriendsScreen() {
   const { t } = useI18n();
@@ -109,7 +99,7 @@ export default function FriendsScreen() {
       setCodeInput('');
       await Promise.all([load(), refreshMining()]);
     } catch (e) {
-      const key = e instanceof ApiError && e.code ? INVITE_ERRORS[e.code as InviteErrorCode] : undefined;
+      const key = inviteErrorKey(e);
       setApplyMessage({ text: key ? t(key) : t('common.unknownError'), ok: false });
     } finally {
       setApplying(false);

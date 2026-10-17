@@ -128,6 +128,22 @@ const en = {
   'profile.version': 'CoinLab v{version}',
   'common.cancel': 'Cancel',
 
+  'onboarding.skip': 'Skip',
+  'onboarding.next': 'Next',
+  'onboarding.start': 'Get started',
+  'onboarding.welcome.title': 'Welcome to CoinLab',
+  'onboarding.welcome.body': 'Mine CLB every day, keep your streak going and invite friends to mine faster.',
+  'onboarding.referral.label': 'Got a friend’s invite code?',
+  'onboarding.referral.hint': 'Enter it once to get a +{bonus} CLB welcome bonus.',
+  'onboarding.mine.title': 'Mine once a day, that’s it',
+  'onboarding.mine.body': 'Tap “Start mining” and your 24-hour session runs on its own. No walking, tapping or watching needed.',
+  'onboarding.friends.title': 'Streaks and friends',
+  'onboarding.friends.body': 'Mine every day to build your streak. Each friend who keeps mining adds +{ths} Th/s to your speed.',
+  'onboarding.notif.title': 'Stay in the loop',
+  'onboarding.notif.body': 'Turn on notifications and we’ll remind you before your streak runs out.',
+  'onboarding.notif.allow': 'Allow notifications',
+  'onboarding.notif.enabled': 'Notifications on ✓',
+  'onboarding.notif.denied': 'No problem. You can turn them on later in Profile.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

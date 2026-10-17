@@ -26,3 +26,8 @@ export function getAccount(token: string): Promise<Account> {
 export function deleteAccount(token: string): Promise<{ ok: true }> {
   return apiRequest(token, 'DELETE', '/me', { confirm: 'DELETE' });
 }
+
+/** Marks the welcome tour as seen so it isn't shown again on this account. */
+export function completeOnboarding(token: string): Promise<{ ok: true }> {
+  return apiRequest(token, 'POST', '/me/onboarding-complete');
+}

@@ -130,6 +130,22 @@ const tr: Record<TranslationKey, string> = {
   'profile.version': 'CoinLab v{version}',
   'common.cancel': 'Vazgeç',
 
+  'onboarding.skip': 'Atla',
+  'onboarding.next': 'İleri',
+  'onboarding.start': 'Başla',
+  'onboarding.welcome.title': 'CoinLab’e hoş geldin',
+  'onboarding.welcome.body': 'Her gün CLB kazı, serini koru ve arkadaşlarını davet ederek daha hızlı kazı.',
+  'onboarding.referral.label': 'Arkadaşının davet kodu var mı?',
+  'onboarding.referral.hint': 'Bir kez gir, +{bonus} CLB hoş geldin bonusu kazan.',
+  'onboarding.mine.title': 'Günde bir kez kazı, hepsi bu',
+  'onboarding.mine.body': '“Kazımı başlat”a dokun, 24 saatlik oturumun kendiliğinden çalışsın. Yürümek, dokunmak ya da izlemek gerekmez.',
+  'onboarding.friends.title': 'Seri ve arkadaşlar',
+  'onboarding.friends.body': 'Her gün kazarak serini büyüt. Kazımaya devam eden her arkadaşın hızına +{ths} Th/s ekler.',
+  'onboarding.notif.title': 'Haberdar ol',
+  'onboarding.notif.body': 'Bildirimleri aç, serin bitmeden önce sana hatırlatalım.',
+  'onboarding.notif.allow': 'Bildirimlere izin ver',
+  'onboarding.notif.enabled': 'Bildirimler açık ✓',
+  'onboarding.notif.denied': 'Sorun değil. Daha sonra Profil’den açabilirsin.',
 };
 
 export default tr;
