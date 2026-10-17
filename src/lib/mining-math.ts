@@ -46,3 +46,8 @@ export function formatDuration(ms: number): string {
 export function formatClb(value: number): string {
   return value.toFixed(5);
 }
+
+/** A streak that is still alive but will expire at 00:00 UTC unless the user mines today. */
+export function isStreakAtRisk(status: MiningStatus | null): boolean {
+  return !!status && status.streak > 0 && !status.streakMinedToday;
+}
