@@ -6,7 +6,9 @@ export class ApiError extends Error {
     message: string,
     public status?: number,
     /** Present on 429s - seconds to wait before retrying. */
-    public retryAfterSec?: number
+    public retryAfterSec?: number,
+    /** Machine-readable reason from the backend (e.g. `already_referred`), when it sends one. */
+    public code?: string
   ) {
     super(message);
   }
@@ -26,7 +28,7 @@ export async function apiRequest<T>(
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const retryAfterSec = data?.retryAfterSec ?? parseRetryAfter(res.headers.get('Retry-After'));
-    throw new ApiError(data?.error ?? '', res.status, retryAfterSec);
+    throw new ApiError(data?.error ?? '', res.status, retryAfterSec, data?.code);
   }
   return data as T;
 }
