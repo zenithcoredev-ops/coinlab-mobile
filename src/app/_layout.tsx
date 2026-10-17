@@ -39,6 +39,7 @@ export default function RootLayout() {
           <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
             <Stack.Screen name="index" />
+            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
             <Stack.Screen name="(tabs)" />
           </Stack>
         </ThemeProvider>

@@ -1,4 +1,5 @@
-import { apiRequest } from '@/services/api';
+import type { TranslationKey } from '@/i18n';
+import { ApiError, apiRequest } from '@/services/api';
 
 export type Friend = {
   id: string;
@@ -43,4 +44,18 @@ export function normalizeInviteCode(raw: string): string {
 /** Matches the backend's format: `CLB-` plus five letters/digits. */
 export function isInviteCodeFormat(raw: string): boolean {
   return /^CLB-[A-Z0-9]{5}$/.test(normalizeInviteCode(raw));
+}
+
+const INVITE_ERROR_KEYS: Record<InviteErrorCode, TranslationKey> = {
+  invalid_format: 'friends.err.invalidFormat',
+  not_found: 'friends.err.notFound',
+  own_code: 'friends.err.ownCode',
+  cycle: 'friends.err.cycle',
+  already_referred: 'friends.err.alreadyReferred',
+};
+
+/** Translation key for a failed invite-code call, or undefined if the failure isn't a known one. */
+export function inviteErrorKey(error: unknown): TranslationKey | undefined {
+  if (!(error instanceof ApiError) || !error.code) return undefined;
+  return INVITE_ERROR_KEYS[error.code as InviteErrorCode];
 }

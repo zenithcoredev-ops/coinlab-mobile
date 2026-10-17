@@ -12,10 +12,12 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export default function TabsLayout() {
   const { t } = useI18n();
-  const { ready, auth } = useSession();
+  const { ready, auth, onboarding } = useSession();
 
   if (!ready) return null;
   if (!auth) return <Redirect href="/" />;
+  if (onboarding === 'unknown') return null;
+  if (onboarding === 'pending') return <Redirect href="/onboarding" />;
 
   const icon = (name: IconName, focusedName: IconName) =>
     function TabIcon({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) {
