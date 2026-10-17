@@ -5,11 +5,11 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui';
+import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
 import { inviteErrorKey, isInviteCodeFormat, normalizeInviteCode, submitInviteCode } from '@/services/friends-api';
-import { requestPermission, saveNotificationsEnabled } from '@/services/notifications';
 import { theme } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -33,6 +33,7 @@ export default function OnboardingScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const { auth, onboarding, completeOnboarding } = useSession();
+  const { setEnabled } = useNotifications();
   const [index, setIndex] = useState(0);
   const [finishing, setFinishing] = useState(false);
 
@@ -76,13 +77,7 @@ export default function OnboardingScreen() {
   }
 
   async function onAllowNotifications() {
-    const state = await requestPermission();
-    if (state === 'granted') {
-      await saveNotificationsEnabled(true);
-      setNotifState('granted');
-    } else {
-      setNotifState('denied');
-    }
+    setNotifState((await setEnabled(true)) ? 'granted' : 'denied');
   }
 
   return (

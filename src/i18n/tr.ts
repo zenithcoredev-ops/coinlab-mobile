@@ -146,6 +146,9 @@ const tr: Record<TranslationKey, string> = {
   'onboarding.notif.allow': 'Bildirimlere izin ver',
   'onboarding.notif.enabled': 'Bildirimler açık ✓',
   'onboarding.notif.denied': 'Sorun değil. Daha sonra Profil’den açabilirsin.',
+  'reminder.title': 'CoinLab',
+  'streak.reminder_one': '{count} günlük serin 00:00 UTC’de bitiyor. Korumak için kazımı başlat!',
+  'streak.reminder_other': '{count} günlük serin 00:00 UTC’de bitiyor. Korumak için kazımı başlat!',
 };
 
 export default tr;
