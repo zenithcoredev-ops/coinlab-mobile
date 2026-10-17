@@ -93,3 +93,43 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 });
+
+type SegmentedProps<T extends string> = {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+};
+
+export function Segmented<T extends string>({ value, options, onChange }: SegmentedProps<T>) {
+  return (
+    <View style={segStyles.row}>
+      {options.map((o) => {
+        const selected = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(o.value)}
+            style={[segStyles.item, selected && segStyles.itemSelected]}>
+            <Text style={[segStyles.label, selected && segStyles.labelSelected]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const segStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.overlay,
+    borderRadius: theme.radius.md,
+    padding: 3,
+    gap: 3,
+  },
+  item: { flex: 1, paddingVertical: theme.spacing.sm + 2, borderRadius: theme.radius.md - 3, alignItems: 'center' },
+  itemSelected: { backgroundColor: theme.colors.accentSoft, borderWidth: 1, borderColor: theme.colors.accentBorder },
+  label: { color: theme.colors.textMuted, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm },
+  labelSelected: { color: theme.colors.accent },
+});

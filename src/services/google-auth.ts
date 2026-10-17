@@ -30,6 +30,11 @@ export async function signInWithGoogle(): Promise<GoogleAccount | null> {
   return { accessToken, email: response.data.user.email, name: response.data.user.name };
 }
 
+/** Forgets the Google account so the next sign-in shows the account picker. */
+export async function signOutGoogle(): Promise<void> {
+  await GoogleSignin.signOut();
+}
+
 /** Only the web flow returns via redirect; native sign-in resolves in place. */
 export async function consumeGoogleRedirect(): Promise<GoogleAccount | null> {
   return null;

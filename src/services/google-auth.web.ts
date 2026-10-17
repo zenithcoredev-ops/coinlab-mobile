@@ -24,6 +24,9 @@ export async function signInWithGoogle(): Promise<GoogleAccount | null> {
   return new Promise(() => {});
 }
 
+/** Nothing to clear: the web flow keeps no Google session of its own. */
+export async function signOutGoogle(): Promise<void> {}
+
 /** Reads the access token Google put in the URL hash after the redirect, if any. */
 export async function consumeGoogleRedirect(): Promise<GoogleAccount | null> {
   const hash = window.location.hash;
