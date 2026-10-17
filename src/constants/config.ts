@@ -4,3 +4,8 @@ export const API_URL = 'https://coinlab-backend-production.up.railway.app';
 // (package name + SHA-1) in the same Google Cloud project; it isn't referenced here.
 export const GOOGLE_WEB_CLIENT_ID = '635281390211-uosidnt9iul2djhupts3u2r87ckhtr2a.apps.googleusercontent.com';
 export const APP_SCHEME = 'coinlabmobile';
+
+// Placeholders: replace with the real pages and mailbox before release.
+export const PRIVACY_POLICY_URL = 'https://coinlab.example/privacy';
+export const TERMS_URL = 'https://coinlab.example/terms';
+export const SUPPORT_EMAIL = 'support@coinlab.example';

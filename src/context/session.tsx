@@ -1,5 +1,7 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { setUnauthorizedHandler } from '@/services/api';
+import { signOutGoogle } from '@/services/google-auth';
 import { clearStoredAuth, loadStoredAuth, saveStoredAuth, StoredAuth } from '@/services/auth-storage';
 
 type SessionState = {
@@ -28,8 +30,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    await signOutGoogle().catch(() => {});
     await clearStoredAuth();
     setAuth(null);
+  }, []);
+
+  // A 401 from any call means this login is no longer valid; drop back to sign-in.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearStoredAuth().finally(() => setAuth(null));
+    });
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   const value = useMemo(() => ({ ready, auth, signIn, signOut }), [ready, auth, signIn, signOut]);
