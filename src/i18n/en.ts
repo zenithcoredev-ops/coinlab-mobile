@@ -82,6 +82,22 @@ const en = {
   'friends.status.active': '● Active',
   'friends.status.inactive': '○ Inactive, bonus paused',
 
+  'tasks.title': 'Daily tasks',
+  'tasks.subtitle': 'Resets every day at 00:00 UTC. Collect an instant CLB reward for each one you complete.',
+  'tasks.loadFailed': 'Could not load your tasks',
+  'tasks.earnedToday': 'Earned today',
+  'tasks.resetsIn': 'Resets in {time}',
+  'tasks.mine.title': 'Start daily mining',
+  'tasks.mine.hint': 'Start a mining session today',
+  'tasks.friend.title': 'Invite a friend',
+  'tasks.friend.hint': 'Have a friend you invited who is mining',
+  'tasks.claim': 'Claim',
+  'tasks.locked': 'Locked',
+  'tasks.done': 'Claimed ✓',
+  'tasks.claimed': '+{reward} CLB added to your balance',
+  'tasks.err.notComplete': 'This task isn’t complete yet.',
+  'tasks.err.alreadyClaimed': 'You already claimed this task today.',
+
   'placeholder.soon': 'Coming soon',
 } as const;
 
