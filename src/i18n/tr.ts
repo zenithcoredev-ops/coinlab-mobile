@@ -84,6 +84,22 @@ const tr: Record<TranslationKey, string> = {
   'friends.status.active': '● Aktif',
   'friends.status.inactive': '○ Pasif, bonus durdu',
 
+  'tasks.title': 'Günlük görevler',
+  'tasks.subtitle': 'Her gün 00:00 UTC’de sıfırlanır. Tamamladığın her görev için anında CLB ödülü al.',
+  'tasks.loadFailed': 'Görevlerin yüklenemedi',
+  'tasks.earnedToday': 'Bugün kazanılan',
+  'tasks.resetsIn': 'Sıfırlanmaya {time}',
+  'tasks.mine.title': 'Günlük kazımı başlat',
+  'tasks.mine.hint': 'Bugün bir kazım oturumu başlat',
+  'tasks.friend.title': 'Arkadaş davet et',
+  'tasks.friend.hint': 'Davet ettiğin ve kazım yapan bir arkadaşın olsun',
+  'tasks.claim': 'Al',
+  'tasks.locked': 'Kilitli',
+  'tasks.done': 'Alındı ✓',
+  'tasks.claimed': 'Bakiyene +{reward} CLB eklendi',
+  'tasks.err.notComplete': 'Bu görev henüz tamamlanmadı.',
+  'tasks.err.alreadyClaimed': 'Bu görevin ödülünü bugün zaten aldın.',
+
   'placeholder.soon': 'Çok yakında',
 };
 
