@@ -1,207 +1,176 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
-import { useSession } from '@/context/session';
+import { ProgressRing } from '@/components/progress-ring';
+import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
+import { ScreenHeader } from '@/components/screen-header';
+import { useMining } from '@/context/mining';
+import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
-import { ApiError } from '@/services/api';
-import { getMiningStatus, liveBalance, MINING_SESSION_MS, MiningStatus, startMining } from '@/services/mining-api';
+import { formatClb, formatDuration, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
+import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
-
-// Re-poll while mining so accrued CLB and ad boosts stay current; the
-// countdown itself ticks locally between polls (see `remainingMs` below).
-const POLL_MS = 30_000;
 
 export default function MineScreen() {
   const { t } = useI18n();
-  const { auth } = useSession();
-  const token = auth?.token ?? null;
-  const [status, setStatus] = useState<MiningStatus | null>(null);
-  const [fetchedAt, setFetchedAt] = useState(0);
-  const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
-  const refreshingRef = useRef(false);
+  const { status, fetchedAt, error, starting, start, refresh } = useMining();
+  const now = useNow(1000);
+  const [rateOpen, setRateOpen] = useState(false);
 
-  const describe = useCallback(
-    (e: unknown, fallbackKey: 'mine.statusFailed' | 'mine.startFailed') =>
-      e instanceof ApiError && e.message ? e.message : t(fallbackKey),
-    [t]
-  );
-
-  const refresh = useCallback(
-    async (authToken: string) => {
-      if (refreshingRef.current) return;
-      refreshingRef.current = true;
-      try {
-        setStatus(await getMiningStatus(authToken));
-        setFetchedAt(Date.now());
-        setError(null);
-      } catch (e) {
-        setError(describe(e, 'mine.statusFailed'));
-      } finally {
-        refreshingRef.current = false;
-      }
-    },
-    [describe]
-  );
-
-  useEffect(() => {
-    if (token) refresh(token);
-  }, [token, refresh]);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    if (!token || !status?.session) return;
-    const id = setInterval(() => refresh(token), POLL_MS);
-    return () => clearInterval(id);
-  }, [token, status?.session, refresh]);
-
+  const sinceFetch = fetchedAt ? now - fetchedAt : 0;
   const session = status?.session ?? null;
-  // The server only gives us a snapshot of `remainingMs` at fetch time; tick it
-  // down locally using elapsed wall-clock time since then, not the device clock's
-  // absolute notion of "now".
-  const elapsedSinceFetch = fetchedAt ? Math.max(0, now - fetchedAt) : 0;
-  const remainingMs = session ? Math.max(0, session.remainingMs - elapsedSinceFetch) : 0;
+  const remainingMs = remainingSinceFetch(status, sinceFetch);
   const isMining = remainingMs > 0;
+  const boosted = (status?.thsBreakdown.ads ?? 0) > 0;
+  const ths = status?.currentThs ?? 0;
+  const balance = liveBalanceAt(status, sinceFetch);
+  const durationMs = session ? Math.max(1, Date.parse(session.endsAt) - Date.parse(session.startedAt)) : MINING_SESSION_MS;
+  const progress = isMining ? sessionProgress(remainingMs, durationMs) : 0;
 
-  // When the session runs out, fetch the settled balance from the source.
+  // The session just ran out locally: pull the settled balance from the server.
+  const expired = !!session && remainingMs === 0;
   useEffect(() => {
-    if (token && session && remainingMs === 0) refresh(token);
-  }, [token, session, remainingMs, refresh]);
+    if (expired) refresh();
+  }, [expired, refresh]);
 
-  async function onStart() {
-    if (!token) return;
-    setStarting(true);
-    setError(null);
-    try {
-      setStatus(await startMining(token));
-      setFetchedAt(Date.now());
-    } catch (e) {
-      setError(describe(e, 'mine.startFailed'));
-    } finally {
-      setStarting(false);
-    }
-  }
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = isMining ? withRepeat(withTiming(0.55, { duration: 800 }), -1, true) : 1;
+  }, [isMining, pulse]);
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
 
-  const balance = status ? liveBalance(status) : 0;
-  const hashrate = status?.currentThs ?? 0;
-  const sessionDurationMs = session
-    ? Math.max(1, Date.parse(session.endsAt) - Date.parse(session.startedAt))
-    : MINING_SESSION_MS;
-  const progress = isMining ? 1 - remainingMs / sessionDurationMs : 0;
+  const ringColor = boosted ? theme.colors.accent : theme.colors.positive;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>{t('mine.balance')}</Text>
-          <Text style={styles.statValue}>{balance.toFixed(4)}</Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScreenHeader />
+
+        <View style={styles.balanceCard}>
+          <Text style={styles.balanceLabel}>{t('mine.balance')}</Text>
+          <View style={styles.balanceRow}>
+            <Text style={styles.balanceValue}>{formatClb(balance)}</Text>
+            <Text style={styles.balanceUnit}>{t('mine.clb')}</Text>
+          </View>
+          <View style={styles.balanceSub}>
+            <Text style={[styles.rateText, isMining && { color: ringColor }]}>
+              {isMining ? t('mine.rateActive', { ths: ths.toFixed(2) }) : t('mine.rateStopped')}
+            </Text>
+            <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
+              <Ionicons name="information-circle-outline" size={16} color={theme.colors.textMuted} />
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>{t('mine.speed')}</Text>
-          <Text style={styles.statValue}>
-            {hashrate.toFixed(2)} <Text style={styles.statUnit}>Th/s</Text>
+
+        <View style={styles.mineZone}>
+          <ProgressRing progress={progress} color={ringColor}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              disabled={isMining || starting || !status}
+              onPress={start}
+              style={[styles.core, isMining ? styles.coreActive : styles.coreIdle]}
+              accessibilityRole="button"
+              accessibilityLabel={isMining ? t('mine.active') : t('mine.start')}>
+              {starting || (!status && !error) ? (
+                <ActivityIndicator color={isMining ? theme.colors.text : theme.colors.accentInk} />
+              ) : isMining ? (
+                <>
+                  <Animated.View style={pulseStyle}>
+                    <Ionicons name="hammer" size={30} color={theme.colors.text} />
+                  </Animated.View>
+                  <Text style={styles.coreActiveLabel}>{t('mine.active')}</Text>
+                  <Text style={[styles.coreRate, { color: ringColor }]}>{ths.toFixed(2)} Th/s</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="hammer" size={34} color={theme.colors.accentInk} />
+                  <Text style={styles.coreIdleLabel}>{t('mine.startLabel')}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </ProgressRing>
+
+          <Text style={styles.status}>
+            {isMining ? t('mine.timeLeftValue', { time: formatDuration(remainingMs) }) : t('mine.tapToStart')}
           </Text>
+          {!!error || (!status && !!error) ? (
+            <Text style={styles.error}>{error || t('mine.statusFailed')}</Text>
+          ) : null}
         </View>
-      </View>
+      </ScrollView>
 
-      <View style={styles.center}>
-        <Text style={styles.countdownLabel}>{isMining ? t('mine.timeLeft') : t('mine.sessionTime')}</Text>
-        <Text style={styles.countdown}>{formatDuration(isMining ? remainingMs : sessionDurationMs)}</Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-        </View>
-
-        {status === null && !error ? (
-          <ActivityIndicator color={theme.colors.text} style={styles.loader} />
-        ) : (
-          <TouchableOpacity
-            style={[styles.button, (isMining || starting || !token) && styles.buttonDisabled]}
-            disabled={isMining || starting || !token}
-            onPress={onStart}>
-            {starting ? (
-              <ActivityIndicator color={theme.colors.accentInk} />
-            ) : (
-              <Text style={styles.buttonText}>{isMining ? t('mine.active') : t('mine.start')}</Text>
-            )}
-          </TouchableOpacity>
-        )}
-
-        {error && <Text style={styles.error}>{error}</Text>}
-      </View>
+      <RateBreakdownModal
+        visible={rateOpen}
+        breakdown={status?.thsBreakdown ?? null}
+        total={ths}
+        onClose={() => setRateOpen(false)}
+      />
     </SafeAreaView>
   );
 }
 
-function formatDuration(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
-}
+const { size: ringSize, coreSize } = theme.ring;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background, padding: theme.spacing.xl },
-  statsRow: { flexDirection: 'row', gap: theme.spacing.md, marginTop: theme.spacing.lg },
-  statCard: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
+  balanceCard: {
+    backgroundColor: theme.colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
-    padding: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl - 2,
   },
-  statLabel: {
+  balanceLabel: {
     color: theme.colors.textMuted,
     fontFamily: theme.fonts.body,
-    fontSize: theme.fontSizes.sm,
+    fontSize: theme.fontSizes.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.9,
     marginBottom: 6,
   },
-  statValue: {
+  balanceRow: { flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.sm },
+  balanceValue: {
     color: theme.colors.text,
     fontFamily: theme.fonts.monoMedium,
-    fontSize: theme.fontSizes.xl,
+    fontSize: theme.fontSizes.xxl,
     fontVariant: ['tabular-nums'],
   },
-  statUnit: { color: theme.colors.textMuted, fontSize: theme.fontSizes.md },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  countdownLabel: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.body,
-    fontSize: theme.fontSizes.md,
-    marginBottom: theme.spacing.sm,
-  },
-  countdown: {
-    color: theme.colors.text,
-    fontFamily: theme.fonts.mono,
-    fontSize: 44,
-    fontVariant: ['tabular-nums'],
-  },
-  progressTrack: {
-    width: '80%',
-    height: 6,
-    backgroundColor: theme.colors.ringTrack,
-    borderRadius: theme.radius.sm,
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.xxl + 8,
-    overflow: 'hidden',
-  },
-  progressFill: { height: '100%', backgroundColor: theme.colors.positive },
-  loader: { height: 56 },
-  button: {
-    backgroundColor: theme.colors.accent,
-    paddingVertical: theme.spacing.lg + 2,
-    paddingHorizontal: theme.spacing.xxl + 8,
-    borderRadius: theme.radius.lg,
-    minWidth: 240,
+  balanceUnit: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.md },
+  balanceSub: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: theme.spacing.sm },
+  rateText: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm - 0.5 },
+  mineZone: { alignItems: 'center', justifyContent: 'center', paddingVertical: theme.spacing.xxl + 8 },
+  core: {
+    width: coreSize,
+    height: coreSize,
+    borderRadius: coreSize / 2,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    padding: theme.spacing.sm,
   },
-  buttonDisabled: { backgroundColor: theme.colors.accentDim },
-  buttonText: { color: theme.colors.accentInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg },
+  coreIdle: { backgroundColor: theme.colors.coreIdle },
+  coreActive: { backgroundColor: theme.colors.coreActive },
+  coreIdleLabel: {
+    color: theme.colors.accentInk,
+    fontFamily: theme.fonts.display,
+    fontSize: theme.fontSizes.sm,
+    textAlign: 'center',
+  },
+  coreActiveLabel: { color: theme.colors.textMuted, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs },
+  coreRate: { fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.md },
+  status: {
+    marginTop: theme.spacing.xl,
+    color: theme.colors.textMuted,
+    fontFamily: theme.fonts.mono,
+    fontSize: theme.fontSizes.sm,
+    textAlign: 'center',
+    width: ringSize + 60,
+  },
   error: {
     color: theme.colors.danger,
     fontFamily: theme.fonts.body,

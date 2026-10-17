@@ -4,7 +4,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { AppState } from 'react-native';
 
 import { dictionaries, Language, Translate, translate } from './translate';
-import type { TranslationKey } from './en';
+import type { PluralKey, TranslationKey } from './en';
 
 /** What the user picked in Profile; 'auto' follows the device. */
 export type LanguagePreference = 'auto' | Language;
@@ -72,4 +72,4 @@ export function useI18n() {
   if (!ctx) throw new Error('useI18n must be used inside I18nProvider');
   return ctx;
 }
-export type { Language, Translate, TranslationKey };
+export type { Language, PluralKey, Translate, TranslationKey };

@@ -4,6 +4,7 @@ const en = {
   'tabs.friends': 'Friends',
   'tabs.profile': 'Profile',
 
+  'common.close': 'Close',
   'common.loading': 'Loading…',
   'common.retry': 'Try again',
   'common.unknownError': 'Something went wrong',
@@ -31,9 +32,27 @@ const en = {
   'mine.statusFailed': 'Could not load status',
   'mine.startFailed': 'Could not start mining',
   'mine.sessionExpired': 'No session found, please sign in again',
+  'mine.startLabel': 'START\nMINING',
+  'mine.tapToStart': 'Tap to start your daily mining',
+  'mine.timeLeftValue': 'Time left {time}',
+  'mine.rateActive': 'Mining at {ths} Th/s',
+  'mine.rateStopped': 'Mining stopped',
+
+  'rate.title': 'Your mining speed',
+  'rate.base': 'Base speed',
+  'rate.friends': 'Friends bonus',
+  'rate.steps': 'Steps bonus',
+  'rate.league': 'League bonus',
+  'rate.ads': 'Active ad boosts',
+  'rate.total': 'Total',
+
+  'streak.days_one': '{count} day',
+  'streak.days_other': '{count} days',
 
   'placeholder.soon': 'Coming soon',
 } as const;
 
 export type TranslationKey = keyof typeof en;
+/** `foo` for every `foo_one`/`foo_other` pair; pass `{ count }` to pick the form. */
+export type PluralKey = TranslationKey extends infer K ? (K extends `${infer B}_one` ? B : never) : never;
 export default en;
