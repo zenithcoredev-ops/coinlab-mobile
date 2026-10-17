@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { NotificationsProvider } from '@/context/notifications';
 import { SessionProvider } from '@/context/session';
 import { I18nProvider } from '@/i18n';
 import { fontAssets, theme } from '@/theme';
@@ -34,16 +35,18 @@ export default function RootLayout() {
 
   return (
     <I18nProvider>
-      <SessionProvider>
-        <ThemeProvider value={navigationTheme}>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-        </ThemeProvider>
-      </SessionProvider>
+      <NotificationsProvider>
+        <SessionProvider>
+          <ThemeProvider value={navigationTheme}>
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+          </ThemeProvider>
+        </SessionProvider>
+      </NotificationsProvider>
     </I18nProvider>
   );
 }

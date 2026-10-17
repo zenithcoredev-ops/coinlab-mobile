@@ -5,10 +5,17 @@ import { ColorValue } from 'react-native';
 
 import { MiningProvider } from '@/context/mining';
 import { useSession } from '@/context/session';
+import { useStreakReminder } from '@/hooks/use-streak-reminder';
 import { useI18n } from '@/i18n';
 import { theme } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+
+// Rendered inside MiningProvider so it can read the streak state.
+function ReminderSync() {
+  useStreakReminder();
+  return null;
+}
 
 export default function TabsLayout() {
   const { t } = useI18n();
@@ -26,6 +33,7 @@ export default function TabsLayout() {
 
   return (
     <MiningProvider>
+      <ReminderSync />
       <Tabs
         screenOptions={{
           headerShown: false,

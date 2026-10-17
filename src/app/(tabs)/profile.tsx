@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { ComponentProps, useCallback, useEffect, useState } from 'react';
+import { ComponentProps, useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,18 +10,12 @@ import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { PRIVACY_POLICY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/constants/config';
 import { useMining } from '@/context/mining';
+import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
 import { ApiError } from '@/services/api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
-import {
-  getPermissionState,
-  loadNotificationsEnabled,
-  PermissionState,
-  requestPermission,
-  saveNotificationsEnabled,
-} from '@/services/notifications';
 import { theme } from '@/theme';
 
 export default function ProfileScreen() {
@@ -31,36 +25,20 @@ export default function ProfileScreen() {
   const token = auth?.token ?? null;
 
   const [account, setAccount] = useState<Account | null>(null);
-  const [notifEnabled, setNotifEnabled] = useState(true);
-  const [permission, setPermission] = useState<PermissionState>('undetermined');
+  const { active: notifOn, permission, setEnabled, refreshPermission } = useNotifications();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       if (token) getAccount(token).then(setAccount).catch(() => {});
-      getPermissionState().then(setPermission).catch(() => {});
-    }, [token])
+      refreshPermission();
+    }, [token, refreshPermission])
   );
 
-  useEffect(() => {
-    loadNotificationsEnabled().then(setNotifEnabled);
-  }, []);
-
-  const notifOn = notifEnabled && permission === 'granted';
-
   async function onToggleNotifications(next: boolean) {
-    if (!next) {
-      setNotifEnabled(false);
-      await saveNotificationsEnabled(false);
-      return;
-    }
-    const state = await requestPermission();
-    setPermission(state);
-    if (state === 'granted') {
-      setNotifEnabled(true);
-      await saveNotificationsEnabled(true);
-    } else {
+    const enabled = await setEnabled(next);
+    if (next && !enabled) {
       Alert.alert(t('profile.notif.deniedTitle'), t('profile.notif.deniedBody'), [
         { text: t('common.cancel'), style: 'cancel' },
         { text: t('profile.notif.openSettings'), onPress: () => Linking.openSettings() },
