@@ -22,3 +22,7 @@ export async function loadStoredAuth(): Promise<StoredAuth | null> {
 export async function saveStoredAuth(auth: StoredAuth) {
   await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
 }
+
+export async function clearStoredAuth() {
+  await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+}

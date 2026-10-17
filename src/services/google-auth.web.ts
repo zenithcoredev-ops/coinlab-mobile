@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 
 import { GOOGLE_WEB_CLIENT_ID } from '@/constants/config';
+import type { Translate } from '@/i18n/translate';
 
 export type GoogleAccount = {
   accessToken: string;
@@ -39,6 +40,6 @@ export async function consumeGoogleRedirect(): Promise<GoogleAccount | null> {
   return { accessToken, email: userInfo.email, name: userInfo.name ?? null };
 }
 
-export function describeGoogleError(error: unknown): string {
-  return 'Hata: ' + (error instanceof Error ? error.message : String(error));
+export function describeGoogleError(error: unknown, t: Translate): string {
+  return t('signin.error', { detail: error instanceof Error ? error.message : String(error) });
 }

@@ -24,3 +24,5 @@ jobs:
       - run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
 
       - run: npx tsc --noEmit
+
+      - run: npm test -- --ci

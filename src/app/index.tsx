@@ -1,51 +1,34 @@
-import { API_URL } from '@/constants/config';
-import { loadStoredAuth, saveStoredAuth } from '@/services/auth-storage';
-import {
-  consumeGoogleRedirect,
-  describeGoogleError,
-  GoogleAccount,
-  signInWithGoogle,
-} from '@/services/google-auth';
-import { Palette } from '@/constants/theme';
-import { useAppTheme } from '@/context/app-theme';
-import { useRouter } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { API_URL } from '@/constants/config';
+import { useSession } from '@/context/session';
+import { useI18n } from '@/i18n';
+import { consumeGoogleRedirect, describeGoogleError, GoogleAccount, signInWithGoogle } from '@/services/google-auth';
+import { theme } from '@/theme';
+
 export default function SignInScreen() {
-  const { colors } = useAppTheme();
-  const styles = makeStyles(colors);
+  const { t } = useI18n();
+  const { ready, auth, signIn } = useSession();
   const [loading, setLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
-  // Finish a web OAuth redirect if one is in flight; otherwise restore a saved
-  // session so the app doesn't show the sign-in screen again after a reload.
+  // Finish a web OAuth redirect if one is in flight.
   useEffect(() => {
     (async () => {
       try {
         const account = await consumeGoogleRedirect();
-        if (account) {
-          setBootstrapping(false);
-          await completeSignIn(account);
-          return;
-        }
+        if (account) await completeSignIn(account);
       } catch (e) {
-        setError(describeGoogleError(e));
+        setError(describeGoogleError(e, t));
+      } finally {
         setBootstrapping(false);
-        return;
       }
-
-      const stored = await loadStoredAuth();
-      if (stored) {
-        router.replace({ pathname: '/dashboard', params: { name: stored.name } });
-        return;
-      }
-
-      setBootstrapping(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function onGooglePress() {
@@ -55,7 +38,7 @@ export default function SignInScreen() {
       const account = await signInWithGoogle();
       if (account) await completeSignIn(account);
     } catch (e) {
-      setError(describeGoogleError(e));
+      setError(describeGoogleError(e, t));
     } finally {
       setLoading(false);
     }
@@ -65,7 +48,7 @@ export default function SignInScreen() {
     setLoading(true);
     setError(null);
     try {
-      const signinRes = await fetch(`${API_URL}/auth/signin`, {
+      const res = await fetch(`${API_URL}/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -75,27 +58,26 @@ export default function SignInScreen() {
           name: account.name,
         }),
       });
-      const data = await signinRes.json();
-
+      const data = await res.json();
       if (data.token) {
-        const name = data.user?.name ?? 'Kullanici';
-        await saveStoredAuth({ token: data.token, name });
-        router.replace({ pathname: '/dashboard', params: { name } });
+        await signIn({ token: data.token, name: data.user?.name ?? t('signin.defaultName') });
       } else {
-        setError('Giris basarisiz: ' + JSON.stringify(data));
+        setError(t('signin.failed', { detail: data?.error ?? JSON.stringify(data) }));
       }
     } catch (e: any) {
-      setError('Hata: ' + e.message);
+      setError(t('signin.error', { detail: e.message }));
     } finally {
       setLoading(false);
     }
   }
 
-  if (bootstrapping) {
+  if (ready && auth) return <Redirect href="/(tabs)" />;
+
+  if (!ready || bootstrapping) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <ActivityIndicator color={colors.text} />
+          <ActivityIndicator color={theme.colors.text} />
         </View>
       </SafeAreaView>
     );
@@ -104,14 +86,15 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>CoinLab</Text>
-        <Text style={styles.subtitle}>Kazanmaya baslamak icin giris yap</Text>
+        <Text style={styles.title}>{t('signin.title')}</Text>
+        <Text style={styles.subtitle}>{t('signin.subtitle')}</Text>
 
-        <TouchableOpacity
-          style={styles.button}
-          disabled={loading}
-          onPress={onGooglePress}>
-          {loading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.buttonText}>Google ile Giris Yap</Text>}
+        <TouchableOpacity style={styles.button} disabled={loading} onPress={onGooglePress}>
+          {loading ? (
+            <ActivityIndicator color={theme.colors.accentInk} />
+          ) : (
+            <Text style={styles.buttonText}>{t('signin.google')}</Text>
+          )}
         </TouchableOpacity>
 
         {error && <Text style={styles.error}>{error}</Text>}
@@ -120,21 +103,29 @@ export default function SignInScreen() {
   );
 }
 
-function makeStyles(c: Palette) {
-  return StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.background },
-    content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-    title: { fontSize: 36, fontWeight: 'bold', color: c.text, marginBottom: 8 },
-    subtitle: { fontSize: 16, color: c.mutedText, marginBottom: 40 },
-    button: {
-      backgroundColor: c.primary,
-      paddingVertical: 14,
-      paddingHorizontal: 32,
-      borderRadius: 12,
-      minWidth: 240,
-      alignItems: 'center',
-    },
-    buttonText: { color: c.onPrimary, fontSize: 16, fontWeight: '600' },
-    error: { color: c.error, marginTop: 16, textAlign: 'center' },
-  });
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: theme.spacing.xl },
+  title: {
+    fontFamily: theme.fonts.display,
+    fontSize: theme.fontSizes.xxl + 4,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  subtitle: {
+    fontFamily: theme.fonts.body,
+    fontSize: theme.fontSizes.md + 2,
+    color: theme.colors.textMuted,
+    marginBottom: theme.spacing.xxl + 8,
+  },
+  button: {
+    backgroundColor: theme.colors.accent,
+    paddingVertical: theme.spacing.lg - 2,
+    paddingHorizontal: theme.spacing.xxl,
+    borderRadius: theme.radius.md,
+    minWidth: 240,
+    alignItems: 'center',
+  },
+  buttonText: { color: theme.colors.accentInk, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md + 2 },
+  error: { color: theme.colors.danger, fontFamily: theme.fonts.body, marginTop: theme.spacing.lg, textAlign: 'center' },
+});
