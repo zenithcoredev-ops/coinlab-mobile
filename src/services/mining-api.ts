@@ -19,13 +19,25 @@ export type MiningSession = {
   accruedClb: number;
 };
 
+/** Th/s contributed by each source; the parts add up to `currentThs`. */
+export type ThsBreakdown = {
+  base: number;
+  friends: number;
+  ads: number;
+  league: number;
+  steps: number;
+};
+
 export type MiningStatus = {
   /** ISO-8601 UTC; use it, not the device clock, if you need absolute time. */
   serverTime: string;
   /** Settled CLB balance, excluding the running session's accrual. Decimal, sent as a string. */
   balance: string;
-  /** Current mining speed in Th/s (0 when idle). */
+  /** Consecutive-day mining streak. */
+  streak: number;
+  /** Current mining speed in Th/s (base speed even when idle). */
   currentThs: number;
+  thsBreakdown: ThsBreakdown;
   /** Null when no session is running. */
   session: MiningSession | null;
 };
@@ -40,11 +52,6 @@ export type CompletedSession = {
   clbEarned: string;
   adBoosts: number;
 };
-
-/** Balance including what the running session has earned so far. */
-export function liveBalance(status: MiningStatus): number {
-  return parseFloat(status.balance) + (status.session?.accruedClb ?? 0);
-}
 
 export function getMiningStatus(token: string): Promise<MiningStatus> {
   return apiRequest(token, 'GET', '/mining/status');

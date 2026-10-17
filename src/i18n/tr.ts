@@ -6,6 +6,7 @@ const tr: Record<TranslationKey, string> = {
   'tabs.friends': 'Arkadaşlar',
   'tabs.profile': 'Profil',
 
+  'common.close': 'Kapat',
   'common.loading': 'Yükleniyor…',
   'common.retry': 'Tekrar dene',
   'common.unknownError': 'Bir şeyler ters gitti',
@@ -33,6 +34,22 @@ const tr: Record<TranslationKey, string> = {
   'mine.statusFailed': 'Durum alınamadı',
   'mine.startFailed': 'Kazım başlatılamadı',
   'mine.sessionExpired': 'Oturum bulunamadı, lütfen tekrar giriş yap',
+  'mine.startLabel': 'KAZIMI\nBAŞLAT',
+  'mine.tapToStart': 'Günlük kazımını başlatmak için dokun',
+  'mine.timeLeftValue': 'Kalan süre {time}',
+  'mine.rateActive': '{ths} Th/s ile kazılıyor',
+  'mine.rateStopped': 'Kazım durdu',
+
+  'rate.title': 'Kazım hızın',
+  'rate.base': 'Temel hız',
+  'rate.friends': 'Arkadaş bonusu',
+  'rate.steps': 'Adım bonusu',
+  'rate.league': 'Lig bonusu',
+  'rate.ads': 'Aktif reklam takviyeleri',
+  'rate.total': 'Toplam',
+
+  'streak.days_one': '{count} gün',
+  'streak.days_other': '{count} gün',
 
   'placeholder.soon': 'Çok yakında',
 };
