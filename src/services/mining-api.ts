@@ -59,8 +59,13 @@ export function getMiningStatus(token: string): Promise<MiningStatus> {
   return apiRequest(token, 'GET', '/mining/status');
 }
 
+/** Minutes the device's local time is ahead of UTC (e.g. +180 for UTC+3); the server uses it for the Night Owl badge. */
+export function localUtcOffsetMinutes(date = new Date()): number {
+  return -date.getTimezoneOffset();
+}
+
 export function startMining(token: string): Promise<MiningStatus> {
-  return apiRequest(token, 'POST', '/mining/start');
+  return apiRequest(token, 'POST', '/mining/start', { tzOffsetMinutes: localUtcOffsetMinutes() });
 }
 
 /** Call after an ad finishes playing. Limited to one call per 30s, 8 per session. */
