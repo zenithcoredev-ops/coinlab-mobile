@@ -45,6 +45,7 @@ export default function TabsLayout() {
         }}>
         <Tabs.Screen name="index" options={{ title: t('tabs.mine'), tabBarIcon: icon('hammer-outline', 'hammer') }} />
         <Tabs.Screen name="tasks" options={{ title: t('tabs.tasks'), tabBarIcon: icon('checkbox-outline', 'checkbox') }} />
+        <Tabs.Screen name="league" options={{ title: t('tabs.league'), tabBarIcon: icon('trophy-outline', 'trophy') }} />
         <Tabs.Screen name="friends" options={{ title: t('tabs.friends'), tabBarIcon: icon('people-outline', 'people') }} />
         <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: icon('person-outline', 'person') }} />
       </Tabs>
