@@ -9,9 +9,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BadgeGrid } from '@/components/badge-grid';
 import { ShareCardModal } from '@/components/share-card-modal';
+import { SupportModal } from '@/components/support-modal';
 import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
-import { PRIVACY_POLICY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/constants/config';
+import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/config';
 import { useMining } from '@/context/mining';
 import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
@@ -36,6 +37,7 @@ export default function ProfileScreen() {
   const [badgesFailed, setBadgesFailed] = useState(false);
   const [newBadgeIds, setNewBadgeIds] = useState<string[]>([]);
   const [shareCard, setShareCard] = useState<ShareCard | null>(null);
+  const [supportOpen, setSupportOpen] = useState(false);
   const { active: notifOn, permission, setEnabled, refreshPermission } = useNotifications();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -198,11 +200,7 @@ export default function ProfileScreen() {
         </Card>
 
         <SectionLabel>{t('profile.help')}</SectionLabel>
-        <LinkRow
-          label={t('profile.support')}
-          detail={SUPPORT_EMAIL}
-          onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
-        />
+        <LinkRow label={t('profile.support')} onPress={() => setSupportOpen(true)} />
 
         <SectionLabel>{t('profile.legal')}</SectionLabel>
         <LinkRow label={t('profile.privacy')} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)} />
@@ -223,6 +221,7 @@ export default function ProfileScreen() {
         {!!version && <Text style={styles.version}>{t('profile.version', { version })}</Text>}
       </ScrollView>
       <ShareCardModal card={shareCard} onClose={() => setShareCard(null)} />
+      <SupportModal visible={supportOpen} onClose={() => setSupportOpen(false)} />
     </SafeAreaView>
   );
 }
