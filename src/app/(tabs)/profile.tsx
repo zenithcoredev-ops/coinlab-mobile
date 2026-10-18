@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, S
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BadgeGrid } from '@/components/badge-grid';
+import { ShareCardModal } from '@/components/share-card-modal';
 import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { PRIVACY_POLICY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/constants/config';
@@ -17,6 +18,7 @@ import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
 import { FRAME_NAME_KEYS } from '@/lib/league';
+import { badgeCard, ShareCard } from '@/lib/share';
 import { Badge, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
 import { theme } from '@/theme';
@@ -33,6 +35,7 @@ export default function ProfileScreen() {
   const [badges, setBadges] = useState<Badge[] | null>(null);
   const [badgesFailed, setBadgesFailed] = useState(false);
   const [newBadgeIds, setNewBadgeIds] = useState<string[]>([]);
+  const [shareCard, setShareCard] = useState<ShareCard | null>(null);
   const { active: notifOn, permission, setEnabled, refreshPermission } = useNotifications();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -154,7 +157,7 @@ export default function ProfileScreen() {
         {badges ? (
           <>
             <Text style={styles.badgeCount}>{t('profile.badgesCount', { earned: earnedCount(badges), total: badges.length })}</Text>
-            <BadgeGrid badges={badges} newIds={newBadgeIds} onPressBadge={() => {}} />
+            <BadgeGrid badges={badges} newIds={newBadgeIds} onPressBadge={(id, earned) => earned && setShareCard(badgeCard(id))} />
           </>
         ) : (
           badgesFailed && <Text style={styles.error}>{t('profile.badgeLoadFailed')}</Text>
@@ -219,6 +222,7 @@ export default function ProfileScreen() {
 
         {!!version && <Text style={styles.version}>{t('profile.version', { version })}</Text>}
       </ScrollView>
+      <ShareCardModal card={shareCard} onClose={() => setShareCard(null)} />
     </SafeAreaView>
   );
 }

@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/screen-header';
+import { ShareCardModal } from '@/components/share-card-modal';
 import { Button, Card, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
@@ -19,6 +20,7 @@ import {
   RESULT_KEYS,
   STAGE_NAME_KEYS,
 } from '@/lib/league';
+import { promotionCard, ShareCard, tournamentCard } from '@/lib/share';
 import {
   DIAMOND_LEAGUE,
   entryProgress,
@@ -52,6 +54,7 @@ export default function LeagueScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [seenWeekEnd, setSeenWeekEnd] = useState<string | null>(null);
   const [seenTournament, setSeenTournament] = useState<string | null>(null);
+  const [share, setShare] = useState<{ card: ShareCard; detail?: string } | null>(null);
   const now = useNow(30_000);
 
   useEffect(() => {
@@ -131,9 +134,19 @@ export default function LeagueScreen() {
           <>
             <HowItWorks />
             {tournamentResult && (
-              <TournamentResultBanner result={tournamentResult} onDismiss={() => dismissTournamentResult(tournamentResult)} />
+              <TournamentResultBanner
+                result={tournamentResult}
+                onDismiss={() => dismissTournamentResult(tournamentResult)}
+                onShare={(card, detail) => setShare({ card, detail })}
+              />
             )}
-            {result && <ResultBanner result={result} onDismiss={() => dismissResult(result)} />}
+            {result && (
+              <ResultBanner
+                result={result}
+                onDismiss={() => dismissResult(result)}
+                onShare={(card, detail) => setShare({ card, detail })}
+              />
+            )}
             {view.state === 'locked' && <LockedCard entry={view.entry} />}
             {view.state === 'tournament' &&
               (isTournamentLive(view) ? (
@@ -150,6 +163,7 @@ export default function LeagueScreen() {
           </>
         )}
       </ScrollView>
+      <ShareCardModal card={share?.card ?? null} detail={share?.detail} onClose={() => setShare(null)} />
     </SafeAreaView>
   );
 }
@@ -173,8 +187,26 @@ function HowItWorks() {
   );
 }
 
-function ResultBanner({ result, onDismiss }: { result: LeagueResult; onDismiss: () => void }) {
+function ShareButton({ onPress }: { onPress: () => void }) {
   const { t } = useI18n();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={styles.bannerShare}>
+      <Text style={styles.bannerShareText}>{t('share.share')}</Text>
+    </Pressable>
+  );
+}
+
+function ResultBanner({
+  result,
+  onDismiss,
+  onShare,
+}: {
+  result: LeagueResult;
+  onDismiss: () => void;
+  onShare: (card: ShareCard, detail?: string) => void;
+}) {
+  const { t } = useI18n();
+  const card = promotionCard(result);
   const text = t(RESULT_KEYS[result.resultType], {
     league: t(LEAGUE_NAME_KEYS[result.toLeague]),
     rank: result.rank ?? '-',
@@ -185,6 +217,7 @@ function ResultBanner({ result, onDismiss }: { result: LeagueResult; onDismiss: 
     <Pressable onPress={onDismiss} accessibilityRole="button" accessibilityLabel={t('league.result.dismiss')}>
       <View style={[styles.banner, tone]}>
         <Text style={styles.bannerText}>{text}</Text>
+        {card && <ShareButton onPress={() => onShare(card, t(LEAGUE_NAME_KEYS[result.toLeague]))} />}
       </View>
     </Pressable>
   );
@@ -327,8 +360,17 @@ function TournamentCard({ rewards }: { rewards: TournamentRewardRow[] }) {
   );
 }
 
-function TournamentResultBanner({ result, onDismiss }: { result: TournamentResult; onDismiss: () => void }) {
+function TournamentResultBanner({
+  result,
+  onDismiss,
+  onShare,
+}: {
+  result: TournamentResult;
+  onDismiss: () => void;
+  onShare: (card: ShareCard, detail?: string) => void;
+}) {
   const { t } = useI18n();
+  const card = tournamentCard(result);
   const stage = t(STAGE_NAME_KEYS[result.stage]);
   let text: string;
   let tone = null;
@@ -350,6 +392,7 @@ function TournamentResultBanner({ result, onDismiss }: { result: TournamentResul
     <Pressable onPress={onDismiss} accessibilityRole="button" accessibilityLabel={t('league.result.dismiss')}>
       <View style={[styles.banner, tone]}>
         <Text style={styles.bannerText}>{text}</Text>
+        {card && result.reward && <ShareButton onPress={() => onShare(card, rewardText(t, result.reward!))} />}
       </View>
     </Pressable>
   );
@@ -421,6 +464,15 @@ const styles = StyleSheet.create({
   },
   bannerPromote: { backgroundColor: theme.colors.positiveSoft, borderColor: theme.colors.positiveBorder },
   bannerDemote: { backgroundColor: theme.colors.dangerSoft, borderColor: theme.colors.danger },
+  bannerShare: {
+    alignSelf: 'flex-start',
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.radius.pill,
+    paddingVertical: 6,
+    paddingHorizontal: theme.spacing.md,
+  },
+  bannerShareText: { color: theme.colors.accentInk, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.sm },
   bannerText: { color: theme.colors.text, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, lineHeight: 19 },
 
   header: {
