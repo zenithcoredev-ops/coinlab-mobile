@@ -10,20 +10,35 @@ import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
-import { LEAGUE_ICONS, LEAGUE_NAME_KEYS, MEDALS, RESULT_KEYS } from '@/lib/league';
+import {
+  FRAME_COLORS,
+  FRAME_NAME_KEYS,
+  LEAGUE_ICONS,
+  LEAGUE_NAME_KEYS,
+  MEDALS,
+  RESULT_KEYS,
+  STAGE_NAME_KEYS,
+} from '@/lib/league';
 import {
   DIAMOND_LEAGUE,
   entryProgress,
   formatWeekCountdown,
   getLeague,
+  isTournamentLive,
   LeagueResult,
+  LiveTournamentLeagueView,
   LeagueStanding,
   LeagueView,
   msUntilWeekEnd,
+  TournamentResult,
+  TournamentRewardRow,
+  TournamentStage,
 } from '@/services/league-api';
 import { theme } from '@/theme';
 
 const RESULT_SEEN_KEY = 'coinlab_league_result_seen';
+const TOURNAMENT_SEEN_KEY = 'coinlab_tournament_result_seen';
+const NEXT_STAGE: Record<TournamentStage, TournamentStage | null> = { qf: 'sf', sf: 'final', final: null };
 
 export default function LeagueScreen() {
   const { t } = useI18n();
@@ -36,11 +51,15 @@ export default function LeagueScreen() {
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [seenWeekEnd, setSeenWeekEnd] = useState<string | null>(null);
+  const [seenTournament, setSeenTournament] = useState<string | null>(null);
   const now = useNow(30_000);
 
   useEffect(() => {
     AsyncStorage.getItem(RESULT_SEEN_KEY)
       .then(setSeenWeekEnd)
+      .catch(() => {});
+    AsyncStorage.getItem(TOURNAMENT_SEEN_KEY)
+      .then(setSeenTournament)
       .catch(() => {});
   }, []);
 
@@ -66,7 +85,7 @@ export default function LeagueScreen() {
 
   // The week ended (Monday 00:00 UTC) while the screen was open: standings are new.
   const weekLeft = view ? msUntilWeekEnd(view, now - fetchedAt) : 0;
-  const rolledOver = view?.state === 'active' && weekLeft === 0;
+  const rolledOver = (view?.state === 'active' || (!!view && isTournamentLive(view))) && weekLeft === 0;
   useEffect(() => {
     if (rolledOver) load();
   }, [rolledOver, load]);
@@ -82,7 +101,13 @@ export default function LeagueScreen() {
     AsyncStorage.setItem(RESULT_SEEN_KEY, result.weekEnd).catch(() => {});
   }
 
+  function dismissTournamentResult(result: TournamentResult) {
+    setSeenTournament(result.id);
+    AsyncStorage.setItem(TOURNAMENT_SEEN_KEY, result.id).catch(() => {});
+  }
+
   const result = view?.lastResult && view.lastResult.weekEnd !== seenWeekEnd ? view.lastResult : null;
+  const tournamentResult = view?.tournamentResult && view.tournamentResult.id !== seenTournament ? view.tournamentResult : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -105,14 +130,23 @@ export default function LeagueScreen() {
         ) : (
           <>
             <HowItWorks />
+            {tournamentResult && (
+              <TournamentResultBanner result={tournamentResult} onDismiss={() => dismissTournamentResult(tournamentResult)} />
+            )}
             {result && <ResultBanner result={result} onDismiss={() => dismissResult(result)} />}
             {view.state === 'locked' && <LockedCard entry={view.entry} />}
-            {view.state === 'tournament' && (
-              <Card style={styles.block}>
-                <Text style={styles.cardTitle}>🏆 {t('league.tournamentActive')}</Text>
-              </Card>
-            )}
+            {view.state === 'tournament' &&
+              (isTournamentLive(view) ? (
+                <TournamentStageView view={view} msLeft={weekLeft} />
+              ) : (
+                <View style={styles.banner}>
+                  <Text style={styles.bannerText}>{t('tournament.pending')}</Text>
+                </View>
+              ))}
             {view.state === 'active' && <ActiveLeague view={view} msLeft={weekLeft} />}
+            {(view.league === DIAMOND_LEAGUE || view.state === 'tournament') && (
+              <TournamentCard rewards={view.tournamentRewards} />
+            )}
           </>
         )}
       </ScrollView>
@@ -122,7 +156,7 @@ export default function LeagueScreen() {
 
 function HowItWorks() {
   const { t } = useI18n();
-  const steps = ['league.how.step1', 'league.how.step2', 'league.how.step3'] as const;
+  const steps = ['league.how.step1', 'league.how.step2', 'league.how.step3', 'league.how.step4'] as const;
   return (
     <Card style={styles.block}>
       <Text style={styles.cardTitle}>{t('league.how.title')}</Text>
@@ -187,6 +221,10 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
   else requirement = t('league.promoteReqNone');
 
   const { days, hours, minutes } = formatWeekCountdown(msLeft);
+  const zoneLabels: ZoneLabels = {
+    promote: t('league.zone.promote'),
+    demote: lowerLeague ? t('league.zone.demoteTo', { league: lowerLeague.toUpperCase() }) : t('league.zone.demote'),
+  };
 
   return (
     <>
@@ -206,13 +244,23 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
 
       <SectionLabel>{t('league.title')}</SectionLabel>
       {standings.map((row, i) => (
-        <StandingRow key={row.rank} row={row} previous={standings[i - 1]} lowerLeague={lowerLeague} />
+        <StandingRow key={row.rank} row={row} previous={standings[i - 1]} labels={zoneLabels} />
       ))}
     </>
   );
 }
 
-function StandingRow({ row, previous, lowerLeague }: { row: LeagueStanding; previous?: LeagueStanding; lowerLeague: string | null }) {
+type ZoneLabels = { promote: string; demote: string };
+
+function StandingRow({
+  row,
+  previous,
+  labels,
+}: {
+  row: LeagueStanding;
+  previous?: LeagueStanding;
+  labels: ZoneLabels;
+}) {
   const { t } = useI18n();
   const medal = MEDALS[row.rank];
 
@@ -222,12 +270,8 @@ function StandingRow({ row, previous, lowerLeague }: { row: LeagueStanding; prev
 
   return (
     <>
-      {afterPromotion && <Text style={[styles.zoneLabel, { color: theme.colors.positive }]}>{t('league.zone.promote')}</Text>}
-      {startsDemotion && (
-        <Text style={[styles.zoneLabel, { color: theme.colors.danger }]}>
-          {lowerLeague ? t('league.zone.demoteTo', { league: lowerLeague.toUpperCase() }) : t('league.zone.demote')}
-        </Text>
-      )}
+      {afterPromotion && <Text style={[styles.zoneLabel, { color: theme.colors.positive }]}>{labels.promote}</Text>}
+      {startsDemotion && <Text style={[styles.zoneLabel, { color: theme.colors.danger }]}>{labels.demote}</Text>}
       <View
         style={[
           styles.row,
@@ -238,7 +282,12 @@ function StandingRow({ row, previous, lowerLeague }: { row: LeagueStanding; prev
         <Text style={[styles.rank, row.zone === 'promote' && { color: theme.colors.positive }, row.zone === 'demote' && { color: theme.colors.danger }]}>
           {medal ?? row.rank}
         </Text>
-        <View style={[styles.avatar, row.isYou && styles.avatarYou]}>
+        <View
+          style={[
+            styles.avatar,
+            row.isYou && styles.avatarYou,
+            row.frame && FRAME_COLORS[row.frame] ? { borderWidth: 2, borderColor: FRAME_COLORS[row.frame] } : null,
+          ]}>
           <Text style={[styles.avatarText, row.isYou && styles.avatarTextYou]}>{row.name.charAt(0).toUpperCase()}</Text>
         </View>
         <Text style={styles.name} numberOfLines={1}>
@@ -246,6 +295,91 @@ function StandingRow({ row, previous, lowerLeague }: { row: LeagueStanding; prev
         </Text>
         <Text style={styles.points}>{row.points.toFixed(2)}</Text>
       </View>
+    </>
+  );
+}
+
+function rewardText(t: ReturnType<typeof useI18n>['t'], reward: { clb: number; vipDays: number; frame: string }) {
+  const frameKey = FRAME_NAME_KEYS[reward.frame];
+  return t('tournament.rewardLine', {
+    clb: reward.clb,
+    days: reward.vipDays,
+    frame: frameKey ? t(frameKey) : reward.frame,
+  });
+}
+
+function TournamentCard({ rewards }: { rewards: TournamentRewardRow[] }) {
+  const { t } = useI18n();
+  const placeKeys = ['tournament.place.1', 'tournament.place.2', 'tournament.place.3'] as const;
+  return (
+    <Card style={styles.tournamentCard}>
+      <Text style={styles.cardTitle}>💎 {t('tournament.title')}</Text>
+      <Text style={styles.howText}>{t('tournament.desc')}</Text>
+      <SectionLabel>{t('tournament.rewardsTitle')}</SectionLabel>
+      {rewards.map((r) => (
+        <View key={r.rank} style={styles.rewardRow}>
+          <Text style={styles.rewardPlace}>{placeKeys[r.rank - 1] ? t(placeKeys[r.rank - 1]) : r.rank}</Text>
+          <Text style={styles.rewardValue}>{rewardText(t, r)}</Text>
+        </View>
+      ))}
+      <Text style={styles.note}>{t('tournament.note')}</Text>
+    </Card>
+  );
+}
+
+function TournamentResultBanner({ result, onDismiss }: { result: TournamentResult; onDismiss: () => void }) {
+  const { t } = useI18n();
+  const stage = t(STAGE_NAME_KEYS[result.stage]);
+  let text: string;
+  let tone = null;
+  if (result.outcome === 'advanced') {
+    const next = NEXT_STAGE[result.stage];
+    text = t('tournament.result.advanced', { stage, next: next ? t(STAGE_NAME_KEYS[next]) : stage });
+    tone = styles.bannerPromote;
+  } else if (result.outcome === 'eliminated') {
+    text = t('tournament.result.eliminated', { stage });
+    tone = styles.bannerDemote;
+  } else if (result.reward) {
+    const placeKey = (['tournament.place.1', 'tournament.place.2', 'tournament.place.3'] as const)[result.rank - 1];
+    text = t('tournament.result.finalReward', { place: placeKey ? t(placeKey) : result.rank, reward: rewardText(t, result.reward) });
+    tone = styles.bannerPromote;
+  } else {
+    text = t('tournament.result.finalNone', { rank: result.rank });
+  }
+  return (
+    <Pressable onPress={onDismiss} accessibilityRole="button" accessibilityLabel={t('league.result.dismiss')}>
+      <View style={[styles.banner, tone]}>
+        <Text style={styles.bannerText}>{text}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function TournamentStageView({ view, msLeft }: { view: LiveTournamentLeagueView; msLeft: number }) {
+  const { t } = useI18n();
+  const tour = view.tournament;
+  const { days, hours, minutes } = formatWeekCountdown(msLeft);
+  const labels: ZoneLabels = { promote: t('tournament.zone.advance'), demote: t('tournament.zone.eliminated') };
+
+  return (
+    <>
+      <View style={styles.header}>
+        <Text style={styles.leagueIcon}>🏆</Text>
+        <View style={styles.headerInfo}>
+          <Text style={styles.leagueName}>{t(STAGE_NAME_KEYS[tour.stage])}</Text>
+          <Text style={styles.headerSub}>{t('tournament.stageOf', { n: tour.stageNumber, total: tour.stageCount })}</Text>
+          <Text style={styles.headerSub}>
+            {tour.stage === 'final'
+              ? t('tournament.finalRule')
+              : t('tournament.advanceRule', { count: tour.advanceCount, size: tour.size })}
+          </Text>
+          <Text style={styles.headerSub}>{t('tournament.stageEnds', { time: t('league.time', { days, hours, minutes }) })}</Text>
+        </View>
+      </View>
+      <Text style={styles.yourRank}>{t('league.yourRank', { rank: tour.yourRank, size: tour.size })}</Text>
+      {tour.standings.map((row, i) => (
+        <StandingRow key={row.rank} row={row} previous={tour.standings[i - 1]} labels={labels} />
+      ))}
     </>
   );
 }
@@ -304,6 +438,10 @@ const styles = StyleSheet.create({
   headerInfo: { flex: 1, minWidth: 0 },
   leagueName: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg - 2 },
   headerSub: { color: theme.colors.textMuted, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs, marginTop: 3 },
+  tournamentCard: { marginTop: theme.spacing.md, marginBottom: theme.spacing.md },
+  rewardRow: { flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing.md, paddingVertical: 5 },
+  rewardPlace: { color: theme.colors.text, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm },
+  rewardValue: { flex: 1, textAlign: 'right', color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs + 0.5 },
   yourRank: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.sm, marginBottom: theme.spacing.sm },
 
   zoneLabel: {

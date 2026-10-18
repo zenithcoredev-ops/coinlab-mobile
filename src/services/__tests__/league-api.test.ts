@@ -1,4 +1,4 @@
-import { entryProgress, formatWeekCountdown, LeagueView, msUntilWeekEnd } from '../league-api';
+import { entryProgress, formatWeekCountdown, isTournamentLive, LeagueView, msUntilWeekEnd } from '../league-api';
 
 const view: LeagueView = {
   serverTime: '2026-10-14T12:00:00Z',
@@ -7,6 +7,8 @@ const view: LeagueView = {
   speedBonus: 0.2,
   entry: { required: 100, balance: 40 },
   lastResult: null,
+  tournamentResult: null,
+  tournamentRewards: [],
   weekEnd: '2026-10-19T00:00:00Z',
 };
 
@@ -30,6 +32,32 @@ describe('msUntilWeekEnd', () => {
   it('is zero without a week or after it ended', () => {
     expect(msUntilWeekEnd({ ...view, weekEnd: undefined }, 0)).toBe(0);
     expect(msUntilWeekEnd(view, 99 * 24 * 3600_000)).toBe(0);
+  });
+});
+
+describe('tournament view', () => {
+  const live = {
+    pending: false as const,
+    stage: 'sf' as const,
+    stageNumber: 2,
+    stageCount: 3,
+    weekEnd: '2026-10-19T12:00:00Z',
+    size: 6,
+    advanceCount: 4,
+    yourRank: 2,
+    yourPoints: 3,
+    standings: [],
+  };
+
+  it('uses the stage end for the countdown while in the tournament', () => {
+    const v: LeagueView = { ...view, state: 'tournament', weekEnd: undefined, tournament: live };
+    expect(msUntilWeekEnd(v, 0)).toBe(5 * 24 * 3600_000);
+  });
+
+  it('only counts as live once the bracket exists', () => {
+    expect(isTournamentLive({ ...view, state: 'tournament', tournament: live })).toBe(true);
+    expect(isTournamentLive({ ...view, state: 'tournament', tournament: { pending: true, stage: 'qf' } })).toBe(false);
+    expect(isTournamentLive(view)).toBe(false);
   });
 });
 

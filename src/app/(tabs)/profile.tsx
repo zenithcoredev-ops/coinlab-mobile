@@ -14,7 +14,6 @@ import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
-import { ApiError } from '@/services/api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
 import { theme } from '@/theme';
 
@@ -67,9 +66,8 @@ export default function ProfileScreen() {
     try {
       await deleteAccount(token);
       await signOut();
-    } catch (e) {
-      const pending = e instanceof ApiError && e.code === 'pending_funds';
-      setDeleteError(pending ? t('profile.delete.pendingFunds') : t('profile.delete.failed'));
+    } catch {
+      setDeleteError(t('profile.delete.failed'));
     } finally {
       setDeleting(false);
     }
