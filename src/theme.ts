@@ -30,6 +30,8 @@ const palette = {
   danger: '#F5716A',
   black: '#000000',
   goldInk: '#3A2A05',
+  silver: '#C0C6D4',
+  bronze: '#CD8B5A',
 } as const;
 
 // `#RRGGBB` + alpha (0-1) -> `#RRGGBBAA`.
@@ -50,6 +52,8 @@ export const theme = {
     accentInk: palette.goldInk, // text on top of an accent-filled surface
     positive: palette.teal, // active mining, success
     danger: palette.danger,
+    medalSilver: palette.silver,
+    medalBronze: palette.bronze,
     border: alpha('#FFFFFF', 0.06),
     divider: alpha('#FFFFFF', 0.05),
     accentSoft: alpha(palette.gold, 0.1),
