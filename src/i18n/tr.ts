@@ -94,7 +94,7 @@ const tr: Record<TranslationKey, string> = {
   'league.how.step3': 'Haftalar her Pazartesi 00:00 UTC\'de biter. Grubun sunucuda sıralanır.',
   'league.how.note': 'Sıralama yalnızca emekle (kazım, görev, seri ve adım) belirlenir, satın almayla asla. Tüm ödüller uygulama içidir.',
   'league.locked.title': 'Lige katılmaya hazırlan',
-  'league.locked.body': 'Bronz Lig\'e ilk kez katılmak için {required} CLB kazan. Birkaç günlük düzenli kazım yeterli.',
+  'league.locked.body': 'Bronz Lig\'e ilk kez katılmak için {required} CLB kazan. Yaklaşık iki haftalık düzenli kazım yeterli.',
   'league.locked.progress': '{balance} / {required} CLB',
   'league.bonus': 'Bu ligde: +{ths} Th/s kalıcı bonus',
   'league.promoteReq': 'Terfi: {size} kişiden ilk {count}',
