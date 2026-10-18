@@ -14,9 +14,13 @@ export type Account = {
   league: number;
   hasUsedCode: boolean;
   onboardingComplete: boolean;
+  /** ISO-8601 UTC; VIP time won in the tournament (in-app, not a purchase). */
+  vipUntil: string | null;
+  equippedFrame: string | null;
+  ownedFrames: string[];
 };
 
-export type DeleteErrorCode = 'confirm_required' | 'pending_funds';
+export type DeleteErrorCode = 'confirm_required';
 
 export function getAccount(token: string): Promise<Account> {
   return apiRequest(token, 'GET', '/me');
