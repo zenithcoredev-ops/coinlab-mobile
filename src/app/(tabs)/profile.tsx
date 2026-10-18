@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { ComponentProps, useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BadgeGrid } from '@/components/badge-grid';
 import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
 import { PRIVACY_POLICY_URL, SUPPORT_EMAIL, TERMS_URL } from '@/constants/config';
@@ -14,8 +16,12 @@ import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
+import { FRAME_NAME_KEYS } from '@/lib/league';
+import { Badge, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
 import { theme } from '@/theme';
+
+const BADGES_SEEN_KEY = 'coinlab_badges_seen';
 
 export default function ProfileScreen() {
   const { t, language, preference, setPreference } = useI18n();
@@ -24,16 +30,37 @@ export default function ProfileScreen() {
   const token = auth?.token ?? null;
 
   const [account, setAccount] = useState<Account | null>(null);
+  const [badges, setBadges] = useState<Badge[] | null>(null);
+  const [badgesFailed, setBadgesFailed] = useState(false);
+  const [newBadgeIds, setNewBadgeIds] = useState<string[]>([]);
   const { active: notifOn, permission, setEnabled, refreshPermission } = useNotifications();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      if (token) getAccount(token).then(setAccount).catch(() => {});
+      if (token) {
+        getAccount(token).then(setAccount).catch(() => {});
+        loadBadges(token);
+      }
       refreshPermission();
     }, [token, refreshPermission])
   );
+
+  async function loadBadges(authToken: string) {
+    try {
+      const { badges: next } = await getBadges(authToken);
+      const seen = await AsyncStorage.getItem(BADGES_SEEN_KEY)
+        .then((raw) => (raw ? (JSON.parse(raw) as string[]) : []))
+        .catch(() => [] as string[]);
+      setBadges(next);
+      setBadgesFailed(false);
+      setNewBadgeIds(newlyEarned(next, seen));
+      AsyncStorage.setItem(BADGES_SEEN_KEY, JSON.stringify(next.filter((b) => b.earnedAt).map((b) => b.id))).catch(() => {});
+    } catch {
+      setBadgesFailed(true);
+    }
+  }
 
   async function onToggleNotifications(next: boolean) {
     const enabled = await setEnabled(next);
@@ -78,6 +105,9 @@ export default function ProfileScreen() {
   const memberSince = account ? new Date(account.createdAt).toLocaleDateString(language) : null;
   const balance = status ? parseFloat(status.balance) : account ? parseFloat(account.balance) : 0;
 
+  const vipDays = vipDaysLeft(account?.vipUntil ?? null, Date.now());
+  const frameKey = account?.equippedFrame ? FRAME_NAME_KEYS[account.equippedFrame] : undefined;
+
   const languageOptions: { value: LanguagePreference; label: string }[] = [
     { value: 'auto', label: t('profile.language.auto') },
     { value: 'en', label: 'English' },
@@ -118,6 +148,31 @@ export default function ProfileScreen() {
             valueColor={theme.colors.positive}
           />
           <InfoRow label={t('profile.streak')} value={t('streak.days', { count: status?.streak ?? account?.streak ?? 0 })} last />
+        </Card>
+
+        <SectionLabel>{t('profile.badges')}</SectionLabel>
+        {badges ? (
+          <>
+            <Text style={styles.badgeCount}>{t('profile.badgesCount', { earned: earnedCount(badges), total: badges.length })}</Text>
+            <BadgeGrid badges={badges} newIds={newBadgeIds} onPressBadge={() => {}} />
+          </>
+        ) : (
+          badgesFailed && <Text style={styles.error}>{t('profile.badgeLoadFailed')}</Text>
+        )}
+
+        <SectionLabel>{t('profile.rewards')}</SectionLabel>
+        <Card style={styles.infoList}>
+          <InfoRow
+            label={t('profile.vip')}
+            value={vipDays > 0 ? t('profile.vipDays', { count: vipDays }) : t('profile.vipNone')}
+            valueColor={vipDays > 0 ? theme.colors.accent : undefined}
+          />
+          <InfoRow
+            label={t('profile.frame')}
+            value={frameKey ? t(frameKey) : t('profile.frameNone')}
+            valueColor={frameKey ? theme.colors.accent : undefined}
+            last
+          />
         </Card>
 
         <SectionLabel>{t('profile.language')}</SectionLabel>
@@ -261,6 +316,7 @@ const styles = StyleSheet.create({
   linkDetail: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, flexShrink: 1 },
 
   accountButton: { marginBottom: theme.spacing.sm },
+  badgeCount: { color: theme.colors.textMuted, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs, marginBottom: theme.spacing.sm },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.sm },
   version: {
     color: theme.colors.textMuted,
