@@ -1,5 +1,4 @@
-// Override with EXPO_PUBLIC_API_URL to test against a local/forwarded backend.
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://coinlab-backend-production.up.railway.app';
+export const API_URL = 'https://coinlab-backend-production.up.railway.app';
 // Web OAuth client. Used for the web redirect flow and as `webClientId` for
 // native Google Sign-In. Android additionally needs an Android OAuth client
 // (package name + SHA-1) in the same Google Cloud project; it isn't referenced here.
