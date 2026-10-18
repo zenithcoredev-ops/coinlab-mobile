@@ -92,7 +92,7 @@ const en = {
   'league.how.step3': 'Weeks end every Monday at 00:00 UTC. Your group is ranked on the server.',
   'league.how.note': 'Rankings come only from effort (mining, tasks, streak and steps), never from purchases. All rewards are in-app.',
   'league.locked.title': 'Get ready to join the league',
-  'league.locked.body': 'Earn {required} CLB to join Bronze League for the first time. A few days of regular mining is enough.',
+  'league.locked.body': 'Earn {required} CLB to join Bronze League for the first time. About two weeks of regular mining is enough.',
   'league.locked.progress': '{balance} / {required} CLB',
   'league.bonus': 'In this league: +{ths} Th/s permanent bonus',
   'league.promoteReq': 'Promotion: top {count} of {size}',
