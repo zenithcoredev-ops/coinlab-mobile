@@ -277,6 +277,23 @@ const tr: Record<TranslationKey, string> = {
   'reminder.title': 'CoinLab',
   'streak.reminder_one': '{count} günlük serin 00:00 UTC’de bitiyor. Korumak için kazımı başlat!',
   'streak.reminder_other': '{count} günlük serin 00:00 UTC’de bitiyor. Korumak için kazımı başlat!',
+  'app.name': 'CoinLab',
+  'unit.clb': 'CLB',
+  'unit.ths': 'Th/s',
+  'tasks.steps.title': '{target} adım at',
+  'tasks.steps.hint': 'Bu kazım oturumunda Health Connect’in saydığı adımlar',
+  'steps.title': 'Adım sayar',
+  'steps.progress': '{steps} / {cap} adım',
+  'steps.bonus': 'Hız bonusu: +{bonus} {ths}. Sonraki seviye için {next} adım daha.',
+  'steps.bonusMax': 'Maksimum adım bonusuna ulaştın: +{bonus} {ths}.',
+  'steps.needSession': 'Bugünkü adımların sayılması için kazımı başlat.',
+  'steps.connect.body': '{app}, kazım hızını artırmak için adımlarını Health Connect’ten okur. Elle girdiğin adımlar sayılmaz.',
+  'steps.connect.button': 'Health Connect’i bağla',
+  'steps.install.body': 'Adımlarını sayıp kazım hızını artırmak için Health Connect’i kur.',
+  'steps.install.button': 'Health Connect’i kur',
+  'steps.update.body': '{app} adımlarını okuyabilmek için Health Connect’in güncellenmesi gerekiyor.',
+  'steps.update.button': 'Health Connect’i güncelle',
+  'steps.syncError': 'Adımların eşitlenemedi. Birazdan tekrar deneriz.',
 };
 
 export default tr;

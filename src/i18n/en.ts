@@ -275,6 +275,23 @@ const en = {
   'reminder.title': 'CoinLab',
   'streak.reminder_one': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
   'streak.reminder_other': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
+  'app.name': 'CoinLab',
+  'unit.clb': 'CLB',
+  'unit.ths': 'Th/s',
+  'tasks.steps.title': 'Walk {target} steps',
+  'tasks.steps.hint': 'Steps counted by Health Connect during this mining session',
+  'steps.title': 'Step counter',
+  'steps.progress': '{steps} / {cap} steps',
+  'steps.bonus': 'Speed bonus: +{bonus} {ths}. {next} more steps for the next level.',
+  'steps.bonusMax': 'Maximum step bonus reached: +{bonus} {ths}.',
+  'steps.needSession': 'Start mining to count today’s steps.',
+  'steps.connect.body': '{app} reads your steps from Health Connect to raise your mining speed. Steps you type in by hand don’t count.',
+  'steps.connect.button': 'Connect Health Connect',
+  'steps.install.body': 'Install Health Connect to count your steps and raise your mining speed.',
+  'steps.install.button': 'Install Health Connect',
+  'steps.update.body': 'Health Connect needs an update before {app} can read your steps.',
+  'steps.update.button': 'Update Health Connect',
+  'steps.syncError': 'Couldn’t sync your steps. We’ll try again soon.',
 } as const;
 
 export type TranslationKey = keyof typeof en;
