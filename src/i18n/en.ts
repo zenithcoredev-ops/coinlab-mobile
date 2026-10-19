@@ -292,6 +292,16 @@ const en = {
   'steps.update.body': 'Health Connect needs an update before {app} can read your steps.',
   'steps.update.button': 'Update Health Connect',
   'steps.syncError': 'Couldn’t sync your steps. We’ll try again soon.',
+  'widget.state.active': 'Mining · {rate} {ths}',
+  'widget.state.idle': 'Not mining',
+  'widget.state.finished': 'Session finished',
+  'widget.state.signedOut': 'Signed out',
+  'widget.signedOut.hint': 'Open {app} to sign in',
+  'widget.tapToStart': 'Tap to start mining',
+  'widget.remaining': '{hours}h {minutes}m left',
+  'widget.remainingShort': '{minutes}m left',
+  'widget.balance': '{balance} {clb}',
+  'widget.steps': '{steps} steps',
 } as const;
 
 export type TranslationKey = keyof typeof en;

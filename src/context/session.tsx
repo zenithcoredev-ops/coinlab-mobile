@@ -4,6 +4,7 @@ import { setUnauthorizedHandler } from '@/services/api';
 import { completeOnboarding as completeOnboardingRequest, getAccount } from '@/services/me-api';
 import { signOutGoogle } from '@/services/google-auth';
 import { cancelStreakReminder } from '@/services/streak-reminder';
+import { clearWidget } from '@/widget/sync';
 import { clearStoredAuth, loadStoredAuth, saveStoredAuth, StoredAuth } from '@/services/auth-storage';
 
 /** 'unknown' until the server has said whether this account has seen the welcome tour. */
@@ -40,6 +41,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await signOutGoogle().catch(() => {});
     await cancelStreakReminder();
+    await clearWidget().catch(() => {});
     await clearStoredAuth();
     setAuth(null);
   }, []);
@@ -47,7 +49,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // A 401 from any call means this login is no longer valid; drop back to sign-in.
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      cancelStreakReminder().finally(() => clearStoredAuth().finally(() => setAuth(null)));
+      cancelStreakReminder().finally(() => clearWidget().catch(() => {})).finally(() => clearStoredAuth().finally(() => setAuth(null)));
     });
     return () => setUnauthorizedHandler(null);
   }, []);

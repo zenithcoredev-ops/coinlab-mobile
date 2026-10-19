@@ -294,6 +294,16 @@ const tr: Record<TranslationKey, string> = {
   'steps.update.body': '{app} adımlarını okuyabilmek için Health Connect’in güncellenmesi gerekiyor.',
   'steps.update.button': 'Health Connect’i güncelle',
   'steps.syncError': 'Adımların eşitlenemedi. Birazdan tekrar deneriz.',
+  'widget.state.active': 'Kazılıyor · {rate} {ths}',
+  'widget.state.idle': 'Kazım yok',
+  'widget.state.finished': 'Oturum bitti',
+  'widget.state.signedOut': 'Çıkış yapıldı',
+  'widget.signedOut.hint': 'Giriş yapmak için {app}’i aç',
+  'widget.tapToStart': 'Kazımı başlatmak için dokun',
+  'widget.remaining': '{hours}sa {minutes}dk kaldı',
+  'widget.remainingShort': '{minutes}dk kaldı',
+  'widget.balance': '{balance} {clb}',
+  'widget.steps': '{steps} adım',
 };
 
 export default tr;
