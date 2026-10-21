@@ -25,7 +25,7 @@ export default function TabsLayout() {
   const { ready, auth, onboarding } = useSession();
 
   if (!ready) return null;
-  if (!auth) return <Redirect href="/" />;
+  if (!auth) return null;
   if (onboarding === 'unknown') return null;
   if (onboarding === 'pending') return <Redirect href="/onboarding" />;
 
