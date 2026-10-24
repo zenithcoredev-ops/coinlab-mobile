@@ -4,6 +4,7 @@ import { setUnauthorizedHandler } from '@/services/api';
 import { completeOnboarding as completeOnboardingRequest, getAccount } from '@/services/me-api';
 import { signOutGoogle } from '@/services/google-auth';
 import { cancelStreakReminder } from '@/services/streak-reminder';
+import { clearWidget } from '@/widget/sync';
 import { clearStoredAuth, loadStoredAuth, saveStoredAuth, StoredAuth } from '@/services/auth-storage';
 
 /** 'unknown' until the server has said whether this account has seen the welcome tour. */
@@ -49,6 +50,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     endingRef.current = true;
     try {
       await cancelStreakReminder();
+      await clearWidget().catch(() => {});
       await clearStoredAuth().catch(() => {});
     } finally {
       tokenRef.current = null;

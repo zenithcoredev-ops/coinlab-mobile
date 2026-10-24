@@ -63,7 +63,34 @@
           }
         }
       ],
-      "react-native-health-connect"
+      "react-native-health-connect",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "MiningSmall",
+              "label": "Mining",
+              "description": "Mining status and time left",
+              "minWidth": "110dp",
+              "minHeight": "40dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 1,
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "MiningLarge",
+              "label": "Mining (large)",
+              "description": "Mining status, balance, streak and steps",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

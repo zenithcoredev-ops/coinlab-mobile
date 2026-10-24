@@ -7,14 +7,16 @@ import { MiningProvider } from '@/context/mining';
 import { StepsProvider } from '@/context/steps';
 import { useSession } from '@/context/session';
 import { useStreakReminder } from '@/hooks/use-streak-reminder';
+import { useWidgetSync } from '@/hooks/use-widget-sync';
 import { useI18n } from '@/i18n';
 import { theme } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-// Rendered inside MiningProvider so it can read the streak state.
+// Rendered inside MiningProvider so it can read the streak state and mirror it to the widget.
 function ReminderSync() {
   useStreakReminder();
+  useWidgetSync();
   return null;
 }
 
