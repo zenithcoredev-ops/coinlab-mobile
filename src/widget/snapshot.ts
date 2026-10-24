@@ -26,6 +26,15 @@ export type WidgetSnapshot = {
   savedAt: number;
 };
 
+/** Written on sign-out so the widget can tell "signed out" from "never opened yet" (no value at all). */
+export type SignedOutMarker = { signedOut: true; language?: Language };
+
+export type StoredWidget = WidgetSnapshot | SignedOutMarker;
+
+export function isSignedOut(stored: StoredWidget): stored is SignedOutMarker {
+  return 'signedOut' in stored;
+}
+
 export function buildSnapshot(status: MiningStatus, language: Language, now = Date.now()): WidgetSnapshot {
   return {
     language,
@@ -43,15 +52,16 @@ export async function saveSnapshot(snapshot: WidgetSnapshot): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
 }
 
-export async function loadSnapshot(): Promise<WidgetSnapshot | null> {
+export async function loadSnapshot(): Promise<StoredWidget | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as WidgetSnapshot) : null;
+    return raw ? (JSON.parse(raw) as StoredWidget) : null;
   } catch {
     return null;
   }
 }
 
-export async function clearSnapshot(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+export async function markSignedOut(language?: Language): Promise<void> {
+  const marker: SignedOutMarker = { signedOut: true, language };
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(marker));
 }

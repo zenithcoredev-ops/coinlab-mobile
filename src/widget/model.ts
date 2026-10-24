@@ -1,5 +1,5 @@
 import { clbPerSecond } from '@/lib/mining-math';
-import type { WidgetSnapshot } from './snapshot';
+import { isSignedOut, StoredWidget, WidgetSnapshot } from './snapshot';
 
 export type WidgetState = 'signedOut' | 'idle' | 'active' | 'finished';
 
@@ -14,7 +14,7 @@ export type WidgetModel = {
   remainingMs: number;
 };
 
-/** Nothing saved yet (just added, or signed out): invite the user to start mining rather than draw nothing. */
+/** Nothing saved yet (just added): invite the user to start mining rather than draw nothing. */
 const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
   state: 'idle',
   language,
@@ -26,13 +26,15 @@ const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
   remainingMs: 0,
 });
 
-/** Turns the saved snapshot into what to draw at `now`, extrapolating time-dependent values. */
+/** Turns what the app saved into what to draw at `now`, extrapolating time-dependent values. */
 export function buildWidgetModel(
-  snapshot: WidgetSnapshot | null,
+  stored: StoredWidget | null,
   now: number,
   fallbackLanguage: WidgetSnapshot['language'] = 'en'
 ): WidgetModel {
-  if (!snapshot) return noSnapshot(fallbackLanguage);
+  if (!stored) return noSnapshot(fallbackLanguage);
+  if (isSignedOut(stored)) return { ...noSnapshot(stored.language ?? fallbackLanguage), state: 'signedOut' };
+  const snapshot = stored;
   const base = {
     language: snapshot.language,
     ths: snapshot.ths,

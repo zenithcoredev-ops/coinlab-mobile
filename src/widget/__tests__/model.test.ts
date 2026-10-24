@@ -23,6 +23,14 @@ describe('buildWidgetModel', () => {
     expect(buildWidgetModel(null, t0, 'tr').language).toBe('tr');
   });
 
+  it('tells signed out apart from nothing saved yet', () => {
+    const out = buildWidgetModel({ signedOut: true, language: 'tr' }, t0);
+    expect(out.state).toBe('signedOut');
+    expect(out.language).toBe('tr');
+    expect(buildWidgetModel({ signedOut: true }, t0, 'en').language).toBe('en');
+    expect(buildWidgetModel(null, t0).state).toBe('idle');
+  });
+
   it('counts down and keeps accruing balance while active', () => {
     const m = buildWidgetModel(snap, t0 + 2 * HOUR);
     expect(m.state).toBe('active');

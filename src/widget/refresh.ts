@@ -6,7 +6,7 @@ import { renderMiningWidget, WIDGET_NAMES } from './widget-task-handler';
 export async function refreshWidgets(): Promise<void> {
   await Promise.all(
     WIDGET_NAMES.map((widgetName) =>
-      requestWidgetUpdate({ widgetName, renderWidget: () => renderMiningWidget(widgetName) }).catch(() => {})
+      requestWidgetUpdate({ widgetName, renderWidget: (widgetInfo) => renderMiningWidget(widgetName, widgetInfo) }).catch(() => {})
     )
   );
 }

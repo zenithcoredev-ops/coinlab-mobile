@@ -1,4 +1,4 @@
-import { clearSnapshot, saveSnapshot, WidgetSnapshot } from './snapshot';
+import { isSignedOut, loadSnapshot, markSignedOut, saveSnapshot, WidgetSnapshot } from './snapshot';
 import { refreshWidgets } from './refresh';
 
 export async function publishSnapshot(snapshot: WidgetSnapshot): Promise<void> {
@@ -6,8 +6,9 @@ export async function publishSnapshot(snapshot: WidgetSnapshot): Promise<void> {
   await refreshWidgets();
 }
 
-/** Signed out: the widget goes back to its sign-in prompt. */
+/** Signed out: the widget shows only a sign-in prompt (in the language the user was using). */
 export async function clearWidget(): Promise<void> {
-  await clearSnapshot();
+  const previous = await loadSnapshot().catch(() => null);
+  await markSignedOut(previous ? previous.language : undefined);
   await refreshWidgets();
 }
