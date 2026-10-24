@@ -299,8 +299,8 @@ const en = {
   'widget.balance': '{balance} {clb}',
   'widget.steps': '{steps} steps',
   'reminder.title': 'CoinLab',
-  'streak.reminder_one': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
-  'streak.reminder_other': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
+  'streak.reminder_one': 'Your {count}-day streak ends in {hours} h. Start mining to keep it!',
+  'streak.reminder_other': 'Your {count}-day streak ends in {hours} h. Start mining to keep it!',
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -301,8 +301,8 @@ const tr: Record<TranslationKey, string> = {
   'widget.balance': '{balance} {clb}',
   'widget.steps': '{steps} adım',
   'reminder.title': 'CoinLab',
-  'streak.reminder_one': '{count} günlük serin 00:00 UTC’de bitiyor. Korumak için kazımı başlat!',
-  'streak.reminder_other': '{count} günlük serin 00:00 UTC’de bitiyor. Korumak için kazımı başlat!',
+  'streak.reminder_one': '{count} günlük serin {hours} saat sonra bitiyor, korumak için kazımı başlat!',
+  'streak.reminder_other': '{count} günlük serin {hours} saat sonra bitiyor, korumak için kazımı başlat!',
 };
 
 export default tr;
