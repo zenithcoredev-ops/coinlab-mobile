@@ -272,9 +272,6 @@ const en = {
   'onboarding.notif.allow': 'Allow notifications',
   'onboarding.notif.enabled': 'Notifications on ✓',
   'onboarding.notif.denied': 'No problem. You can turn them on later in Profile.',
-  'reminder.title': 'CoinLab',
-  'streak.reminder_one': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
-  'streak.reminder_other': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
   'app.name': 'CoinLab',
   'unit.clb': 'CLB',
   'unit.ths': 'Th/s',
@@ -292,6 +289,9 @@ const en = {
   'steps.update.body': 'Health Connect needs an update before {app} can read your steps.',
   'steps.update.button': 'Update Health Connect',
   'steps.syncError': 'Couldn’t sync your steps. We’ll try again soon.',
+  'reminder.title': 'CoinLab',
+  'streak.reminder_one': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
+  'streak.reminder_other': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
 } as const;
 
 export type TranslationKey = keyof typeof en;
