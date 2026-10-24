@@ -1,6 +1,8 @@
-// The streak resets at 00:00 UTC, so the reminder is anchored to UTC too.
-export const REMINDER_UTC_HOUR = 21;
+// The streak resets at 00:00 UTC, but the reminder is anchored to the user's own clock.
+export const REMINDER_LOCAL_HOUR = 20;
 const MIN_LEAD_MS = 60_000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 export type ReminderInput = {
   /** Server streak (consecutive UTC days). */
@@ -9,25 +11,45 @@ export type ReminderInput = {
   minedToday: boolean;
 };
 
-function reminderTimeOnDay(day: Date): Date {
-  return new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), REMINDER_UTC_HOUR));
+export type StreakReminder = {
+  fireAt: Date;
+  /** Whole hours (rounded up, at least 1) from `fireAt` until the streak day ends at 00:00 UTC. */
+  hoursLeft: number;
+};
+
+function utcDayStart(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function localReminderTime(day: Date, dayOffset: number): Date {
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate() + dayOffset, REMINDER_LOCAL_HOUR);
 }
 
 /**
- * When the next "your streak is about to end" notification should fire, or null if
- * there's no streak to protect.
+ * When the next "your streak is about to end" notification should fire (20:00 device time), or
+ * null if there's no streak to protect.
  *
- * - Not mined yet today: remind this evening (skipped if that moment has passed).
- * - Already mined today: the streak is safe until tomorrow, so remind tomorrow evening.
- *   If the user opens the app and mines before then, the reminder is rescheduled.
+ * Only fires on a UTC day with no mining yet:
+ * - Not mined today: remind at the next 20:00 if it still falls on today's UTC day.
+ * - Already mined today: remind at the next 20:00 that falls on a later UTC day. If the user opens
+ *   the app and mines before then, the reminder is rescheduled.
  */
-export function nextStreakReminder(now: Date, { streak, minedToday }: ReminderInput): Date | null {
+export function nextStreakReminder(now: Date, { streak, minedToday }: ReminderInput): StreakReminder | null {
   if (streak <= 0) return null;
 
-  const today = reminderTimeOnDay(now);
-  if (!minedToday) {
-    return today.getTime() - now.getTime() >= MIN_LEAD_MS ? today : null;
+  const today = utcDayStart(now);
+  for (let offset = 0; offset <= 2; offset++) {
+    const fireAt = localReminderTime(now, offset);
+    if (fireAt.getTime() - now.getTime() < MIN_LEAD_MS) continue;
+
+    const fireDay = utcDayStart(fireAt);
+    if (fireDay === today) {
+      if (minedToday) continue;
+    } else if (!minedToday) {
+      // Today was missed, so the streak is already gone by then.
+      return null;
+    }
+    return { fireAt, hoursLeft: Math.max(1, Math.ceil((fireDay + DAY_MS - fireAt.getTime()) / HOUR_MS)) };
   }
-  const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-  return tomorrow;
+  return null;
 }
