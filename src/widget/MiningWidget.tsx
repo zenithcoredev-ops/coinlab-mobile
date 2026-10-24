@@ -1,3 +1,6 @@
+"use no memo";
+// The widget library calls components as plain functions (no React renderer); the React Compiler's
+// memo cache would throw "Invalid hook call" there and leave the widget blank.
 import { FlexWidget, TextWidget } from 'react-native-android-widget';
 
 import { translate } from '@/i18n/translate';

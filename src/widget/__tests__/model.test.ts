@@ -18,8 +18,9 @@ const snap: WidgetSnapshot = {
 };
 
 describe('buildWidgetModel', () => {
-  it('is signed out without a snapshot', () => {
-    expect(buildWidgetModel(null, t0).state).toBe('signedOut');
+  it('draws a start-mining state without a snapshot', () => {
+    expect(buildWidgetModel(null, t0).state).toBe('idle');
+    expect(buildWidgetModel(null, t0, 'tr').language).toBe('tr');
   });
 
   it('counts down and keeps accruing balance while active', () => {

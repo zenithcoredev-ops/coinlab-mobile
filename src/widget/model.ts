@@ -14,20 +14,25 @@ export type WidgetModel = {
   remainingMs: number;
 };
 
-const SIGNED_OUT: WidgetModel = {
-  state: 'signedOut',
-  language: 'en',
+/** Nothing saved yet (just added, or signed out): invite the user to start mining rather than draw nothing. */
+const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
+  state: 'idle',
+  language,
   balance: 0,
   ths: 0,
   streak: 0,
   streakAtRisk: false,
   steps: 0,
   remainingMs: 0,
-};
+});
 
 /** Turns the saved snapshot into what to draw at `now`, extrapolating time-dependent values. */
-export function buildWidgetModel(snapshot: WidgetSnapshot | null, now: number): WidgetModel {
-  if (!snapshot) return SIGNED_OUT;
+export function buildWidgetModel(
+  snapshot: WidgetSnapshot | null,
+  now: number,
+  fallbackLanguage: WidgetSnapshot['language'] = 'en'
+): WidgetModel {
+  if (!snapshot) return noSnapshot(fallbackLanguage);
   const base = {
     language: snapshot.language,
     ths: snapshot.ths,
