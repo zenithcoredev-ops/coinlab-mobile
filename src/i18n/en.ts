@@ -272,9 +272,6 @@ const en = {
   'onboarding.notif.allow': 'Allow notifications',
   'onboarding.notif.enabled': 'Notifications on ✓',
   'onboarding.notif.denied': 'No problem. You can turn them on later in Profile.',
-  'reminder.title': 'CoinLab',
-  'streak.reminder_one': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
-  'streak.reminder_other': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
   'app.name': 'CoinLab',
   'unit.clb': 'CLB',
   'unit.ths': 'Th/s',
@@ -301,6 +298,9 @@ const en = {
   'widget.remainingShort': '{minutes}m left',
   'widget.balance': '{balance} {clb}',
   'widget.steps': '{steps} steps',
+  'reminder.title': 'CoinLab',
+  'streak.reminder_one': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
+  'streak.reminder_other': 'Your {count}-day streak ends at 00:00 UTC. Start mining to keep it!',
 } as const;
 
 export type TranslationKey = keyof typeof en;
