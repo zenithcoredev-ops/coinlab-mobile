@@ -1,4 +1,3 @@
-import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,7 +10,7 @@ import { theme } from '@/theme';
 
 export default function SignInScreen() {
   const { t } = useI18n();
-  const { ready, auth, signIn } = useSession();
+  const { ready, signIn } = useSession();
   const [loading, setLoading] = useState(false);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,8 +69,6 @@ export default function SignInScreen() {
       setLoading(false);
     }
   }
-
-  if (ready && auth) return <Redirect href="/(tabs)" />;
 
   if (!ready || bootstrapping) {
     return (

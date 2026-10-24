@@ -38,5 +38,6 @@ describe('apiRequest', () => {
     mockFetch(401, { error: 'Account no longer exists', code: 'account_deleted' });
     await apiRequest('t', 'GET', '/x').catch(() => {});
     expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith('t');
   });
 });
