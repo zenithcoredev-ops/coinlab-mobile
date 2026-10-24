@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/screen-header';
+import { StepsCard } from '@/components/steps-card';
 import { Button, Card, ScreenTitle } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
@@ -29,6 +30,7 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 const TASK_META: Record<string, { icon: IconName; title: TranslationKey; hint: TranslationKey }> = {
   mine: { icon: 'hammer-outline', title: 'tasks.mine.title', hint: 'tasks.mine.hint' },
   friend: { icon: 'people-outline', title: 'tasks.friend.title', hint: 'tasks.friend.hint' },
+  steps: { icon: 'walk-outline', title: 'tasks.steps.title', hint: 'tasks.steps.hint' },
 };
 
 const CLAIM_ERRORS: Record<TaskErrorCode, TranslationKey> = {
@@ -122,7 +124,7 @@ export default function TasksScreen() {
             <Card style={styles.summary}>
               <View>
                 <Text style={styles.summaryLabel}>{t('tasks.earnedToday')}</Text>
-                <Text style={styles.summaryValue}>{progress.earnedToday.toFixed(2)} CLB</Text>
+                <Text style={styles.summaryValue}>{progress.earnedToday.toFixed(2)} {t('unit.clb')}</Text>
               </View>
               <View style={styles.summaryRight}>
                 <Ionicons
@@ -133,6 +135,8 @@ export default function TasksScreen() {
                 <Text style={styles.resetText}>{t('tasks.resetsIn', { time: formatDuration(resetIn) })}</Text>
               </View>
             </Card>
+
+            <StepsCard />
 
             {message && (
               <Text style={[styles.message, { color: message.ok ? theme.colors.positive : theme.colors.danger }]}>
@@ -171,9 +175,12 @@ function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolean; onCl
         />
       </View>
       <View style={styles.taskInfo}>
-        <Text style={styles.taskTitle}>{t(meta.title)}</Text>
+        <Text style={styles.taskTitle}>{t(meta.title, { target: task.target.toLocaleString() })}</Text>
         <Text style={styles.taskHint}>{t(meta.hint)}</Text>
-        <Text style={styles.taskReward}>+{task.reward.toFixed(2)} CLB</Text>
+        <Text style={styles.taskReward}>
+          +{task.reward.toFixed(2)} {t('unit.clb')}
+          {task.target > 1 && !task.claimed ? `  ·  ${task.progress.toLocaleString()} / ${task.target.toLocaleString()}` : ''}
+        </Text>
       </View>
       {state === 'ready' ? (
         <Pressable

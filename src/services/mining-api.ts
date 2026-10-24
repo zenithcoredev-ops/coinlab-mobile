@@ -33,6 +33,8 @@ export type MiningStatus = {
   serverTime: string;
   /** Settled CLB balance, excluding the running session's accrual. Decimal, sent as a string. */
   balance: string;
+  /** Steps the server counted for the running session (0 when idle). */
+  todaySteps?: number;
   /** Consecutive UTC days with a mining session (computed on the server). */
   streak: number;
   /** False while the streak is alive only because today's mining hasn't happened yet. */
