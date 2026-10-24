@@ -43,7 +43,7 @@ export default function OnboardingScreen() {
   const [referralMessage, setReferralMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [notifState, setNotifState] = useState<'idle' | 'granted' | 'denied'>('idle');
 
-  if (!auth) return <Redirect href="/" />;
+  if (!auth) return null;
   if (onboarding === 'done' && !finishing) return <Redirect href="/(tabs)" />;
 
   const slide = SLIDES[index];

@@ -1,9 +1,10 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, ThemeProvider } from 'expo-router';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { RootNavigator } from '@/components/root-navigator';
 import { NotificationsProvider } from '@/context/notifications';
 import { SessionProvider } from '@/context/session';
 import { I18nProvider } from '@/i18n';
@@ -39,11 +40,7 @@ export default function RootLayout() {
         <SessionProvider>
           <ThemeProvider value={navigationTheme}>
             <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.colors.background } }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-              <Stack.Screen name="(tabs)" />
-            </Stack>
+            <RootNavigator />
           </ThemeProvider>
         </SessionProvider>
       </NotificationsProvider>

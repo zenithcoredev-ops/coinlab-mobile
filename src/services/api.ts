@@ -14,10 +14,10 @@ export class ApiError extends Error {
   }
 }
 
-let onUnauthorized: (() => void) | null = null;
+let onUnauthorized: ((token: string) => void) | null = null;
 
 /** Called when the backend rejects the token (expired, or the account was deleted). */
-export function setUnauthorizedHandler(handler: (() => void) | null) {
+export function setUnauthorizedHandler(handler: ((token: string) => void) | null) {
   onUnauthorized = handler;
 }
 
@@ -33,7 +33,7 @@ export async function apiRequest<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => null);
-  if (res.status === 401) onUnauthorized?.();
+  if (res.status === 401) onUnauthorized?.(token);
   if (!res.ok) {
     const retryAfterSec = data?.retryAfterSec ?? parseRetryAfter(res.headers.get('Retry-After'));
     throw new ApiError(data?.error ?? '', res.status, retryAfterSec, data?.code);

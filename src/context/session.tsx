@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { setUnauthorizedHandler } from '@/services/api';
 import { completeOnboarding as completeOnboardingRequest, getAccount } from '@/services/me-api';
@@ -38,21 +38,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAuth(next);
   }, []);
 
-  const signOut = useCallback(async () => {
-    await signOutGoogle().catch(() => {});
-    await cancelStreakReminder();
-    await clearWidget().catch(() => {});
-    await clearStoredAuth();
-    setAuth(null);
+  const tokenRef = useRef<string | null>(null);
+  tokenRef.current = auth?.token ?? null;
+  const endingRef = useRef(false);
+
+  // The one way a session ends, for sign-out and for a rejected token alike. Concurrent calls
+  // (several requests can get a 401 at once) collapse into one; the navigator reacts to `auth`
+  // becoming null and shows sign-in, so nothing here navigates.
+  const endSession = useCallback(async () => {
+    if (endingRef.current) return;
+    endingRef.current = true;
+    try {
+      await cancelStreakReminder();
+      await clearWidget().catch(() => {});
+      await clearStoredAuth().catch(() => {});
+    } finally {
+      tokenRef.current = null;
+      setAuth(null);
+      endingRef.current = false;
+    }
   }, []);
 
-  // A 401 from any call means this login is no longer valid; drop back to sign-in.
+  const signOut = useCallback(async () => {
+    await signOutGoogle().catch(() => {});
+    await endSession();
+  }, [endSession]);
+
+  // A 401 means that token is no longer valid; drop back to sign-in. A late 401 for a token we
+  // already replaced or cleared (a slow request from before sign-out/sign-in) must not end the
+  // current session.
   useEffect(() => {
-    setUnauthorizedHandler(() => {
-      cancelStreakReminder().finally(() => clearWidget().catch(() => {})).finally(() => clearStoredAuth().finally(() => setAuth(null)));
+    setUnauthorizedHandler((rejectedToken) => {
+      if (rejectedToken === tokenRef.current) endSession();
     });
     return () => setUnauthorizedHandler(null);
-  }, []);
+  }, [endSession]);
 
   // Ask the server whether the tour has been seen. If we can't reach it, don't block the
   // app behind the tour; it will be offered again next launch because the flag stays false.
