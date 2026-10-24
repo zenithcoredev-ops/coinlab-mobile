@@ -24,15 +24,15 @@ export async function syncStreakReminder(
   await cancelStreakReminder();
   if (!enabled || !state) return;
 
-  const fireAt = nextStreakReminder(now, state);
-  if (!fireAt) return;
+  const reminder = nextStreakReminder(now, state);
+  if (!reminder) return;
 
   await Notifications.scheduleNotificationAsync({
     identifier: REMINDER_ID,
     content: {
       title: translate(language, 'reminder.title'),
-      body: translate(language, 'streak.reminder', { count: state.streak }),
+      body: translate(language, 'streak.reminder', { count: state.streak, hours: reminder.hoursLeft }),
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireAt, channelId: ANDROID_CHANNEL_ID },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminder.fireAt, channelId: ANDROID_CHANNEL_ID },
   });
 }
