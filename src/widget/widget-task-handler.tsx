@@ -1,11 +1,24 @@
+"use no memo";
+// The widget library calls these as plain functions, so the React Compiler must not touch this file.
+import { getLocales } from 'expo-localization';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
+import type { Language } from '@/i18n/translate';
 import { MiningWidget, MiningWidgetName } from './MiningWidget';
 import { buildWidgetModel } from './model';
 import { loadSnapshot } from './snapshot';
 
+function deviceLanguage(): Language {
+  try {
+    return getLocales()[0]?.languageCode === 'tr' ? 'tr' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 export async function renderMiningWidget(name: string) {
-  const model = buildWidgetModel(await loadSnapshot(), Date.now());
+  // A broken snapshot must still leave a visible "start mining" widget, never a blank one.
+  const model = buildWidgetModel(await loadSnapshot().catch(() => null), Date.now(), deviceLanguage());
   return <MiningWidget name={name === 'MiningLarge' ? 'MiningLarge' : 'MiningSmall'} model={model} />;
 }
 
