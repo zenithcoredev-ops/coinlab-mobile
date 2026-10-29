@@ -10,7 +10,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { useMining } from '@/context/mining';
 import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
-import { formatClb, formatDuration, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
+import { formatClb, formatDuration, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
 
@@ -97,7 +97,7 @@ export default function MineScreen() {
             {isMining ? t('mine.timeLeftValue', { time: formatDuration(remainingMs) }) : t('mine.tapToStart')}
           </Text>
           {status && isStreakAtRisk(status) && !isMining ? (
-            <Text style={styles.streakWarning}>{t('streak.atRisk', { count: status.streak })}</Text>
+            <Text style={styles.streakWarning}>{t(streakDayIsLocal(status) ? 'streak.atRiskLocal' : 'streak.atRisk', { count: status.streak })}</Text>
           ) : null}
           {!!error || (!status && !!error) ? (
             <Text style={styles.error}>{error || t('mine.statusFailed')}</Text>

@@ -1,3 +1,4 @@
+import { deviceTimeZone } from '@/lib/timezone';
 import { apiRequest } from '@/services/api';
 
 // Fixed session length the backend uses; mirrors `endsAt - startedAt`. Only
@@ -44,6 +45,8 @@ export type MiningStatus = {
    * streak; missing from servers that predate it.
    */
   streakExpiresAt?: string | null;
+  /** The IANA zone the server counts streak days in; null until set. Missing from older servers. */
+  timezone?: string | null;
   /** Current mining speed in Th/s (base speed even when idle). */
   currentThs: number;
   thsBreakdown: ThsBreakdown;
@@ -66,13 +69,19 @@ export function getMiningStatus(token: string): Promise<MiningStatus> {
   return apiRequest(token, 'GET', '/mining/status');
 }
 
-/** Minutes the device's local time is ahead of UTC (e.g. +180 for UTC+3); the server uses it for the Night Owl badge. */
+/**
+ * Minutes the device's local time is ahead of UTC (e.g. +180 for UTC+3); the server uses it for the
+ * Night Owl badge. Still sent for servers that don't read `timezone`.
+ */
 export function localUtcOffsetMinutes(date = new Date()): number {
   return -date.getTimezoneOffset();
 }
 
 export function startMining(token: string): Promise<MiningStatus> {
-  return apiRequest(token, 'POST', '/mining/start', { tzOffsetMinutes: localUtcOffsetMinutes() });
+  return apiRequest(token, 'POST', '/mining/start', {
+    tzOffsetMinutes: localUtcOffsetMinutes(),
+    timezone: deviceTimeZone() ?? undefined,
+  });
 }
 
 /** Call after an ad finishes playing. Limited to one call per 30s, 8 per session. */

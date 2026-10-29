@@ -1,6 +1,6 @@
 import type { MiningStatus } from '@/services/mining-api';
 
-import { formatDuration, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress } from '../mining-math';
+import { formatDuration, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
 
 function status(over: Partial<MiningStatus> = {}, session: Partial<NonNullable<MiningStatus['session']>> | null = {}): MiningStatus {
   return {
@@ -80,5 +80,14 @@ describe('isStreakAtRisk', () => {
     expect(isStreakAtRisk(status({ streak: 3, streakMinedToday: true }))).toBe(false);
     expect(isStreakAtRisk(status({ streak: 0, streakMinedToday: false }))).toBe(false);
     expect(isStreakAtRisk(null)).toBe(false);
+  });
+});
+
+describe('streakDayIsLocal', () => {
+  it('is true only when the server sends streakExpiresAt, even as null', () => {
+    expect(streakDayIsLocal(null)).toBe(false);
+    expect(streakDayIsLocal(status())).toBe(false);
+    expect(streakDayIsLocal(status({ streakExpiresAt: null }))).toBe(true);
+    expect(streakDayIsLocal(status({ streakExpiresAt: '2026-03-10T21:00:00Z' }))).toBe(true);
   });
 });

@@ -31,6 +31,11 @@ export function deleteAccount(token: string): Promise<{ ok: true }> {
   return apiRequest(token, 'DELETE', '/me', { confirm: 'DELETE' });
 }
 
+/** Stores the user's IANA time zone; the server uses it for the streak day. */
+export function updateTimeZone(token: string, timezone: string): Promise<unknown> {
+  return apiRequest(token, 'PATCH', '/me/timezone', { timezone });
+}
+
 /** Marks the welcome tour as seen so it isn't shown again on this account. */
 export function completeOnboarding(token: string): Promise<{ ok: true }> {
   return apiRequest(token, 'POST', '/me/onboarding-complete');

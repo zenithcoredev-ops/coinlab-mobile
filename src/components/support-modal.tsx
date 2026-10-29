@@ -15,9 +15,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, SectionLabel, Segmented } from '@/components/ui';
+import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
+import { streakDayIsLocal } from '@/lib/mining-math';
 import {
   createTicket,
   MAX_MESSAGE_LENGTH,
@@ -49,6 +51,10 @@ export function SupportModal({ visible, onClose }: { visible: boolean; onClose: 
   const { t, language } = useI18n();
   const { auth } = useSession();
   const token = auth?.token ?? null;
+  const { status } = useMining();
+  const faq = streakDayIsLocal(status)
+    ? FAQ.map((item) => (item.a === 'faq.streak.a' ? { ...item, a: 'faq.streak.aLocal' as const } : item))
+    : FAQ;
 
   const [open, setOpen] = useState<number | null>(null);
   const [category, setCategory] = useState<SupportCategory>('other');
@@ -104,7 +110,7 @@ export function SupportModal({ visible, onClose }: { visible: boolean; onClose: 
 
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <SectionLabel>{t('support.faq')}</SectionLabel>
-            {FAQ.map((item, i) => (
+            {faq.map((item, i) => (
               <Pressable
                 key={item.q}
                 accessibilityRole="button"
