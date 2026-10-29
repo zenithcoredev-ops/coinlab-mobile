@@ -52,6 +52,8 @@ const tr: Record<TranslationKey, string> = {
   'streak.days_other': '{count} gün',
   'streak.atRisk_one': '{count} günlük serini korumak için 00:00 UTC’den önce kazı',
   'streak.atRisk_other': '{count} günlük serini korumak için 00:00 UTC’den önce kazı',
+  'streak.atRiskLocal_one': '{count} günlük serini korumak için gece yarısından önce kazı',
+  'streak.atRiskLocal_other': '{count} günlük serini korumak için gece yarısından önce kazı',
   'streak.notStarted': 'Bugün kazım başlatmadın',
 
   'friends.title': 'Arkadaşlarını davet et',
@@ -242,6 +244,7 @@ const tr: Record<TranslationKey, string> = {
   'faq.accounts.a': 'Hayır. Kişi başına bir hesap. Birden fazla hesap ya da bot kullanımı ödüllerin kaybına yol açabilir.',
   'faq.streak.q': 'Bir gün kazımı kaçırırsam ne olur?',
   'faq.streak.a': 'Serin sıfırlanır. Günler 00:00 UTC\'de değişir; serini korumak için ondan önce kazıma başla.',
+  'faq.streak.aLocal': 'Serin sıfırlanır. Günler yerel saatinle gece yarısı değişir; serini korumak için ondan önce kazıma başla. Süren bir oturum kapsadığı her gün için sayılır.',
   'faq.league.q': 'Ligler ve turnuva nasıl işler?',
   'faq.league.a': 'Bir haftada kazandığın her CLB bir lig puanıdır. 30 kişilik grubunda üst sıralarda bitirerek Bronz\'dan Elmas\'a yüksel; Elmas\'ta ilk 8 Elmas Turnuvası\'na girer. Haftalar her Pazartesi 00:00 UTC\'de biter.',
   'faq.rewards.q': 'Turnuva ödülleri bana ne sağlar?',

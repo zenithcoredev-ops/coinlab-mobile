@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_URL } from '@/constants/config';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
+import { deviceTimeZone } from '@/lib/timezone';
 import { consumeGoogleRedirect, describeGoogleError, GoogleAccount, signInWithGoogle } from '@/services/google-auth';
 import { theme } from '@/theme';
 
@@ -55,6 +56,7 @@ export default function SignInScreen() {
           providerToken: account.accessToken,
           email: account.email,
           name: account.name,
+          timezone: deviceTimeZone() ?? undefined,
         }),
       });
       const data = await res.json();

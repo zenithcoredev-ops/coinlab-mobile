@@ -50,6 +50,8 @@ const en = {
   'streak.days_other': '{count} days',
   'streak.atRisk_one': 'Mine before 00:00 UTC to keep your {count}-day streak',
   'streak.atRisk_other': 'Mine before 00:00 UTC to keep your {count}-day streak',
+  'streak.atRiskLocal_one': 'Mine before midnight to keep your {count}-day streak',
+  'streak.atRiskLocal_other': 'Mine before midnight to keep your {count}-day streak',
   'streak.notStarted': 'You haven’t started mining today',
 
   'friends.title': 'Invite your friends',
@@ -240,6 +242,7 @@ const en = {
   'faq.accounts.a': 'No. One account per person. Multiple accounts or bots may lead to lost rewards.',
   'faq.streak.q': 'What if I miss a day of mining?',
   'faq.streak.a': 'Your streak resets. Days change at 00:00 UTC, so start mining before then to keep it.',
+  'faq.streak.aLocal': 'Your streak resets. Days change at midnight your local time, so start mining before then to keep it. A running session counts for every day it covers.',
   'faq.league.q': 'How do leagues and the tournament work?',
   'faq.league.a': 'Every CLB you earn in a week is a league point. Finish near the top of your group of 30 to climb from Bronze to Diamond; the top 8 in Diamond enter the Diamond Tournament. Weeks end every Monday at 00:00 UTC.',
   'faq.rewards.q': 'What do tournament rewards give me?',

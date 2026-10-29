@@ -47,7 +47,12 @@ export function formatClb(value: number): string {
   return value.toFixed(5);
 }
 
-/** A streak that is still alive but will expire at 00:00 UTC unless the user mines today. */
+/** Servers that send `streakExpiresAt` count streak days in the user's time zone; older ones in UTC. */
+export function streakDayIsLocal(status: MiningStatus | null): boolean {
+  return status?.streakExpiresAt !== undefined;
+}
+
+/** A streak that is still alive but will expire at the end of the day unless the user mines today. */
 export function isStreakAtRisk(status: MiningStatus | null): boolean {
   return !!status && status.streak > 0 && !status.streakMinedToday;
 }
