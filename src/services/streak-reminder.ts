@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { translate } from '@/i18n/translate';
 import type { Language } from '@/i18n/translate';
 import { nextStreakReminder, ReminderInput } from '@/lib/streak-reminder';
-import { ANDROID_CHANNEL_ID } from '@/services/notifications';
+import { ensureStreakChannel, STREAK_CHANNEL_ID } from '@/services/notifications';
 
 const REMINDER_ID = 'streak-reminder';
 
@@ -27,12 +27,13 @@ export async function syncStreakReminder(
   const reminder = nextStreakReminder(now, state);
   if (!reminder) return;
 
+  await ensureStreakChannel(language);
   await Notifications.scheduleNotificationAsync({
     identifier: REMINDER_ID,
     content: {
       title: translate(language, 'reminder.title'),
       body: translate(language, 'streak.reminder', { count: state.streak, hours: reminder.hoursLeft }),
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminder.fireAt, channelId: ANDROID_CHANNEL_ID },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminder.fireAt, channelId: STREAK_CHANNEL_ID },
   });
 }

@@ -2,6 +2,8 @@ import * as Notifications from 'expo-notifications';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import {
   getPermissionState,
   loadNotificationsEnabled,
@@ -36,6 +38,7 @@ const Ctx = createContext<NotificationsState | null>(null);
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [preferred, setPreferred] = useState(true);
   const [permission, setPermission] = useState<PermissionState>('undetermined');
+  const { language } = useI18n();
 
   const refreshPermission = useCallback(async () => {
     setPermission(await getPermissionState().catch(() => 'undetermined' as const));
@@ -55,13 +58,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       await saveNotificationsEnabled(false);
       return false;
     }
-    const state = await requestPermission();
+    const state = await requestPermission(language);
     setPermission(state);
     if (state !== 'granted') return false;
     setPreferred(true);
     await saveNotificationsEnabled(true);
     return true;
-  }, []);
+  }, [language]);
 
   const value = useMemo(
     () => ({ preferred, permission, active: preferred && permission === 'granted', setEnabled, refreshPermission }),
