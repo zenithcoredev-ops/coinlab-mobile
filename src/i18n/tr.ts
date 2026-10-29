@@ -52,6 +52,7 @@ const tr: Record<TranslationKey, string> = {
   'streak.days_other': '{count} gün',
   'streak.atRisk_one': '{count} günlük serini korumak için 00:00 UTC’den önce kazı',
   'streak.atRisk_other': '{count} günlük serini korumak için 00:00 UTC’den önce kazı',
+  'streak.notStarted': 'Bugün kazım başlatmadın',
 
   'friends.title': 'Arkadaşlarını davet et',
   'friends.subtitle': 'Kazımaya devam eden her arkadaşın hızına +{ths} Th/s ekler. Kazımayı bırakırsa bonusu da durur.',
