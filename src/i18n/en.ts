@@ -50,6 +50,7 @@ const en = {
   'streak.days_other': '{count} days',
   'streak.atRisk_one': 'Mine before 00:00 UTC to keep your {count}-day streak',
   'streak.atRisk_other': 'Mine before 00:00 UTC to keep your {count}-day streak',
+  'streak.notStarted': 'You haven’t started mining today',
 
   'friends.title': 'Invite your friends',
   'friends.subtitle': 'Every friend who keeps mining adds +{ths} Th/s to your speed. If they stop mining, their bonus stops too.',
