@@ -1,5 +1,6 @@
 import { clbPerSecond } from '@/lib/mining-math';
 import type { Weather } from '@/services/weather-api';
+import { weatherIconFor } from './weather-icons';
 import { isSignedOut, StoredWidget, WidgetSnapshot } from './snapshot';
 
 export type WidgetState = 'signedOut' | 'idle' | 'active' | 'finished';
@@ -56,6 +57,26 @@ export function buildWidgetModel(
   const balance = snapshot.balance + (accruingMs / 1000) * clbPerSecond(snapshot.ths);
   const remainingMs = Math.max(0, endsAt - now);
   return { ...base, state: remainingMs > 0 ? 'active' : 'finished', balance, remainingMs };
+}
+
+/** What the mining line shows of the time left: whole hours, or minutes within the last hour. */
+export function shownRemaining(ms: number): { hours: number } | { minutes: number } {
+  const { hours, minutes } = splitRemaining(ms);
+  return hours > 0 ? { hours } : { minutes };
+}
+
+/**
+ * Everything the widget draws, as a string: equal keys draw the same widget (at a given size), so
+ * the app can skip a redraw. The balance and streak aren't drawn any more, so they're left out.
+ */
+export function widgetDrawKey(m: WidgetModel): string {
+  return JSON.stringify([
+    m.state,
+    m.language,
+    m.state === 'active' ? shownRemaining(m.remainingMs) : null,
+    m.stepsToday,
+    m.weather ? [Math.round(m.weather.temperatureC), weatherIconFor(m.weather.symbol, m.weather.isDay)] : null,
+  ]);
 }
 
 /** Whole hours and minutes left; the widget only refreshes every few minutes, so no seconds. */

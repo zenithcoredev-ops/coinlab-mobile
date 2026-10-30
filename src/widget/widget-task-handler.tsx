@@ -5,7 +5,8 @@ import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 
 import type { Language } from '@/i18n/translate';
 import { MiningWidget, MiningWidgetName, WidgetSize } from './MiningWidget';
-import { buildWidgetModel } from './model';
+import { markDrawn } from './draw-cache';
+import { buildWidgetModel, WidgetModel, widgetDrawKey } from './model';
 import { loadSnapshot } from './snapshot';
 import { loadStoredSteps, stepsForToday, updateTodaySteps } from './steps';
 import { isWeatherEnabled, loadWeather, updateWeather, weatherForWidget } from './weather';
@@ -18,19 +19,22 @@ function deviceLanguage(): Language {
   }
 }
 
-export async function renderMiningWidget(name: string, size?: WidgetSize) {
-  // A broken snapshot must still leave a visible "start mining" widget, never a blank one.
-  const now = Date.now();
+/** The widget's model from everything saved. A broken snapshot still gives a "start mining" widget, never a blank one. */
+export async function loadWidgetModel(now = Date.now()): Promise<WidgetModel> {
   const [snapshot, steps, weatherOn, weather] = await Promise.all([
     loadSnapshot().catch(() => null),
     loadStoredSteps(),
     isWeatherEnabled(),
     loadWeather(),
   ]);
-  const model = buildWidgetModel(snapshot, now, deviceLanguage(), {
+  return buildWidgetModel(snapshot, now, deviceLanguage(), {
     stepsToday: stepsForToday(steps, new Date(now)),
     weather: weatherForWidget(weatherOn, weather, now),
   });
+}
+
+export async function renderMiningWidget(name: string, size?: WidgetSize, model?: WidgetModel) {
+  model ??= await loadWidgetModel();
   return <MiningWidget name={name === 'MiningLarge' ? 'MiningLarge' : 'MiningSmall'} model={model} size={size} />;
 }
 
@@ -41,14 +45,19 @@ export async function renderMiningWidget(name: string, size?: WidgetSize) {
  */
 export async function widgetTaskHandler({ widgetInfo, widgetAction, renderWidget }: WidgetTaskHandlerProps) {
   if (widgetAction === 'WIDGET_DELETED') return;
-  renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo));
+  // Always drawn here, even if unchanged: after a reboot or launcher restart this is what fills the widget.
+  const model = await loadWidgetModel();
+  renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo, model));
+  markDrawn(widgetDrawKey(model));
   if (widgetAction !== 'WIDGET_UPDATE' && widgetAction !== 'WIDGET_ADDED') return;
   const [stepsChanged, weatherChanged] = await Promise.all([
     updateTodaySteps(new Date(), { background: true }),
     updateWeather(Date.now()).catch(() => false),
   ]);
   if (stepsChanged || weatherChanged) {
-    renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo));
+    const updated = await loadWidgetModel();
+    renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo, updated));
+    markDrawn(widgetDrawKey(updated));
   }
 }
 
