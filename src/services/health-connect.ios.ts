@@ -11,6 +11,18 @@ export async function requestStepsPermission(): Promise<boolean> {
   return false;
 }
 
+export async function hasBackgroundStepsAccess(): Promise<boolean> {
+  return false;
+}
+
+export async function requestBackgroundStepsAccess(): Promise<boolean> {
+  return false;
+}
+
+export async function readTodaySteps(_now?: Date): Promise<number> {
+  return 0;
+}
+
 export async function openHealthConnectStore(): Promise<void> {}
 
 export async function readVerifiedSteps(_sinceIso: string): Promise<number> {

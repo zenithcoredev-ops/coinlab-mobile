@@ -20,7 +20,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.health.READ_STEPS"
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
       ]
     },
     "web": {
@@ -81,7 +82,7 @@
             {
               "name": "MiningLarge",
               "label": "Mining (large)",
-              "description": "Clock, date and mining status",
+              "description": "Clock, date, today's steps and mining status",
               "minWidth": "250dp",
               "minHeight": "110dp",
               "targetCellWidth": 4,

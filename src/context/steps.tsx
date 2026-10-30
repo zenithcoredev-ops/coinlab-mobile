@@ -5,8 +5,10 @@ import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import {
   getStepsAvailability,
+  hasBackgroundStepsAccess,
   openHealthConnectStore,
   readVerifiedSteps,
+  requestBackgroundStepsAccess,
   requestStepsPermission,
   StepsAvailability,
 } from '@/services/health-connect';
@@ -22,6 +24,13 @@ type StepsState = {
   steps: number;
   syncing: boolean;
   syncFailed: boolean;
+  /**
+   * Steps may be read while the app is closed too (keeps the home-screen widget's count fresh).
+   * Also true once asked this session, so a device that can't grant it isn't asked again and again.
+   */
+  backgroundAccess: boolean;
+  /** Asks for background reading on its own (for users who connected before it was asked). */
+  allowBackground: () => Promise<void>;
   /** Asks for Health Connect access, then syncs. */
   connect: () => Promise<void>;
   openStore: () => Promise<void>;
@@ -40,12 +49,15 @@ export function StepsProvider({ children }: { children: ReactNode }) {
   const [availability, setAvailability] = useState<StepsAvailability>('unsupported');
   const [syncing, setSyncing] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [backgroundAccess, setBackgroundAccess] = useState(false);
+  const backgroundAskedRef = useRef(false);
   const lastSyncRef = useRef(0);
   const busyRef = useRef(false);
 
   const checkAvailability = useCallback(async () => {
     const next = await getStepsAvailability();
     setAvailability(next);
+    setBackgroundAccess(backgroundAskedRef.current || (next === 'ready' && (await hasBackgroundStepsAccess())));
     return next;
   }, []);
 
@@ -72,6 +84,12 @@ export function StepsProvider({ children }: { children: ReactNode }) {
   );
 
   const syncNow = useCallback(() => runSync(true), [runSync]);
+
+  const allowBackground = useCallback(async () => {
+    backgroundAskedRef.current = true;
+    setBackgroundAccess(true);
+    await requestBackgroundStepsAccess();
+  }, []);
 
   const connect = useCallback(async () => {
     if (await requestStepsPermission()) await checkAvailability();
@@ -103,11 +121,13 @@ export function StepsProvider({ children }: { children: ReactNode }) {
       steps: session ? (status?.todaySteps ?? 0) : 0,
       syncing,
       syncFailed,
+      backgroundAccess,
+      allowBackground,
       connect,
       openStore: openHealthConnectStore,
       syncNow,
     }),
-    [availability, session, status?.todaySteps, syncing, syncFailed, connect, syncNow]
+    [availability, session, status?.todaySteps, syncing, syncFailed, backgroundAccess, allowBackground, connect, syncNow]
   );
   return <StepsContext.Provider value={value}>{children}</StepsContext.Provider>;
 }

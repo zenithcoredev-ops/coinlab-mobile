@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card } from '@/components/ui';
 import { useSteps } from '@/context/steps';
@@ -11,7 +11,7 @@ import { theme } from '@/theme';
 // Bonus per STEPS_PER_BONUS_UNIT comes from the server's breakdown, not a client constant.
 export function StepsCard() {
   const { t } = useI18n();
-  const { availability, steps, syncFailed, connect, openStore } = useSteps();
+  const { availability, steps, syncFailed, backgroundAccess, allowBackground, connect, openStore } = useSteps();
   const { status } = useMining();
 
   if (availability === 'unsupported') return null;
@@ -65,6 +65,11 @@ export function StepsCard() {
         </Text>
       )}
       {syncFailed && <Text style={styles.error}>{t('steps.syncError')}</Text>}
+      {!backgroundAccess && (
+        <Pressable onPress={allowBackground} accessibilityRole="button">
+          <Text style={styles.link}>{t('steps.background.button')}</Text>
+        </Pressable>
+      )}
     </Card>
   );
 }
@@ -75,6 +80,7 @@ const styles = StyleSheet.create({
   title: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 1 },
   value: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.sm },
   body: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: theme.spacing.sm },
+  link: { color: theme.colors.accent, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs + 0.5, marginTop: theme.spacing.sm },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
   button: { marginTop: theme.spacing.md },
   track: { height: 8, borderRadius: 4, backgroundColor: theme.colors.ringTrack, marginTop: theme.spacing.md, overflow: 'hidden' },

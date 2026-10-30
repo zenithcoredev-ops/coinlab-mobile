@@ -90,9 +90,20 @@ describe('MiningWidget', () => {
     expect(clocks(tree).length).toBeGreaterThan(0);
   });
 
+  it('shows today\'s steps with a ring on the large widget, only when Health Connect gave a count', () => {
+    const tree = draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR, 'tr', 6240), { width: 300, height: 160 });
+    expect(texts(tree)).toEqual(expect.arrayContaining(['6.240 adım', 'Bugün', 'CoinLab']));
+    const ring = walk(tree).find((n) => n.type === 'SvgWidget')!;
+    expect(ring.props.svgString).toContain('stroke-dasharray');
+    expect(texts(draw('MiningLarge', buildWidgetModel({ ...snap, language: 'en' }, t0 + HOUR, 'en', 6240)))).toContain('6,240 steps');
+
+    expect(walk(draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR))).some((n) => n.type === 'SvgWidget')).toBe(false);
+    expect(walk(draw('MiningSmall', buildWidgetModel(snap, t0 + HOUR, 'tr', 6240))).some((n) => n.type === 'SvgWidget')).toBe(false);
+  });
+
   it.each(NAMES)('%s never cuts text off and fits inside the card at every size', (name) => {
-    for (const size of sizes[name]) {
-      const card = draw(name, buildWidgetModel(snap, t0 + HOUR), size).children![0];
+    for (const [size, steps] of sizes[name].flatMap((sz) => [[sz, null], [sz, 12_345]] as const)) {
+      const card = draw(name, buildWidgetModel(snap, t0 + HOUR, 'tr', steps), size).children![0];
       expect(card.props.width).toBeLessThan(size.width);
       expect(card.props.height).toBeLessThan(size.height);
       const innerW = card.props.width - card.props.padding.left - card.props.padding.right;
