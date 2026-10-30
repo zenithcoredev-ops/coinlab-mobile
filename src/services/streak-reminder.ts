@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { translate } from '@/i18n/translate';
 import type { Language } from '@/i18n/translate';
 import { NOT_STARTED_DAYS, planStreakReminders, ReminderInput } from '@/lib/streak-reminder';
-import { ensureStreakChannel, STREAK_CHANNEL_ID } from '@/services/notifications';
+import { ensureStreakChannel, removeLegacyChannels, STREAK_CHANNEL_ID } from '@/services/notifications';
 
 const STREAK_ID = 'streak-reminder';
 const NOT_STARTED_IDS = Array.from({ length: NOT_STARTED_DAYS }, (_, i) => `streak-not-started-${i}`);
@@ -36,6 +36,8 @@ export function syncStreakReminder(state: ReminderInput | null, enabled: boolean
 
 async function schedule(state: ReminderInput | null, enabled: boolean, language: Language, now: Date) {
   await cancelAll();
+  // Nothing is pending now, so no reminder can fire on a removed channel.
+  await removeLegacyChannels();
   if (!enabled || !state) return;
 
   const reminders = planStreakReminders(now, state);

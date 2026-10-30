@@ -32,19 +32,42 @@ describe('streak reminder channel', () => {
 
   afterEach(() => restoreOS());
 
-  it('is a high-importance channel named in the app language, replacing the old default channel', async () => {
+  it('is a new high-importance, vibrating channel named in the app language', async () => {
     await ensureStreakChannel('tr');
+    expect(STREAK_CHANNEL_ID).toBe('streak-reminders-v2');
     expect(mocked.setNotificationChannelAsync).toHaveBeenCalledWith(STREAK_CHANNEL_ID, {
       name: 'Seri hatırlatmaları',
       importance: Notifications.AndroidImportance.HIGH,
+      enableVibrate: true,
+      vibrationPattern: [0, 250, 250, 250],
     });
-    expect(mocked.deleteNotificationChannelAsync).toHaveBeenCalledWith('default');
 
     await ensureStreakChannel('en');
     expect(mocked.setNotificationChannelAsync).toHaveBeenLastCalledWith(
       STREAK_CHANNEL_ID,
       expect.objectContaining({ name: 'Streak reminders' })
     );
+  });
+
+  it('removes the earlier channels and "Miscellaneous", only after pending reminders are cancelled', async () => {
+    await syncStreakReminder({ streak: 3, minedToday: true }, true, 'en', new Date(2026, 2, 10, 8));
+    const deleted = mocked.deleteNotificationChannelAsync.mock.calls.map(([id]) => id).sort();
+    expect(deleted).toEqual(['default', 'expo_notifications_fallback_notification_channel', 'streak-reminders']);
+    const lastCancel = Math.max(...mocked.cancelScheduledNotificationAsync.mock.invocationCallOrder);
+    expect(Math.min(...mocked.deleteNotificationChannelAsync.mock.invocationCallOrder)).toBeGreaterThan(lastCancel);
+    expect(Math.max(...mocked.deleteNotificationChannelAsync.mock.invocationCallOrder)).toBeLessThan(
+      mocked.scheduleNotificationAsync.mock.invocationCallOrder[0]
+    );
+
+    // Also with reminders off: nothing is pending, so it's safe.
+    jest.clearAllMocks();
+    await syncStreakReminder(null, false, 'en');
+    expect(mocked.deleteNotificationChannelAsync).toHaveBeenCalledTimes(3);
+  });
+
+  it('never removes channels when asking for permission', async () => {
+    await requestPermission('en');
+    expect(mocked.deleteNotificationChannelAsync).not.toHaveBeenCalled();
   });
 
   it('exists before the permission prompt', async () => {

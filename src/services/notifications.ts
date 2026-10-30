@@ -6,10 +6,15 @@ import { translate } from '@/i18n/translate';
 import type { Language } from '@/i18n/translate';
 
 const ENABLED_KEY = 'coinlab_notifications_enabled';
-export const STREAK_CHANNEL_ID = 'streak-reminders';
-// Earlier builds posted reminders here. Android won't raise an existing channel's importance, so
-// reminders moved to a new channel and this one is removed.
-const LEGACY_CHANNEL_ID = 'default';
+// Android fixes a channel's settings (importance, vibration) once it exists, so changing them means
+// a new id. The old channels are removed once no pending reminder points at them.
+export const STREAK_CHANNEL_ID = 'streak-reminders-v2';
+const LEGACY_CHANNEL_IDS = [
+  'default',
+  'streak-reminders',
+  // "Miscellaneous": expo-notifications creates it for a notification whose channel doesn't exist.
+  'expo_notifications_fallback_notification_channel',
+];
 
 export type PermissionState = 'granted' | 'denied' | 'undetermined';
 
@@ -24,15 +29,26 @@ export async function getPermissionState(): Promise<PermissionState> {
 
 /**
  * Creates the streak reminder channel, or renames it to match `language`. Android 13+ only shows
- * the permission prompt once a channel exists, and a reminder posted to a missing channel isn't shown.
+ * the permission prompt once a channel exists, and a reminder whose channel is missing lands in a
+ * generic "Miscellaneous" channel instead.
  */
 export async function ensureStreakChannel(language: Language) {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(STREAK_CHANNEL_ID, {
     name: translate(language, 'profile.notif.reminders'),
     importance: Notifications.AndroidImportance.HIGH,
+    enableVibrate: true,
+    vibrationPattern: [0, 250, 250, 250],
   });
-  await Notifications.deleteNotificationChannelAsync(LEGACY_CHANNEL_ID).catch(() => {});
+}
+
+/**
+ * Deletes channels earlier builds used. Only call it with no reminders pending: one that fires on a
+ * deleted channel brings back "Miscellaneous".
+ */
+export async function removeLegacyChannels() {
+  if (Platform.OS !== 'android') return;
+  await Promise.all(LEGACY_CHANNEL_IDS.map((id) => Notifications.deleteNotificationChannelAsync(id).catch(() => {})));
 }
 
 /** Asks the OS for notification permission (if still askable). Resolves the resulting state. */
