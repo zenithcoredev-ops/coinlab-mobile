@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform, StyleSheet, Switch, Text, View } from 'react-native';
 
-import { Card, SectionLabel } from '@/components/ui';
+import { Button, Card, SectionLabel } from '@/components/ui';
 import { useI18n } from '@/i18n';
 import { requestApproxLocationPermission } from '@/services/location';
+import { isXiaomiDevice, openAutostartSettings, openBatterySettings } from '@/services/miui';
 import { theme } from '@/theme';
 import { refreshWidgets } from '@/widget/refresh';
 import { isWeatherEnabled, setWeatherEnabled } from '@/widget/weather';
 import { refreshWeatherInApp } from '@/widget/weather-sync';
 
-/** Profile: "Weather on the widget" (off by default; asks for approximate location) and the data credit. */
+/**
+ * Profile's widget section: "Weather on the widget" (off by default; asks for approximate location),
+ * the data credit, and on Xiaomi phones how to keep the widget updating.
+ */
 export function WidgetWeatherSetting() {
   const { t } = useI18n();
   const [on, setOn] = useState(false);
@@ -56,6 +60,16 @@ export function WidgetWeatherSetting() {
         />
       </Card>
       <Text style={styles.credit}>{t('profile.weather.attribution')}</Text>
+      {isXiaomiDevice() && (
+        <Card style={styles.miui}>
+          <Text style={styles.title}>{t('profile.miui.title')}</Text>
+          <Text style={styles.hint}>{t('profile.miui.body')}</Text>
+          <View style={styles.buttons}>
+            <Button label={t('profile.miui.autostart')} onPress={openAutostartSettings} variant="ghost" style={styles.button} />
+            <Button label={t('profile.miui.battery')} onPress={() => openBatterySettings(t('app.name'))} variant="ghost" style={styles.button} />
+          </View>
+        </Card>
+      )}
     </>
   );
 }
@@ -65,5 +79,8 @@ const styles = StyleSheet.create({
   text: { flex: 1 },
   title: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 0.5 },
   hint: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
+  miui: { marginTop: theme.spacing.md },
+  buttons: { flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.md },
+  button: { flex: 1 },
   credit: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
 });

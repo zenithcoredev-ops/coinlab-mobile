@@ -7,7 +7,7 @@ import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import { translate } from '@/i18n/translate';
 import type { PluralKey, TranslationKey } from '@/i18n/en';
 import { theme } from '@/theme';
-import { splitRemaining, WidgetModel } from './model';
+import { shownRemaining, WidgetModel } from './model';
 import { STEP_GOAL } from './steps';
 import { stepsRingSvg } from './steps-ring';
 import { weatherIconFor, weatherIconSvg } from './weather-icons';
@@ -48,8 +48,8 @@ function miningLine(m: WidgetModel): { text: string; color: string } {
   const t = (key: TranslationKey | PluralKey, params?: Record<string, string | number>) => translate(m.language, key, params);
   if (m.state === 'signedOut') return { text: t('widget.signedOut.hint'), color: c.accent };
   if (m.state !== 'active') return { text: t('widget.tapToStart'), color: c.accent };
-  const { hours, minutes } = splitRemaining(m.remainingMs);
-  const time = hours > 0 ? t('widget.time.hours', { hours }) : t('widget.time.minutes', { minutes });
+  const left = shownRemaining(m.remainingMs);
+  const time = 'hours' in left ? t('widget.time.hours', left) : t('widget.time.minutes', left);
   return { text: t('widget.mining.active', { time }), color: c.positive };
 }
 
