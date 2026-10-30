@@ -3,9 +3,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({}));
 import { buildWidgetTree } from 'react-native-android-widget/src/api/build-widget-tree';
 
 import { translate } from '@/i18n/translate';
-import { MiningWidget, MiningWidgetName, WidgetSize } from '../MiningWidget';
+import { CLOCK_PREFIX, ClockSpec, MiningWidget, MiningWidgetName, WidgetSize } from '../MiningWidget';
 import { buildWidgetModel } from '../model';
 import type { WidgetSnapshot } from '../snapshot';
+
+// Node built-ins, for reading the patch file (the app's tsconfig has no Node types).
+declare const __dirname: string;
+const { readdirSync, readFileSync } = require('fs') as {
+  readdirSync: (dir: string) => string[];
+  readFileSync: (file: string, encoding: 'utf8') => string;
+};
+const { join } = require('path') as { join: (...parts: string[]) => string };
 
 const HOUR = 3_600_000;
 const t0 = Date.parse('2026-10-19T08:00:00Z');
@@ -23,52 +31,94 @@ const snap: WidgetSnapshot = {
 type Node = { type: string; props: any; children?: Node[] };
 const walk = (node: any): Node[] =>
   typeof node === 'object' && node ? [node, ...(node.children ?? []).flatMap(walk)] : [];
-const texts = (node: any) => walk(node).map((n) => n.props?.text).filter((t): t is string => typeof t === 'string');
+const textNodes = (node: any) => walk(node).filter((n) => n.type === 'TextWidget');
+const texts = (node: any) => textNodes(node).map((n) => n.props.text as string).filter((t) => !t.startsWith(CLOCK_PREFIX));
+const clocks = (node: any): ClockSpec[] =>
+  textNodes(node)
+    .map((n) => n.props.text as string)
+    .filter((t) => t.startsWith(CLOCK_PREFIX))
+    .map((t) => JSON.parse(t.slice(CLOCK_PREFIX.length)));
 const draw = (name: MiningWidgetName, model: ReturnType<typeof buildWidgetModel>, size?: WidgetSize) =>
   buildWidgetTree(<MiningWidget name={name} model={model} size={size} />) as unknown as Node;
 
-const sizes: WidgetSize[] = [
-  { width: 110, height: 40 },
-  { width: 160, height: 80 },
-  { width: 250, height: 110 },
-  { width: 300, height: 160 },
-];
+const sizes: Record<MiningWidgetName, WidgetSize[]> = {
+  MiningSmall: [
+    { width: 110, height: 40 },
+    { width: 150, height: 60 },
+    { width: 180, height: 90 },
+  ],
+  MiningLarge: [
+    { width: 250, height: 110 },
+    { width: 300, height: 160 },
+    { width: 360, height: 220 },
+  ],
+};
+const NAMES = ['MiningSmall', 'MiningLarge'] as const;
 
 describe('MiningWidget', () => {
-  it.each(['MiningSmall', 'MiningLarge'] as const)('%s draws a start-mining prompt without a snapshot', (name) => {
-    expect(texts(draw(name, buildWidgetModel(null, 0, 'tr')))).toContain(translate('tr', 'widget.tapToStart'));
+  it('uses the same clock marker as the patched native library', () => {
+    const patches = join(__dirname, '../../../patches');
+    const patch = readdirSync(patches).find((f) => f.startsWith('react-native-android-widget+'));
+    expect(readFileSync(join(patches, patch!), 'utf8')).toContain(`TEXT_PREFIX = "${CLOCK_PREFIX}"`);
   });
 
-  it.each(['MiningSmall', 'MiningLarge'] as const)('%s shows only a sign-in prompt when signed out', (name) => {
-    const model = buildWidgetModel({ signedOut: true, language: 'tr' }, 0);
-    expect(texts(draw(name, model))).toEqual([translate('tr', 'widget.signedOut.hint')]);
-    expect(translate('tr', 'widget.signedOut.hint')).toBe('Giriş yapmak için dokun');
+  it('shows a live clock; the large widget adds the date', () => {
+    const model = buildWidgetModel(snap, t0 + HOUR);
+    expect(clocks(draw('MiningSmall', model))).toEqual([expect.objectContaining({ format24Hour: 'HH:mm', format12Hour: 'h:mm' })]);
+    expect(clocks(draw('MiningLarge', model))).toEqual([
+      expect.objectContaining({ format24Hour: 'HH:mm', bold: true }),
+      expect.objectContaining({ format24Hour: 'EEEE, d MMMM', bold: false }),
+    ]);
   });
 
-  it.each(['MiningSmall', 'MiningLarge'] as const)('%s never lays content out wider than the card inside the reported size', (name) => {
-    for (const size of sizes) {
+  it.each(NAMES)('%s shows how long the running session has left', (name) => {
+    expect(texts(draw(name, buildWidgetModel(snap, t0 + HOUR)))).toContain('Kazılıyor · 9sa kaldı');
+    expect(texts(draw(name, buildWidgetModel(snap, t0 + 9.5 * HOUR)))).toContain('Kazılıyor · 30dk kaldı');
+    expect(texts(draw(name, buildWidgetModel({ ...snap, language: 'en' }, t0 + HOUR)))).toContain('Mining · 9h left');
+  });
+
+  it.each(NAMES)('%s invites to start mining when idle, finished or never opened', (name) => {
+    const start = translate('tr', 'widget.tapToStart');
+    expect(texts(draw(name, buildWidgetModel(null, 0, 'tr')))).toContain(start);
+    expect(texts(draw(name, buildWidgetModel({ ...snap, endsAt: null }, t0)))).toContain(start);
+    expect(texts(draw(name, buildWidgetModel(snap, t0 + 11 * HOUR)))).toContain(start);
+  });
+
+  it.each(NAMES)('%s keeps the clock and asks to sign in when signed out', (name) => {
+    const tree = draw(name, buildWidgetModel({ signedOut: true, language: 'tr' }, 0));
+    expect(texts(tree)).toContain('Giriş yapmak için dokun');
+    expect(clocks(tree).length).toBeGreaterThan(0);
+  });
+
+  it.each(NAMES)('%s never cuts text off and fits inside the card at every size', (name) => {
+    for (const size of sizes[name]) {
       const card = draw(name, buildWidgetModel(snap, t0 + HOUR), size).children![0];
       expect(card.props.width).toBeLessThan(size.width);
       expect(card.props.height).toBeLessThan(size.height);
-      expect(card.props.borderRadius).toEqual({ topLeft: 20, topRight: 20, bottomLeft: 20, bottomRight: 20 });
+      const innerW = card.props.width - card.props.padding.left - card.props.padding.right;
+      const innerH = card.props.height - card.props.padding.top - card.props.padding.bottom;
 
-      const inner = card.props.width - card.props.padding.left - card.props.padding.right;
-      for (const node of walk(card).slice(1)) {
-        if (typeof node.props.width === 'number') expect(node.props.width).toBeLessThanOrEqual(inner);
+      // Every text is one line in a fixed box that shrinks the font to fit, never an ellipsis.
+      for (const node of textNodes(card)) {
+        expect(node.props).toMatchObject({ maxLines: 1, adjustsFontSizeToFit: true });
+        expect(node.props.truncate).toBeUndefined();
+        expect(node.props.height).toBeGreaterThan(0);
+        expect(node.props.width).toBeLessThanOrEqual(innerW);
+      }
+      // Rows don't overflow sideways, and the stacked blocks fit the card's height.
+      for (const node of walk(card)) {
         if (node.props.orientation === 'HORIZONTAL') {
           const total = (node.children ?? []).reduce((sum, child) => sum + (child.props.width ?? 0), 0);
           expect(total).toBeLessThanOrEqual(node.props.width);
         }
       }
+      const blockHeight = (n: Node): number =>
+        typeof n.props.height === 'number'
+          ? n.props.height
+          : n.props.orientation === 'HORIZONTAL'
+            ? Math.max(0, ...(n.children ?? []).map(blockHeight))
+            : (n.children ?? []).reduce((sum, child) => sum + blockHeight(child), 0);
+      expect(card.children!.reduce((sum, child) => sum + blockHeight(child), 0)).toBeLessThanOrEqual(innerH);
     }
-  });
-
-  it('keeps the large widget balanced: header, main block and footer', () => {
-    // space-between adds weighted spacer nodes between the blocks; only the blocks have content.
-    const blocks = (card: Node) => card.children!.filter((n) => texts(n).length > 0);
-    const tall = draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR), { width: 250, height: 160 }).children![0];
-    expect(blocks(tall).map((b) => texts(b).length)).toEqual([2, 2, 2]); // header, time left + balance, streak + steps
-    const short = draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR), { width: 250, height: 110 }).children![0];
-    expect(blocks(short).map((b) => texts(b).length)).toEqual([2, 1, 3]); // header, time left, balance + streak + steps
   });
 });

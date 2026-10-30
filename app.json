@@ -71,7 +71,7 @@
             {
               "name": "MiningSmall",
               "label": "Mining",
-              "description": "Mining status and time left",
+              "description": "Clock and mining status",
               "minWidth": "110dp",
               "minHeight": "40dp",
               "targetCellWidth": 2,
@@ -81,7 +81,7 @@
             {
               "name": "MiningLarge",
               "label": "Mining (large)",
-              "description": "Mining status, balance, streak and steps",
+              "description": "Clock, date and mining status",
               "minWidth": "250dp",
               "minHeight": "110dp",
               "targetCellWidth": 4,
