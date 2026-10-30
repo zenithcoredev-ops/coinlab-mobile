@@ -8,6 +8,7 @@ import { MiningWidget, MiningWidgetName, WidgetSize } from './MiningWidget';
 import { buildWidgetModel } from './model';
 import { loadSnapshot } from './snapshot';
 import { loadStoredSteps, stepsForToday, updateTodaySteps } from './steps';
+import { isWeatherEnabled, loadWeather, updateWeather, weatherForWidget } from './weather';
 
 function deviceLanguage(): Language {
   try {
@@ -20,21 +21,33 @@ function deviceLanguage(): Language {
 export async function renderMiningWidget(name: string, size?: WidgetSize) {
   // A broken snapshot must still leave a visible "start mining" widget, never a blank one.
   const now = Date.now();
-  const [snapshot, steps] = await Promise.all([loadSnapshot().catch(() => null), loadStoredSteps()]);
-  const model = buildWidgetModel(snapshot, now, deviceLanguage(), stepsForToday(steps, new Date(now)));
+  const [snapshot, steps, weatherOn, weather] = await Promise.all([
+    loadSnapshot().catch(() => null),
+    loadStoredSteps(),
+    isWeatherEnabled(),
+    loadWeather(),
+  ]);
+  const model = buildWidgetModel(snapshot, now, deviceLanguage(), {
+    stepsToday: stepsForToday(steps, new Date(now)),
+    weather: weatherForWidget(weatherOn, weather, now),
+  });
   return <MiningWidget name={name === 'MiningLarge' ? 'MiningLarge' : 'MiningSmall'} model={model} size={size} />;
 }
 
 /**
  * Draws the widget from what's saved right away, then (on the periodic update, or when just added)
- * reads today's steps in the background and draws again if they changed. Taps open the app
- * (handled natively by OPEN_APP).
+ * reads today's steps and the weather in the background and draws again if either changed. Taps
+ * open the app (handled natively by OPEN_APP).
  */
 export async function widgetTaskHandler({ widgetInfo, widgetAction, renderWidget }: WidgetTaskHandlerProps) {
   if (widgetAction === 'WIDGET_DELETED') return;
   renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo));
   if (widgetAction !== 'WIDGET_UPDATE' && widgetAction !== 'WIDGET_ADDED') return;
-  if (await updateTodaySteps(new Date(), { background: true })) {
+  const [stepsChanged, weatherChanged] = await Promise.all([
+    updateTodaySteps(new Date(), { background: true }),
+    updateWeather(Date.now()).catch(() => false),
+  ]);
+  if (stepsChanged || weatherChanged) {
     renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo));
   }
 }

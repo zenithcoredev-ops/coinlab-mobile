@@ -28,6 +28,8 @@ const snap: WidgetSnapshot = {
   savedAt: t0,
 };
 
+const rainy = { temperatureC: -2.6, symbol: 'lightrainshowers_night', isDay: false, updatedAt: '2026-10-19T08:00:00Z' };
+
 type Node = { type: string; props: any; children?: Node[] };
 const walk = (node: any): Node[] =>
   typeof node === 'object' && node ? [node, ...(node.children ?? []).flatMap(walk)] : [];
@@ -91,19 +93,30 @@ describe('MiningWidget', () => {
   });
 
   it('shows today\'s steps with a ring on the large widget, only when Health Connect gave a count', () => {
-    const tree = draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR, 'tr', 6240), { width: 300, height: 160 });
+    const tree = draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR, 'tr', { stepsToday: 6240 }), { width: 300, height: 160 });
     expect(texts(tree)).toEqual(expect.arrayContaining(['6.240 adım', 'Bugün', 'CoinLab']));
     const ring = walk(tree).find((n) => n.type === 'SvgWidget')!;
     expect(ring.props.svgString).toContain('stroke-dasharray');
-    expect(texts(draw('MiningLarge', buildWidgetModel({ ...snap, language: 'en' }, t0 + HOUR, 'en', 6240)))).toContain('6,240 steps');
+    expect(texts(draw('MiningLarge', buildWidgetModel({ ...snap, language: 'en' }, t0 + HOUR, 'en', { stepsToday: 6240 })))).toContain('6,240 steps');
 
     expect(walk(draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR))).some((n) => n.type === 'SvgWidget')).toBe(false);
-    expect(walk(draw('MiningSmall', buildWidgetModel(snap, t0 + HOUR, 'tr', 6240))).some((n) => n.type === 'SvgWidget')).toBe(false);
+    expect(walk(draw('MiningSmall', buildWidgetModel(snap, t0 + HOUR, 'tr', { stepsToday: 6240 }))).some((n) => n.type === 'SvgWidget')).toBe(false);
+  });
+
+  it('shows the weather (icon + °C) top right on the large widget, only when there is some', () => {
+    const tree = draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR, 'tr', { weather: rainy }), { width: 300, height: 160 });
+    expect(texts(tree)).toContain('-3°');
+    const top = tree.children![0].children![0];
+    expect(top.props.orientation).toBe('HORIZONTAL');
+    expect(walk(top.children![1]).some((n) => n.type === 'SvgWidget')).toBe(true);
+    expect(texts(draw('MiningLarge', buildWidgetModel(snap, t0 + HOUR)))).not.toContain('-3°');
+    expect(texts(draw('MiningSmall', buildWidgetModel(snap, t0 + HOUR, 'tr', { weather: rainy })))).not.toContain('-3°');
   });
 
   it.each(NAMES)('%s never cuts text off and fits inside the card at every size', (name) => {
-    for (const [size, steps] of sizes[name].flatMap((sz) => [[sz, null], [sz, 12_345]] as const)) {
-      const card = draw(name, buildWidgetModel(snap, t0 + HOUR, 'tr', steps), size).children![0];
+    const extras = [{}, { stepsToday: 12_345 }, { stepsToday: 12_345, weather: rainy }];
+    for (const [size, extra] of sizes[name].flatMap((sz) => extras.map((e) => [sz, e] as const))) {
+      const card = draw(name, buildWidgetModel(snap, t0 + HOUR, 'tr', extra), size).children![0];
       expect(card.props.width).toBeLessThan(size.width);
       expect(card.props.height).toBeLessThan(size.height);
       const innerW = card.props.width - card.props.padding.left - card.props.padding.right;

@@ -12,6 +12,7 @@ import { ShareCardModal } from '@/components/share-card-modal';
 import { SupportModal } from '@/components/support-modal';
 import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
+import { WidgetWeatherSetting } from '@/components/widget-weather-setting';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/config';
 import { useMining } from '@/context/mining';
 import { useNotifications } from '@/context/notifications';
@@ -198,6 +199,8 @@ export default function ProfileScreen() {
             thumbColor={theme.colors.text}
           />
         </Card>
+
+        <WidgetWeatherSetting />
 
         <SectionLabel>{t('profile.help')}</SectionLabel>
         <LinkRow label={t('profile.support')} onPress={() => setSupportOpen(true)} />
