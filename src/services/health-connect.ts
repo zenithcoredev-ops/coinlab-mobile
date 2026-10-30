@@ -15,6 +15,8 @@ import type { StepsAvailability } from './health-connect.types';
 export type { StepsAvailability } from './health-connect.types';
 
 const STEPS_READ = { accessType: 'read', recordType: 'Steps' } as const;
+// READ_HEALTH_DATA_IN_BACKGROUND: lets the home-screen widget read steps while the app is closed.
+const BACKGROUND_READ = { accessType: 'read', recordType: 'BackgroundAccessPermission' } as const;
 const HEALTH_CONNECT_STORE_URL =
   'market://details?id=com.google.android.apps.healthdata&url=healthconnect%3A%2F%2Fonboarding';
 const PAGE_SIZE = 1000;
@@ -35,15 +37,51 @@ export async function getStepsAvailability(): Promise<StepsAvailability> {
   }
 }
 
-/** Shows the system permission sheet; resolves true when step reading was allowed. */
+const isGranted = (granted: { recordType?: string }[], recordType: string) =>
+  granted.some((p) => 'recordType' in p && p.recordType === recordType);
+
+/**
+ * Shows the system permission sheet; resolves true when step reading was allowed. Background
+ * reading (for the widget) is asked in the same sheet and is optional.
+ */
 export async function requestStepsPermission(): Promise<boolean> {
   try {
     await initialize();
-    const granted = await requestPermission([STEPS_READ]);
-    return granted.some((p) => 'recordType' in p && p.recordType === 'Steps');
+    return isGranted(await requestPermission([STEPS_READ, BACKGROUND_READ]), 'Steps');
   } catch {
     return false;
   }
+}
+
+/** Whether steps may also be read while the app isn't open (Android 14+, or a recent Health Connect). */
+export async function hasBackgroundStepsAccess(): Promise<boolean> {
+  try {
+    if (!(await initialize())) return false;
+    return isGranted(await getGrantedPermissions(), 'BackgroundAccessPermission');
+  } catch {
+    return false;
+  }
+}
+
+/** For users who allowed steps before background reading was asked for. */
+export async function requestBackgroundStepsAccess(): Promise<boolean> {
+  try {
+    await initialize();
+    return isGranted(await requestPermission([BACKGROUND_READ]), 'BackgroundAccessPermission');
+  } catch {
+    return false;
+  }
+}
+
+/** Every step recorded today (device local day), as Health Connect totals them across apps. */
+export async function readTodaySteps(now = new Date()): Promise<number> {
+  await initialize();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const { COUNT_TOTAL } = await aggregateRecord({
+    recordType: 'Steps',
+    timeRangeFilter: { operator: 'between', startTime: midnight.toISOString(), endTime: now.toISOString() },
+  });
+  return COUNT_TOTAL ?? 0;
 }
 
 /** Opens the Play Store page of Health Connect (install or update). */

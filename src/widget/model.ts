@@ -10,7 +10,8 @@ export type WidgetModel = {
   ths: number;
   streak: number;
   streakAtRisk: boolean;
-  steps: number;
+  /** Health Connect steps today (local day); null hides the steps ring. */
+  stepsToday: number | null;
   remainingMs: number;
 };
 
@@ -22,7 +23,7 @@ const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
   ths: 0,
   streak: 0,
   streakAtRisk: false,
-  steps: 0,
+  stepsToday: null,
   remainingMs: 0,
 });
 
@@ -30,9 +31,10 @@ const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
 export function buildWidgetModel(
   stored: StoredWidget | null,
   now: number,
-  fallbackLanguage: WidgetSnapshot['language'] = 'en'
+  fallbackLanguage: WidgetSnapshot['language'] = 'en',
+  stepsToday: number | null = null
 ): WidgetModel {
-  if (!stored) return noSnapshot(fallbackLanguage);
+  if (!stored) return { ...noSnapshot(fallbackLanguage), stepsToday };
   if (isSignedOut(stored)) return { ...noSnapshot(stored.language ?? fallbackLanguage), state: 'signedOut' };
   const snapshot = stored;
   const base = {
@@ -40,7 +42,7 @@ export function buildWidgetModel(
     ths: snapshot.ths,
     streak: snapshot.streak,
     streakAtRisk: snapshot.streakAtRisk,
-    steps: snapshot.steps,
+    stepsToday,
   };
   if (!snapshot.endsAt) return { ...base, state: 'idle', balance: snapshot.balance, remainingMs: 0 };
 

@@ -37,7 +37,13 @@ describe('buildWidgetModel', () => {
     expect(m.remainingMs).toBe(8 * HOUR);
     expect(m.balance).toBeCloseTo(10 + (2 * 2.4) / 24, 6);
     expect(m.language).toBe('tr');
-    expect(m.steps).toBe(3200);
+    expect(m.stepsToday).toBeNull();
+  });
+
+  it('carries today\'s Health Connect steps, also without a snapshot, but not when signed out', () => {
+    expect(buildWidgetModel(snap, t0, 'tr', 6240).stepsToday).toBe(6240);
+    expect(buildWidgetModel(null, t0, 'tr', 0).stepsToday).toBe(0);
+    expect(buildWidgetModel({ signedOut: true }, t0, 'tr', 6240).stepsToday).toBeNull();
   });
 
   it('stops accruing at the session end and reports finished', () => {

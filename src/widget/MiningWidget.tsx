@@ -2,12 +2,14 @@
 // The widget library calls components as plain functions (no React renderer); the React Compiler's
 // memo cache would throw "Invalid hook call" there and leave the widget blank.
 import type { ReactNode } from 'react';
-import { FlexWidget, TextWidget } from 'react-native-android-widget';
+import { FlexWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 
 import { translate } from '@/i18n/translate';
 import type { PluralKey, TranslationKey } from '@/i18n/en';
 import { theme } from '@/theme';
 import { splitRemaining, WidgetModel } from './model';
+import { STEP_GOAL } from './steps';
+import { stepsRingSvg } from './steps-ring';
 
 export type MiningWidgetName = 'MiningSmall' | 'MiningLarge';
 
@@ -113,21 +115,49 @@ export function MiningWidget({ name, model, size }: { name: MiningWidgetName; mo
     ]);
   }
 
-  // Large: clock and date, a divider, then the mining line with the brand on the right.
-  const clockH = clamp(innerH * 0.4, 22, 56);
+  // Large: clock and date, a divider, the steps ring (when Health Connect is connected) next to the
+  // brand, then the mining line. Without steps the brand moves into the mining line's row.
+  const t = (key: TranslationKey | PluralKey, params?: Record<string, string | number>) => translate(model.language, key, params);
+  const steps = model.stepsToday;
+  const clockH = clamp(innerH * (steps === null ? 0.4 : 0.32), 22, 56);
   const dateH = clamp(innerH * 0.14, 11, 18);
   const footerH = clamp(innerH * 0.16, 11, 18);
   const brandW = Math.floor(innerW * 0.26);
+  const brand = (height: number) => <Line text={t('app.name')} width={brandW} height={height} color={c.muted} bold align="right" />;
   const date = clockText({ format24Hour: 'EEEE, d MMMM', format12Hour: 'EEEE, d MMMM', color: c.muted, bold: false });
-  return card([
+
+  const blocks: ReactNode[] = [
     <FlexWidget key="top" style={{ width: innerW }}>
       <Line text={time} width={innerW} height={clockH} color={c.text} bold />
       <Line text={date} width={innerW} height={dateH} color={c.muted} />
     </FlexWidget>,
     <FlexWidget key="divider" style={{ width: innerW, height: 1, backgroundColor: c.divider }} />,
-    <FlexWidget key="footer" style={{ width: innerW, flexDirection: 'row', alignItems: 'center' }}>
-      <Line text={mining.text} width={innerW - brandW} height={footerH} color={mining.color} />
-      <Line text={translate(model.language, 'app.name')} width={brandW} height={footerH} color={c.muted} bold align="right" />
-    </FlexWidget>,
-  ]);
+  ];
+  if (steps !== null) {
+    // The ring is as tall as the row; the label under the count only when there is room for it.
+    const rowH = clamp(innerH * 0.24, 16, 40);
+    const gap = 8;
+    const textW = innerW - rowH - gap - brandW;
+    const withLabel = rowH >= 26;
+    const countH = withLabel ? Math.round(rowH * 0.56) : rowH;
+    blocks.push(
+      <FlexWidget key="steps" style={{ width: innerW, flexDirection: 'row', alignItems: 'center' }}>
+        <SvgWidget svg={stepsRingSvg(steps / STEP_GOAL, c.accent)} style={{ width: rowH, height: rowH, marginRight: gap }} />
+        <FlexWidget style={{ width: textW }}>
+          <Line text={t('widget.steps', { steps: steps.toLocaleString(model.language) })} width={textW} height={countH} color={c.text} bold />
+          {withLabel ? <Line text={t('widget.stepsToday')} width={textW} height={rowH - countH} color={c.muted} /> : null}
+        </FlexWidget>
+        {brand(Math.min(rowH, footerH))}
+      </FlexWidget>,
+      <Line key="mining" text={mining.text} width={innerW} height={footerH} color={mining.color} />
+    );
+  } else {
+    blocks.push(
+      <FlexWidget key="footer" style={{ width: innerW, flexDirection: 'row', alignItems: 'center' }}>
+        <Line text={mining.text} width={innerW - brandW} height={footerH} color={mining.color} />
+        {brand(footerH)}
+      </FlexWidget>
+    );
+  }
+  return card(blocks);
 }
