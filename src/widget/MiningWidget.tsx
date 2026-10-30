@@ -23,139 +23,111 @@ const DEFAULT_SIZE: Record<MiningWidgetName, WidgetSize> = {
   MiningLarge: { width: 250, height: 110 },
 };
 
+/**
+ * Text starting with this is not drawn: the patched widget library (patches/react-native-android-widget+*.patch,
+ * ClockView.TEXT_PREFIX) puts a live Android TextClock over the text's box, so the time ticks every
+ * minute without redrawing the widget. The date follows the device language.
+ */
+export const CLOCK_PREFIX = '@@textclock@@';
+export type ClockSpec = { format24Hour: string; format12Hour: string; color: string; bold: boolean };
+const clockText = (spec: ClockSpec) => CLOCK_PREFIX + JSON.stringify(spec);
+
 const c = {
   bg: theme.colors.background,
-  surface: theme.colors.surface,
   text: theme.colors.text,
   muted: theme.colors.textMuted,
   accent: theme.colors.accent,
   positive: theme.colors.positive,
-  danger: theme.colors.danger,
+  divider: 'rgba(255, 255, 255, 0.08)',
 } as const;
 
-function textsFor(m: WidgetModel) {
+function miningLine(m: WidgetModel): { text: string; color: string } {
   const t = (key: TranslationKey | PluralKey, params?: Record<string, string | number>) => translate(m.language, key, params);
-  const unitParams = { clb: t('unit.clb'), ths: t('unit.ths') };
-
+  if (m.state === 'signedOut') return { text: t('widget.signedOut.hint'), color: c.accent };
+  if (m.state !== 'active') return { text: t('widget.tapToStart'), color: c.accent };
   const { hours, minutes } = splitRemaining(m.remainingMs);
-  const status =
-    m.state === 'active'
-      ? t('widget.state.active', { rate: m.ths.toFixed(2), ...unitParams })
-      : t(m.state === 'finished' ? 'widget.state.finished' : 'widget.state.idle');
-  const detail =
-    m.state === 'active'
-      ? t(hours > 0 ? 'widget.remaining' : 'widget.remainingShort', { hours, minutes })
-      : m.state === 'signedOut'
-        ? t('widget.signedOut.hint')
-        : t('widget.tapToStart');
-
-  return {
-    status,
-    detail,
-    balance: t('widget.balance', { balance: m.balance.toFixed(2), ...unitParams }),
-    streak: t('streak.days', { count: m.streak }),
-    steps: t('widget.steps', { steps: m.steps.toLocaleString(m.language) }),
-    app: t('app.name'),
-  };
+  const time = hours > 0 ? t('widget.time.hours', { hours }) : t('widget.time.minutes', { minutes });
+  return { text: t('widget.mining.active', { time }), color: c.positive };
 }
 
-const statusColor = (m: WidgetModel) => (m.state === 'active' ? c.positive : m.state === 'finished' ? c.accent : c.muted);
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(value)));
+
+/**
+ * One line of text in a fixed box. Nothing is ever cut off: the text shrinks to fit the box instead
+ * (auto-size needs the explicit height), so the box's height sets the largest size it may use.
+ */
+function Line({ text, width, height, color, bold, align }: { text: string; width: number; height: number; color: string; bold?: boolean; align?: 'left' | 'right' }) {
+  return (
+    <TextWidget
+      text={text}
+      maxLines={1}
+      style={{
+        width,
+        height,
+        fontSize: Math.max(8, Math.floor(height / 1.35)),
+        adjustsFontSizeToFit: true,
+        color: color as `#${string}`,
+        fontWeight: bold ? '700' : '400',
+        textAlign: align ?? 'left',
+      }}
+    />
+  );
+}
 
 export function MiningWidget({ name, model, size }: { name: MiningWidgetName; model: WidgetModel; size?: WidgetSize }) {
-  const x = textsFor(model);
   const reported = size && size.width > 0 && size.height > 0 ? size : DEFAULT_SIZE[name];
   const cardW = Math.max(80, reported.width - SAFE_INSET);
   const cardH = Math.max(36, reported.height - SAFE_INSET);
-  const pad = name === 'MiningSmall' ? 12 : 14;
+  const pad = name === 'MiningSmall' ? 10 : 14;
   const innerW = cardW - pad * 2;
   const innerH = cardH - pad * 2;
-  const card = {
-    width: cardW,
-    height: cardH,
-    backgroundColor: c.bg,
-    borderRadius: 20,
-    padding: pad,
-  } as const;
-  const line = { maxLines: 1, truncate: 'END' } as const;
+  const mining = miningLine(model);
+  const time = clockText({ format24Hour: 'HH:mm', format12Hour: 'h:mm', color: c.text, bold: true });
 
-  // Outer layer is transparent; the card inside is what the user sees.
-  const frame = (children: ReactNode | ReactNode[], justifyContent: 'center' | 'space-between') => (
+  const card = (children: ReactNode) => (
+    // Outer layer is transparent; the card inside is what the user sees. Taps open the app.
     <FlexWidget clickAction="OPEN_APP" style={{ width: 'match_parent', height: 'match_parent' }}>
-      <FlexWidget style={{ ...card, justifyContent }}>{children}</FlexWidget>
+      <FlexWidget style={{ width: cardW, height: cardH, backgroundColor: c.bg, borderRadius: 20, padding: pad, justifyContent: 'space-between' }}>
+        {children}
+      </FlexWidget>
     </FlexWidget>
   );
 
-  if (model.state === 'signedOut') {
-    return frame(
-      <TextWidget
-        key="signin"
-        text={x.detail}
-        style={{ width: innerW, fontSize: name === 'MiningSmall' ? 15 : 20, color: c.text, fontWeight: '700', textAlign: 'center' }}
-        maxLines={2}
-        truncate="END"
-      />,
-      'center'
-    );
-  }
-
   if (name === 'MiningSmall') {
-    return frame(
-      [
-        <TextWidget key="status" text={x.status} style={{ width: innerW, fontSize: 12, color: statusColor(model), fontWeight: '600' }} {...line} />,
-        <TextWidget key="detail" text={x.detail} style={{ width: innerW, fontSize: 16, color: c.text, fontWeight: '700' }} {...line} />,
-        <TextWidget key="balance" text={x.balance} style={{ width: innerW, fontSize: 12, color: c.accent }} {...line} />,
-      ],
-      'center'
-    );
+    if (innerH < 30) {
+      // Too short to stack: clock on the left, mining status beside it.
+      const clockW = Math.floor(innerW * 0.36);
+      return card(
+        <FlexWidget style={{ width: innerW, height: innerH, flexDirection: 'row', alignItems: 'center' }}>
+          <Line text={time} width={clockW} height={innerH} color={c.text} bold />
+          <Line text={mining.text} width={innerW - clockW} height={Math.min(innerH, 14)} color={mining.color} align="right" />
+        </FlexWidget>
+      );
+    }
+    // Clock on top, mining status under it; the clock takes what the status line leaves.
+    const lineH = clamp(innerH * 0.32, 10, 16);
+    const clockH = innerH - lineH - 2;
+    return card([
+      <Line key="clock" text={time} width={innerW} height={clockH} color={c.text} bold />,
+      <Line key="mining" text={mining.text} width={innerW} height={lineH} color={mining.color} />,
+    ]);
   }
 
-  // Large: header, a centred main block, and a footer row. When short, the balance moves to the footer.
-  const compact = innerH < 84;
-  const main: ReactNode[] = [
-    <TextWidget key="detail" text={x.detail} style={{ width: innerW, fontSize: compact ? 20 : 26, color: c.text, fontWeight: '700' }} {...line} />,
-  ];
-  if (!compact) {
-    main.push(<TextWidget key="balance" text={x.balance} style={{ width: innerW, fontSize: 16, color: c.accent, fontWeight: '600' }} {...line} />);
-  }
-  // Footer columns share the inner width; tall widgets keep the balance in the main block instead.
-  const columns = compact
-    ? [
-        { key: 'balance', text: x.balance, color: c.accent, ratio: 0.4, align: 'left' },
-        { key: 'streak', text: x.streak, color: model.streakAtRisk ? c.danger : c.text, ratio: 0.28, align: 'center' },
-        { key: 'steps', text: x.steps, color: c.text, ratio: 0.32, align: 'right' },
-      ] as const
-    : [
-        { key: 'streak', text: x.streak, color: model.streakAtRisk ? c.danger : c.text, ratio: 0.5, align: 'left' },
-        { key: 'steps', text: x.steps, color: c.text, ratio: 0.5, align: 'right' },
-      ] as const;
-  const footer = columns.map((col, i) => (
-    <TextWidget
-      key={col.key}
-      text={col.text}
-      style={{
-        width: i === columns.length - 1 ? innerW - columns.slice(0, -1).reduce((sum, k) => sum + Math.floor(innerW * k.ratio), 0) : Math.floor(innerW * col.ratio),
-        fontSize: 13,
-        color: col.color,
-        textAlign: col.align,
-      }}
-      {...line}
-    />
-  ));
-  return frame(
-    [
-      <FlexWidget key="header" style={{ width: innerW, flexDirection: 'row' }}>
-        <TextWidget text={x.app} style={{ width: Math.floor(innerW * 0.34), fontSize: 13, color: c.muted, fontWeight: '600' }} {...line} />
-        <TextWidget
-          text={x.status}
-          style={{ width: innerW - Math.floor(innerW * 0.34), fontSize: 12, color: statusColor(model), fontWeight: '600', textAlign: 'right' }}
-          {...line}
-        />
-      </FlexWidget>,
-      <FlexWidget key="main" style={{ width: innerW }}>{main}</FlexWidget>,
-      <FlexWidget key="footer" style={{ width: innerW, flexDirection: 'row' }}>
-        {footer}
-      </FlexWidget>,
-    ],
-    'space-between'
-  );
+  // Large: clock and date, a divider, then the mining line with the brand on the right.
+  const clockH = clamp(innerH * 0.4, 22, 56);
+  const dateH = clamp(innerH * 0.14, 11, 18);
+  const footerH = clamp(innerH * 0.16, 11, 18);
+  const brandW = Math.floor(innerW * 0.26);
+  const date = clockText({ format24Hour: 'EEEE, d MMMM', format12Hour: 'EEEE, d MMMM', color: c.muted, bold: false });
+  return card([
+    <FlexWidget key="top" style={{ width: innerW }}>
+      <Line text={time} width={innerW} height={clockH} color={c.text} bold />
+      <Line text={date} width={innerW} height={dateH} color={c.muted} />
+    </FlexWidget>,
+    <FlexWidget key="divider" style={{ width: innerW, height: 1, backgroundColor: c.divider }} />,
+    <FlexWidget key="footer" style={{ width: innerW, flexDirection: 'row', alignItems: 'center' }}>
+      <Line text={mining.text} width={innerW - brandW} height={footerH} color={mining.color} />
+      <Line text={translate(model.language, 'app.name')} width={brandW} height={footerH} color={c.muted} bold align="right" />
+    </FlexWidget>,
+  ]);
 }

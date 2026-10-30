@@ -1,0 +1,306 @@
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
+index 5650d1e..38be03d 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
+@@ -24,6 +24,7 @@ import com.facebook.react.bridge.ReadableMap;
+ import com.facebook.react.bridge.WritableArray;
+ import com.facebook.react.bridge.WritableMap;
+ import com.reactnativeandroidwidget.builder.ClickableView;
++import com.reactnativeandroidwidget.builder.ClockView;
+ import com.reactnativeandroidwidget.builder.CollectionView;
+ import com.reactnativeandroidwidget.builder.CollectionViewItem;
+ import com.reactnativeandroidwidget.builder.WidgetFactory;
+@@ -114,6 +115,7 @@ public class RNWidget {
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+             addClickableAreas(widgetId, remoteWidgetView, widgetWithViews);
+         }
++        addClockViews(remoteWidgetView, widgetWithViews);
+         addCollectionViews(widgetId, remoteWidgetView, widgetWithViews);
+ 
+         AppWidgetManager.getInstance(appContext)
+@@ -151,6 +153,33 @@ public class RNWidget {
+         return RNWidgetImageProvider.getImageUri(appContext, fileName);
+     }
+ 
++    // Each ClockView becomes a TextClock sized and placed exactly over its (empty) spot in the bitmap.
++    private void addClockViews(RemoteViews widgetView, WidgetWithViews widgetWithViews) {
++        widgetView.removeAllViews(R.id.rn_widget_clock_container);
++        ViewGroup rootView = (ViewGroup) widgetWithViews.getRootView();
++        for (ClockView clock : widgetWithViews.getClockViews()) {
++            Rect bounds = new Rect();
++            clock.getView().getDrawingRect(bounds);
++            rootView.offsetDescendantRectToMyCoords(clock.getView(), bounds);
++
++            RemoteViews clockView = new RemoteViews(
++                appContext.getPackageName(),
++                clock.isBold() ? R.layout.rn_widget_clock_bold : R.layout.rn_widget_clock
++            );
++            clockView.setViewPadding(
++                R.id.rn_widget_clock_positioner,
++                bounds.left,
++                bounds.top,
++                Math.max(0, rootView.getMeasuredWidth() - bounds.right),
++                Math.max(0, rootView.getMeasuredHeight() - bounds.bottom)
++            );
++            clockView.setCharSequence(R.id.rn_widget_clock, "setFormat24Hour", clock.getFormat24Hour());
++            clockView.setCharSequence(R.id.rn_widget_clock, "setFormat12Hour", clock.getFormat12Hour());
++            clockView.setTextColor(R.id.rn_widget_clock, clock.getColor());
++            widgetView.addView(R.id.rn_widget_clock_container, clockView);
++        }
++    }
++
+     @RequiresApi(Build.VERSION_CODES.N)
+     private void addClickableAreas(int widgetId, RemoteViews remoteWidgetView, WidgetWithViews widgetWithViews) {
+         remoteWidgetView.removeAllViews(R.id.rn_widget_clickable_container);
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java
+new file mode 100644
+index 0000000..d7664d9
+--- /dev/null
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java
+@@ -0,0 +1,67 @@
++package com.reactnativeandroidwidget.builder;
++
++import android.graphics.Color;
++import android.view.View;
++
++import androidx.annotation.Nullable;
++
++import org.json.JSONObject;
++
++/**
++ * A TextWidget whose text is {@link #TEXT_PREFIX} + JSON is drawn empty into the bitmap; RNWidget
++ * puts a live TextClock over its bounds instead, so the time updates every minute without a redraw.
++ * JSON: {"format24Hour": "HH:mm", "format12Hour": "h:mm", "color": "#RRGGBB", "bold": true}
++ */
++public class ClockView {
++    public static final String TEXT_PREFIX = "@@textclock@@";
++
++    private final View view;
++    private final String format24Hour;
++    private final String format12Hour;
++    private final int color;
++    private final boolean bold;
++
++    private ClockView(View view, String format24Hour, String format12Hour, int color, boolean bold) {
++        this.view = view;
++        this.format24Hour = format24Hour;
++        this.format12Hour = format12Hour;
++        this.color = color;
++        this.bold = bold;
++    }
++
++    public static boolean isClockText(@Nullable String text) {
++        return text != null && text.startsWith(TEXT_PREFIX);
++    }
++
++    public static ClockView fromText(View view, String text) throws Exception {
++        JSONObject spec = new JSONObject(text.substring(TEXT_PREFIX.length()));
++        String format24Hour = spec.optString("format24Hour", "HH:mm");
++        return new ClockView(
++            view,
++            format24Hour,
++            spec.optString("format12Hour", format24Hour),
++            Color.parseColor(spec.optString("color", "#FFFFFF")),
++            spec.optBoolean("bold", false)
++        );
++    }
++
++    public View getView() {
++        return view;
++    }
++
++    public String getFormat24Hour() {
++        return format24Hour;
++    }
++
++    public String getFormat12Hour() {
++        return format12Hour;
++    }
++
++    public int getColor() {
++        return color;
++    }
++
++    public boolean isBold() {
++        return bold;
++    }
++}
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java
+index 78e37ac..0169114 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java
+@@ -29,11 +29,13 @@ import java.util.Objects;
+ public class WidgetFactory {
+     private final List<ClickableView> clickableViews;
+     private final List<CollectionView> collectionViews;
++    private final List<ClockView> clockViews;
+     private String rootAccessibilityLabel;
+ 
+     private WidgetFactory() {
+         this.clickableViews = new ArrayList<>();
+         this.collectionViews = new ArrayList<>();
++        this.clockViews = new ArrayList<>();
+         this.rootAccessibilityLabel = null;
+     }
+ 
+@@ -57,7 +59,7 @@ public class WidgetFactory {
+         ResourceUtils.clear();
+ 
+         Collections.sort(widgetFactory.clickableViews);
+-        return new WidgetWithViews(view, widgetFactory.clickableViews, widgetFactory.collectionViews, widgetFactory.rootAccessibilityLabel);
++        return new WidgetWithViews(view, widgetFactory.clickableViews, widgetFactory.collectionViews, widgetFactory.rootAccessibilityLabel, widgetFactory.clockViews);
+     }
+ 
+     @NonNull
+@@ -78,9 +80,24 @@ public class WidgetFactory {
+     }
+ 
+     private View buildWidget(ReactApplicationContext context, ReadableMap config, String id) throws Exception {
++        String clockText = getClockText(config);
++        if (clockText != null) {
++            // Laid out like any text, but drawn empty: a live TextClock covers it (see ClockView).
++            WritableMap props = Arguments.makeNativeMap(config.getMap("props").toHashMap());
++            props.putString("text", "");
++            WritableMap clockConfig = Arguments.createMap();
++            clockConfig.putString("type", config.getString("type"));
++            clockConfig.putMap("props", props);
++            config = clockConfig;
++        }
++
+         BaseWidget<? extends View> baseWidget = getBaseWidget(context, config, id);
+         View view = baseWidget.getView();
+ 
++        if (clockText != null) {
++            clockViews.add(ClockView.fromText(view, clockText));
++        }
++
+         if (baseWidget.isCollection()) {
+             collectionViews.add(
+                 new CollectionView(
+@@ -111,6 +128,15 @@ public class WidgetFactory {
+         return view;
+     }
+ 
++    private static String getClockText(ReadableMap config) {
++        if (!"TextWidget".equals(config.getString("type"))) {
++            return null;
++        }
++        ReadableMap props = config.getMap("props");
++        String text = props != null && props.hasKey("text") ? props.getString("text") : null;
++        return ClockView.isClockText(text) ? text : null;
++    }
++
+     private float getUniformBorderRadius(ReadableMap props) {
+         if (!props.hasKey("borderRadius") || props.isNull("borderRadius")) {
+             return 0f;
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java
+index 9b9e94e..c7d3a30 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java
+@@ -4,6 +4,7 @@ import android.view.View;
+ 
+ import androidx.annotation.Nullable;
+ 
++import java.util.ArrayList;
+ import java.util.List;
+ 
+ public class WidgetWithViews {
+@@ -11,13 +12,19 @@ public class WidgetWithViews {
+     private final List<ClickableView> clickableViews;
+     private final List<CollectionView> collectionViews;
+     private final String rootAccessibilityLabel;
++    private final List<ClockView> clockViews;
+ 
+     WidgetWithViews(View rootView, List<ClickableView> clickableViews, List<CollectionView> collectionViews) {
+         this(rootView, clickableViews, collectionViews, null);
+     }
+ 
+     WidgetWithViews(View rootView, List<ClickableView> clickableViews, List<CollectionView> collectionViews, @Nullable String rootAccessibilityLabel) {
++        this(rootView, clickableViews, collectionViews, rootAccessibilityLabel, new ArrayList<>());
++    }
++
++    WidgetWithViews(View rootView, List<ClickableView> clickableViews, List<CollectionView> collectionViews, @Nullable String rootAccessibilityLabel, List<ClockView> clockViews) {
+         this.rootView = rootView;
++        this.clockViews = clockViews;
+         this.clickableViews = clickableViews;
+         this.collectionViews = collectionViews;
+         this.rootAccessibilityLabel = rootAccessibilityLabel;
+@@ -35,6 +42,10 @@ public class WidgetWithViews {
+         return collectionViews;
+     }
+ 
++    public List<ClockView> getClockViews() {
++        return clockViews;
++    }
++
+     @Nullable
+     public String getRootAccessibilityLabel() {
+         return rootAccessibilityLabel;
+diff --git a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml
+index 870d18b..01f2ebf 100644
+--- a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml
++++ b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml
+@@ -19,6 +19,12 @@
+         android:scaleType="matrix"
+         android:visibility="gone" />
+ 
++    <!-- Live TextClocks over the bitmap (see RNWidget.addClockViews); below the clickable areas. -->
++    <FrameLayout
++        android:id="@+id/rn_widget_clock_container"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent" />
++
+     <FrameLayout
+         android:id="@+id/rn_widget_clickable_container"
+         android:layout_width="match_parent"
+diff --git a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_clock.xml b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_clock.xml
+new file mode 100644
+index 0000000..7d32812
+--- /dev/null
++++ b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_clock.xml
+@@ -0,0 +1,19 @@
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:id="@+id/rn_widget_clock_positioner"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent">
++
++    <!-- Fills the box the JS layout reserved; auto-size keeps any locale's text on one line, uncut. -->
++    <TextClock
++        android:id="@+id/rn_widget_clock"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:autoSizeMaxTextSize="200sp"
++        android:autoSizeMinTextSize="6sp"
++        android:autoSizeStepGranularity="1sp"
++        android:autoSizeTextType="uniform"
++        android:fontFamily="sans-serif"
++        android:gravity="start|center_vertical"
++        android:includeFontPadding="false"
++        android:maxLines="1" />
++</FrameLayout>
+diff --git a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_clock_bold.xml b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_clock_bold.xml
+new file mode 100644
+index 0000000..c7bc225
+--- /dev/null
++++ b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget_clock_bold.xml
+@@ -0,0 +1,20 @@
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:id="@+id/rn_widget_clock_positioner"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent">
++
++    <!-- Fills the box the JS layout reserved; auto-size keeps any locale's text on one line, uncut. -->
++    <TextClock
++        android:id="@+id/rn_widget_clock"
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:autoSizeMaxTextSize="200sp"
++        android:autoSizeMinTextSize="6sp"
++        android:autoSizeStepGranularity="1sp"
++        android:autoSizeTextType="uniform"
++        android:fontFamily="sans-serif"
++        android:gravity="start|center_vertical"
++        android:includeFontPadding="false"
++        android:maxLines="1"
++        android:textStyle="bold" />
++</FrameLayout>
