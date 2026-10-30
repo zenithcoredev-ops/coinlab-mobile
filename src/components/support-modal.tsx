@@ -19,6 +19,7 @@ import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
+import { leagueWeekEndParams } from '@/lib/league-week';
 import { streakDayIsLocal } from '@/lib/mining-math';
 import {
   createTicket,
@@ -52,6 +53,7 @@ export function SupportModal({ visible, onClose }: { visible: boolean; onClose: 
   const { auth } = useSession();
   const token = auth?.token ?? null;
   const { status } = useMining();
+  const weekEnd = leagueWeekEndParams(t, language, new Date());
   const faq = streakDayIsLocal(status)
     ? FAQ.map((item) => (item.a === 'faq.streak.a' ? { ...item, a: 'faq.streak.aLocal' as const } : item))
     : FAQ;
@@ -118,7 +120,7 @@ export function SupportModal({ visible, onClose }: { visible: boolean; onClose: 
                 onPress={() => setOpen(open === i ? null : i)}
                 style={styles.faq}>
                 <Text style={styles.question}>{t(item.q)}</Text>
-                {open === i && <Text style={styles.answer}>{t(item.a)}</Text>}
+                {open === i && <Text style={styles.answer}>{t(item.a, item.a === 'faq.league.a' ? weekEnd : undefined)}</Text>}
               </Pressable>
             ))}
 

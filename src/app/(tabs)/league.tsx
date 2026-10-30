@@ -20,6 +20,7 @@ import {
   RESULT_KEYS,
   STAGE_NAME_KEYS,
 } from '@/lib/league';
+import { leagueWeekEndParams } from '@/lib/league-week';
 import { promotionCard, ShareCard, tournamentCard } from '@/lib/share';
 import {
   DIAMOND_LEAGUE,
@@ -169,7 +170,8 @@ export default function LeagueScreen() {
 }
 
 function HowItWorks() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const weekEnd = leagueWeekEndParams(t, language, new Date());
   const steps = ['league.how.step1', 'league.how.step2', 'league.how.step3', 'league.how.step4'] as const;
   return (
     <Card style={styles.block}>
@@ -179,7 +181,7 @@ function HowItWorks() {
           <View style={styles.howNum}>
             <Text style={styles.howNumText}>{i + 1}</Text>
           </View>
-          <Text style={styles.howText}>{t(key)}</Text>
+          <Text style={styles.howText}>{t(key, key === 'league.how.step3' ? weekEnd : undefined)}</Text>
         </View>
       ))}
       <Text style={styles.note}>{t('league.how.note')}</Text>

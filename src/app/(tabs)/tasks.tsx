@@ -12,7 +12,7 @@ import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
-import { formatDuration } from '@/lib/mining-math';
+import { formatDuration, streakDayIsLocal } from '@/lib/mining-math';
 import { ApiError } from '@/services/api';
 import {
   claimTask,
@@ -42,7 +42,7 @@ const CLAIM_ERRORS: Record<TaskErrorCode, TranslationKey> = {
 export default function TasksScreen() {
   const { t } = useI18n();
   const { auth } = useSession();
-  const { refresh: refreshMining } = useMining();
+  const { status: miningStatus, refresh: refreshMining } = useMining();
   const token = auth?.token ?? null;
 
   const [progress, setProgress] = useState<TaskProgress | null>(null);
@@ -108,7 +108,7 @@ export default function TasksScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.text} />}>
         <ScreenHeader />
-        <ScreenTitle title={t('tasks.title')} subtitle={t('tasks.subtitle')} />
+        <ScreenTitle title={t('tasks.title')} subtitle={t(streakDayIsLocal(miningStatus) ? 'tasks.subtitleLocal' : 'tasks.subtitle')} />
 
         {!progress ? (
           loadError ? (

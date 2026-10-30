@@ -42,7 +42,7 @@
       [
         "expo-notifications",
         {
-          "defaultChannel": "default",
+          "defaultChannel": "streak-reminders-v2",
           "icon": "./assets/images/notification-icon.png",
           "color": "#F5B942"
         }
