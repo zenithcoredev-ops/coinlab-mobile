@@ -41,9 +41,9 @@ describe('buildWidgetModel', () => {
   });
 
   it('carries today\'s Health Connect steps, also without a snapshot, but not when signed out', () => {
-    expect(buildWidgetModel(snap, t0, 'tr', 6240).stepsToday).toBe(6240);
-    expect(buildWidgetModel(null, t0, 'tr', 0).stepsToday).toBe(0);
-    expect(buildWidgetModel({ signedOut: true }, t0, 'tr', 6240).stepsToday).toBeNull();
+    expect(buildWidgetModel(snap, t0, 'tr', { stepsToday: 6240 }).stepsToday).toBe(6240);
+    expect(buildWidgetModel(null, t0, 'tr', { stepsToday: 0 }).stepsToday).toBe(0);
+    expect(buildWidgetModel({ signedOut: true }, t0, 'tr', { stepsToday: 6240 }).stepsToday).toBeNull();
   });
 
   it('stops accruing at the session end and reports finished', () => {

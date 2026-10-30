@@ -1,4 +1,5 @@
 import { clbPerSecond } from '@/lib/mining-math';
+import type { Weather } from '@/services/weather-api';
 import { isSignedOut, StoredWidget, WidgetSnapshot } from './snapshot';
 
 export type WidgetState = 'signedOut' | 'idle' | 'active' | 'finished';
@@ -12,6 +13,8 @@ export type WidgetModel = {
   streakAtRisk: boolean;
   /** Health Connect steps today (local day); null hides the steps ring. */
   stepsToday: number | null;
+  /** Current weather; null hides it (switched off, no location, no data yet). */
+  weather: Weather | null;
   remainingMs: number;
 };
 
@@ -24,6 +27,7 @@ const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
   streak: 0,
   streakAtRisk: false,
   stepsToday: null,
+  weather: null,
   remainingMs: 0,
 });
 
@@ -32,9 +36,9 @@ export function buildWidgetModel(
   stored: StoredWidget | null,
   now: number,
   fallbackLanguage: WidgetSnapshot['language'] = 'en',
-  stepsToday: number | null = null
+  { stepsToday = null, weather = null }: { stepsToday?: number | null; weather?: Weather | null } = {}
 ): WidgetModel {
-  if (!stored) return { ...noSnapshot(fallbackLanguage), stepsToday };
+  if (!stored) return { ...noSnapshot(fallbackLanguage), stepsToday, weather };
   if (isSignedOut(stored)) return { ...noSnapshot(stored.language ?? fallbackLanguage), state: 'signedOut' };
   const snapshot = stored;
   const base = {
@@ -43,6 +47,7 @@ export function buildWidgetModel(
     streak: snapshot.streak,
     streakAtRisk: snapshot.streakAtRisk,
     stepsToday,
+    weather,
   };
   if (!snapshot.endsAt) return { ...base, state: 'idle', balance: snapshot.balance, remainingMs: 0 };
 

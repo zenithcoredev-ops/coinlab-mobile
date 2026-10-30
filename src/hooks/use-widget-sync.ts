@@ -7,15 +7,21 @@ import { refreshWidgets } from '@/widget/refresh';
 import { buildSnapshot } from '@/widget/snapshot';
 import { updateTodaySteps } from '@/widget/steps';
 import { publishSnapshot } from '@/widget/sync';
+import { refreshWeatherInApp } from '@/widget/weather-sync';
 
-// While the app is open the widget's step count is kept fresh from here (no background permission needed).
-const STEPS_INTERVAL_MS = 5 * 60_000;
+// While the app is open the widget's steps and weather are kept fresh from here (no background
+// permission needed for either; the weather itself is only fetched every 45 minutes).
+const REFRESH_INTERVAL_MS = 5 * 60_000;
 
-async function refreshSteps() {
-  if (await updateTodaySteps(new Date(), { background: false })) await refreshWidgets();
+async function refreshWidgetData() {
+  const [steps, weather] = await Promise.all([
+    updateTodaySteps(new Date(), { background: false }),
+    refreshWeatherInApp().catch(() => false),
+  ]);
+  if (steps || weather) await refreshWidgets();
 }
 
-/** Mirrors the latest mining status, language and today's steps into the home-screen widget. */
+/** Mirrors the latest mining status, language, today's steps and the weather into the home-screen widget. */
 export function useWidgetSync() {
   const { status, fetchedAt } = useMining();
   const { language } = useI18n();
@@ -26,9 +32,9 @@ export function useWidgetSync() {
   }, [status, fetchedAt, language]);
 
   useEffect(() => {
-    refreshSteps().catch(() => {});
-    const id = setInterval(() => refreshSteps().catch(() => {}), STEPS_INTERVAL_MS);
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && refreshSteps().catch(() => {}));
+    refreshWidgetData().catch(() => {});
+    const id = setInterval(() => refreshWidgetData().catch(() => {}), REFRESH_INTERVAL_MS);
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && refreshWidgetData().catch(() => {}));
     return () => {
       clearInterval(id);
       sub.remove();

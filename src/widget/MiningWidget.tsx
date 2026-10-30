@@ -10,6 +10,7 @@ import { theme } from '@/theme';
 import { splitRemaining, WidgetModel } from './model';
 import { STEP_GOAL } from './steps';
 import { stepsRingSvg } from './steps-ring';
+import { weatherIconFor, weatherIconSvg } from './weather-icons';
 
 export type MiningWidgetName = 'MiningSmall' | 'MiningLarge';
 
@@ -126,10 +127,29 @@ export function MiningWidget({ name, model, size }: { name: MiningWidgetName; mo
   const brand = (height: number) => <Line text={t('app.name')} width={brandW} height={height} color={c.muted} bold align="right" />;
   const date = clockText({ format24Hour: 'EEEE, d MMMM', format12Hour: 'EEEE, d MMMM', color: c.muted, bold: false });
 
+  // Weather (when on and known) takes the top right; clock and date get the rest of the row.
+  const weather = model.weather;
+  const weatherW = weather ? Math.floor(innerW * 0.34) : 0;
+  const clockW = innerW - weatherW;
+  const iconSize = clamp(clockH * 0.8, 16, 36);
+  const top: ReactNode[] = [
+    <FlexWidget key="clock" style={{ width: clockW }}>
+      <Line text={time} width={clockW} height={clockH} color={c.text} bold />
+      <Line text={date} width={clockW} height={dateH} color={c.muted} />
+    </FlexWidget>,
+  ];
+  if (weather) {
+    top.push(
+      <FlexWidget key="weather" style={{ width: weatherW, height: clockH, flexDirection: 'row', alignItems: 'center' }}>
+        <SvgWidget svg={weatherIconSvg(weatherIconFor(weather.symbol, weather.isDay))} style={{ width: iconSize, height: iconSize, marginRight: 4 }} />
+        <Line text={`${Math.round(weather.temperatureC)}°`} width={weatherW - iconSize - 4} height={iconSize} color={c.text} bold />
+      </FlexWidget>
+    );
+  }
+
   const blocks: ReactNode[] = [
-    <FlexWidget key="top" style={{ width: innerW }}>
-      <Line text={time} width={innerW} height={clockH} color={c.text} bold />
-      <Line text={date} width={innerW} height={dateH} color={c.muted} />
+    <FlexWidget key="top" style={{ width: innerW, flexDirection: 'row' }}>
+      {top}
     </FlexWidget>,
     <FlexWidget key="divider" style={{ width: innerW, height: 1, backgroundColor: c.divider }} />,
   ];

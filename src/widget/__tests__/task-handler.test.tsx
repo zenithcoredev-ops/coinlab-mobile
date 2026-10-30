@@ -1,4 +1,6 @@
 import { hasBackgroundStepsAccess, readTodaySteps } from '@/services/health-connect';
+import { getWeather } from '@/services/weather-api';
+import { saveCoords, setWeatherEnabled } from '../weather';
 import { widgetTaskHandler } from '../widget-task-handler';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -6,6 +8,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'tr' }] }));
 jest.mock('@/services/health-connect', () => ({ hasBackgroundStepsAccess: jest.fn(), readTodaySteps: jest.fn() }));
+jest.mock('@/services/weather-api', () => ({ getWeather: jest.fn() }));
 
 const AsyncStorage = require('@react-native-async-storage/async-storage');
 const widgetInfo = { widgetName: 'MiningLarge', widgetId: 1, width: 300, height: 160, screenInfo: {} } as any;
@@ -38,6 +41,16 @@ describe('widgetTaskHandler', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('fetches the weather in the background for the saved position and draws it', async () => {
+    (hasBackgroundStepsAccess as jest.Mock).mockResolvedValue(false);
+    (getWeather as jest.Mock).mockResolvedValue({ temperatureC: 21, symbol: 'clearsky_day', isDay: true, updatedAt: 'x' });
+    await setWeatherEnabled(true);
+    await saveCoords({ lat: 41, lon: 29 }, Date.now());
+    const renderWidget = jest.fn();
+    await widgetTaskHandler({ widgetInfo, widgetAction: 'WIDGET_UPDATE', renderWidget } as any);
+    expect(renderWidget.mock.calls.map(([el]) => el.props.model.weather?.temperatureC ?? null)).toEqual([null, 21]);
   });
 
   it('only redraws on a resize, without touching Health Connect', async () => {
