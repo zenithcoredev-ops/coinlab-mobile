@@ -9,6 +9,7 @@ import { ShareCardModal } from '@/components/share-card-modal';
 import { Button, Card, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
+import { useLiveBalance } from '@/hooks/use-live-balance';
 import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
 import {
@@ -227,7 +228,9 @@ function ResultBanner({
 
 function LockedCard({ entry }: { entry: LeagueView['entry'] }) {
   const { t } = useI18n();
-  const progress = entryProgress(entry);
+  // Live like the Mine screen; the league snapshot's balance until the mining status arrives.
+  const balance = useLiveBalance() ?? entry.balance;
+  const progress = entryProgress({ ...entry, balance });
   return (
     <Card style={styles.block}>
       <Text style={styles.lockIcon}>🔒</Text>
@@ -237,7 +240,7 @@ function LockedCard({ entry }: { entry: LeagueView['entry'] }) {
         <View style={[styles.fill, { width: `${progress * 100}%` }]} />
       </View>
       <Text style={styles.progressText}>
-        {t('league.locked.progress', { balance: Math.min(entry.balance, entry.required).toFixed(2), required: entry.required })}
+        {t('league.locked.progress', { balance: Math.min(balance, entry.required).toFixed(2), required: entry.required })}
       </Text>
     </Card>
   );

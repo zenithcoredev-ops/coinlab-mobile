@@ -61,7 +61,7 @@ export default function SignInScreen() {
       });
       const data = await res.json();
       if (data.token) {
-        await signIn({ token: data.token, name: data.user?.name ?? t('signin.defaultName') });
+        await signIn({ token: data.token, name: data.user?.name ?? t('signin.defaultName'), issuedAt: Date.now() });
       } else {
         setError(t('signin.failed', { detail: data?.error ?? JSON.stringify(data) }));
       }

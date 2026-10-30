@@ -60,7 +60,9 @@ const EXPIRED = { error: 'Invalid or expired token' };
 
 function mockApi(onFetch: (path: string) => { status: number; body: unknown }) {
   globalThis.fetch = jest.fn(async (url: string) => {
-    const { status, body } = onFetch(new URL(String(url)).pathname);
+    const path = new URL(String(url)).pathname;
+    // A server without token refresh, so only the requests under test can fail.
+    const { status, body } = path === '/auth/refresh' ? { status: 404, body: {} } : onFetch(path);
     return { ok: status < 300, status, headers: { get: () => null }, json: async () => body };
   }) as unknown as typeof fetch;
 }

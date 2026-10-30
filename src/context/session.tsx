@@ -1,11 +1,22 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+
+import { jwtIssuedAt, shouldRefreshToken } from '@/lib/token-refresh';
 
 import { setUnauthorizedHandler } from '@/services/api';
+import { refreshToken } from '@/services/auth-api';
 import { completeOnboarding as completeOnboardingRequest, getAccount } from '@/services/me-api';
 import { signOutGoogle } from '@/services/google-auth';
 import { cancelStreakReminder } from '@/services/streak-reminder';
 import { clearWidget } from '@/widget/sync';
-import { clearStoredAuth, loadStoredAuth, saveStoredAuth, StoredAuth } from '@/services/auth-storage';
+import {
+  clearStoredAuth,
+  loadRefreshAttempt,
+  loadStoredAuth,
+  saveRefreshAttempt,
+  saveStoredAuth,
+  StoredAuth,
+} from '@/services/auth-storage';
 
 /** 'unknown' until the server has said whether this account has seen the welcome tour. */
 export type OnboardingState = 'unknown' | 'pending' | 'done';
@@ -73,6 +84,42 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     return () => setUnauthorizedHandler(null);
   }, [endSession]);
+
+  // Swap a token older than a week for a fresh one, on launch and on every return to the app, at
+  // most once a day. A 404 (server without /auth/refresh) or a network error just waits for
+  // tomorrow; a 401 goes through the unauthorized handler above and signs out.
+  const authRef = useRef(auth);
+  authRef.current = auth;
+  const refreshingRef = useRef(false);
+  const maybeRefreshToken = useCallback(async () => {
+    const current = authRef.current;
+    if (!current || refreshingRef.current) return;
+    refreshingRef.current = true;
+    try {
+      const now = Date.now();
+      const issuedAt = current.issuedAt ?? jwtIssuedAt(current.token);
+      if (!shouldRefreshToken(now, issuedAt, await loadRefreshAttempt())) return;
+      await saveRefreshAttempt(now);
+      const { token: fresh } = await refreshToken(current.token);
+      // Signed out or replaced while the request was in flight.
+      if (typeof fresh !== 'string' || !fresh || tokenRef.current !== current.token) return;
+      const next = { ...current, token: fresh, issuedAt: now };
+      await saveStoredAuth(next);
+      setAuth(next);
+    } catch {
+      // See above: tried again tomorrow, or signed out on a 401.
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, []);
+
+  const signedIn = !!auth;
+  useEffect(() => {
+    if (!ready || !signedIn) return;
+    maybeRefreshToken();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && maybeRefreshToken());
+    return () => sub.remove();
+  }, [ready, signedIn, maybeRefreshToken]);
 
   // Ask the server whether the tour has been seen. If we can't reach it, don't block the
   // app behind the tour; it will be offered again next launch because the flag stays false.
