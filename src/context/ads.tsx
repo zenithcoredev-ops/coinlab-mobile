@@ -5,8 +5,14 @@ import { ADS_SUPPORTED } from '@/ads/config';
 import { ConsentState, gatherConsent, initializeAds, showPrivacyOptions } from '@/ads/consent';
 import { flushImpressions } from '@/ads/impressions';
 import { useSession } from '@/context/session';
+import { getAccount, isAdFree } from '@/services/me-api';
 
 type AdsState = ConsentState & {
+  /**
+   * The mining-start interstitial may be shown: consent allows ads and the account is known not to be
+   * ad-free/VIP (unknown, e.g. offline, counts as no, so a paying user never sees one by mistake).
+   */
+  interstitialsAllowed: boolean;
   /** Profile → Privacy options. */
   openPrivacyOptions: () => Promise<void>;
 };
@@ -21,6 +27,7 @@ export function AdsProvider({ children }: { children: ReactNode }) {
   const { auth } = useSession();
   const token = auth?.token ?? null;
   const [consent, setConsent] = useState<ConsentState>({ canRequestAds: false, privacyOptionsRequired: false });
+  const [adFree, setAdFree] = useState<boolean | null>(null);
 
   const apply = useCallback((next: ConsentState) => {
     setConsent(next);
@@ -32,17 +39,31 @@ export function AdsProvider({ children }: { children: ReactNode }) {
   }, [apply]);
 
   useEffect(() => {
+    setAdFree(null);
     if (!ADS_SUPPORTED || !token) return;
-    flushImpressions(token).catch(() => {});
-    const sub = AppState.addEventListener('change', (s) => s === 'active' && flushImpressions(token).catch(() => {}));
-    return () => sub.remove();
+    let cancelled = false;
+    const refresh = () => {
+      flushImpressions(token).catch(() => {});
+      getAccount(token)
+        .then((account) => !cancelled && setAdFree(isAdFree(account)))
+        .catch(() => {});
+    };
+    refresh();
+    const sub = AppState.addEventListener('change', (s) => s === 'active' && refresh());
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
   }, [token]);
 
   const openPrivacyOptions = useCallback(async () => {
     apply(await showPrivacyOptions());
   }, [apply]);
 
-  const value = useMemo(() => ({ ...consent, openPrivacyOptions }), [consent, openPrivacyOptions]);
+  const value = useMemo(
+    () => ({ ...consent, interstitialsAllowed: consent.canRequestAds && adFree === false, openPrivacyOptions }),
+    [consent, adFree, openPrivacyOptions]
+  );
   return <AdsContext.Provider value={value}>{children}</AdsContext.Provider>;
 }
 

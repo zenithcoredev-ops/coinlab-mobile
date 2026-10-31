@@ -38,8 +38,8 @@ describe('ads boundaries', () => {
     expect(forbidden).toEqual([]);
   });
 
-  it('the ads context takes only the session token from the rest of the app', () => {
-    const allowed = /^(react|react-native|@\/ads\/[\w-]+|@\/context\/session)$/;
+  it('the ads context takes only the session token and the account (ad-free/VIP) from the rest of the app', () => {
+    const allowed = /^(react|react-native|@\/ads\/[\w-]+|@\/context\/session|@\/services\/me-api)$/;
     expect(directImports(path.join(SRC, 'context/ads.tsx')).filter((spec) => !allowed.test(spec))).toEqual([]);
   });
 
