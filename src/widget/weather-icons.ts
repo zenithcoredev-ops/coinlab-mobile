@@ -29,7 +29,8 @@ export function weatherIconFor(symbol: string, isDay: boolean): WeatherIcon {
 
 const SUN = '#F5B942';
 const MOON = '#E8ECF4';
-const CLOUD = '#C9D1E0';
+const CLOUD = 'url(#cloud)';
+const FOG = '#C9D1E0';
 const WATER = '#6EA8FE';
 
 const sun = (cx: number, cy: number, r: number) =>
@@ -43,8 +44,9 @@ const sun = (cx: number, cy: number, r: number) =>
     .join('');
 const moon = (cx: number, cy: number, r: number) =>
   `<path d="M${cx + r * 0.3} ${cy - r}a${r} ${r} 0 1 0 ${r * 0.7} ${r * 1.55}a${r * 0.8} ${r * 0.8} 0 0 1 -${r * 0.7} -${r * 1.55}z" fill="${MOON}"/>`;
-const cloud = (dy = 0, color = CLOUD) =>
-  `<path d="M7 ${18 + dy}h10.5a3.5 3.5 0 0 0 0-7a5 5 0 0 0-9.6-1.2A4 4 0 0 0 7 ${18 + dy}z" fill="${color}"/>`;
+// A soft light-blue cloud with a lighter rim, as in the widget design.
+const cloud = (dy = 0) =>
+  `<path d="M7 ${18 + dy}h10.5a3.5 3.5 0 0 0 0-7a5 5 0 0 0-9.6-1.2A4 4 0 0 0 7 ${18 + dy}z" fill="${CLOUD}" stroke="#E4F1FD" stroke-opacity="0.8" stroke-width="0.8"/>`;
 const drops = (color: string, dash = false) =>
   [8, 12, 16]
     .map((x) => `<path d="M${x} 19.5l-1 2.5" stroke="${color}" stroke-width="1.6" stroke-linecap="round"${dash ? ' stroke-dasharray="0.5 2"' : ''}/>`)
@@ -56,7 +58,7 @@ const BODIES: Record<WeatherIcon, string> = {
   'partly-day': sun(9, 8.5, 3.2) + cloud(1),
   'partly-night': moon(8.5, 8.5, 4.5) + cloud(1),
   cloudy: cloud(-1),
-  fog: [9, 13, 17].map((y) => `<path d="M4 ${y}h16" stroke="${CLOUD}" stroke-width="1.8" stroke-linecap="round"/>`).join(''),
+  fog: [9, 13, 17].map((y) => `<path d="M4 ${y}h16" stroke="${FOG}" stroke-width="1.8" stroke-linecap="round"/>`).join(''),
   rain: cloud(-3) + drops(WATER),
   sleet: cloud(-3) + drops(WATER, true),
   snow: cloud(-3) + [8, 12, 16].map((x) => `<circle cx="${x - 0.5}" cy="20.5" r="1.1" fill="#FFFFFF"/>`).join(''),
@@ -64,5 +66,9 @@ const BODIES: Record<WeatherIcon, string> = {
 };
 
 export function weatherIconSvg(icon: WeatherIcon): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${BODIES[icon]}</svg>`;
+  return (
+    '<svg id="coinlab-weather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+    '<defs><linearGradient id="cloud" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D8EAFB"/><stop offset="1" stop-color="#7FA9D3"/></linearGradient></defs>' +
+    `${BODIES[icon]}</svg>`
+  );
 }
