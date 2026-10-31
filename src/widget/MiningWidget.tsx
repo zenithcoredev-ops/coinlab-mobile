@@ -19,7 +19,8 @@ export type WidgetSize = { width: number; height: number };
 
 // The library draws the widget into a bitmap as wide as the reported size and the launcher then
 // clips it; on some launchers (MIUI) the visible area is smaller, which cut the right and bottom
-// edges. The card is drawn this much smaller than reported (top-left aligned) so every corner shows.
+// edges. The patched library now takes the narrowest reported width, and the card is drawn this much
+// smaller than that, centred, so the margin is split evenly and every corner shows.
 const SAFE_INSET = 16;
 const DEFAULT_SIZE: Record<MiningWidgetName, WidgetSize> = {
   MiningSmall: { width: 110, height: 40 },
@@ -89,7 +90,7 @@ export function MiningWidget({ name, model, size }: { name: MiningWidgetName; mo
 
   const card = (children: ReactNode) => (
     // Outer layer is transparent; the card inside is what the user sees. Taps open the app.
-    <FlexWidget clickAction="OPEN_APP" style={{ width: 'match_parent', height: 'match_parent' }}>
+    <FlexWidget clickAction="OPEN_APP" style={{ width: 'match_parent', height: 'match_parent', alignItems: 'center', justifyContent: 'center' }}>
       <FlexWidget style={{ width: cardW, height: cardH, backgroundColor: c.bg, borderRadius: 20, padding: pad, justifyContent: 'space-between' }}>
         {children}
       </FlexWidget>

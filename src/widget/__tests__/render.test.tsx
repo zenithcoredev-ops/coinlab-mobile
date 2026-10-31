@@ -64,6 +64,24 @@ describe('MiningWidget', () => {
     expect(readFileSync(join(patches, patch!), 'utf8')).toContain(`TEXT_PREFIX = "${CLOCK_PREFIX}"`);
   });
 
+  it('draws the card centred, smaller than the reported size, so a launcher that shows less never cuts an edge', () => {
+    for (const name of NAMES) {
+      const root = draw(name, buildWidgetModel(snap, t0 + HOUR), { width: 300, height: 160 });
+      expect(root.props.gravity & 0x11).toBe(0x11); // Gravity.CENTER_HORIZONTAL | CENTER_VERTICAL
+      expect(root.children![0].props.width).toBe(300 - 16);
+    }
+  });
+
+  it('sizes the bitmap by the narrowest width the launcher reports, and logs every reported size', () => {
+    const patches = join(__dirname, '../../../patches');
+    const patch = readFileSync(join(patches, readdirSync(patches).find((f) => f.startsWith('react-native-android-widget+'))!), 'utf8');
+    expect(patch).toContain('AppWidgetManager.OPTION_APPWIDGET_SIZES');
+    expect(patch).toContain('Math.min(width');
+    // The typed Bundle getter only exists from Android 13; Android 12 must use the untyped one.
+    expect(patch).toContain('Build.VERSION_CODES.TIRAMISU');
+    expect(patch).toContain('Log.i("RNWidgetSize"');
+  });
+
   it('shows a live clock; the large widget adds the date', () => {
     const model = buildWidgetModel(snap, t0 + HOUR);
     expect(clocks(draw('MiningSmall', model))).toEqual([expect.objectContaining({ format24Hour: 'HH:mm', format12Hour: 'h:mm' })]);

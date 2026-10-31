@@ -1,8 +1,16 @@
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
-index 5650d1e..38be03d 100644
+index 5650d1e..63f7fc0 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
-@@ -24,6 +24,7 @@ import com.facebook.react.bridge.ReadableMap;
+@@ -11,6 +11,7 @@ import android.net.Uri;
+ import android.os.Build;
+ import android.os.Bundle;
+ import android.util.Base64;
++import android.util.Log;
+ import android.util.TypedValue;
+ import android.view.View;
+ import android.view.ViewGroup;
+@@ -24,6 +25,7 @@ import com.facebook.react.bridge.ReadableMap;
  import com.facebook.react.bridge.WritableArray;
  import com.facebook.react.bridge.WritableMap;
  import com.reactnativeandroidwidget.builder.ClickableView;
@@ -10,7 +18,16 @@ index 5650d1e..38be03d 100644
  import com.reactnativeandroidwidget.builder.CollectionView;
  import com.reactnativeandroidwidget.builder.CollectionViewItem;
  import com.reactnativeandroidwidget.builder.WidgetFactory;
-@@ -114,6 +115,7 @@ public class RNWidget {
+@@ -60,6 +62,8 @@ public class RNWidget {
+     }
+ 
+     public void drawWidget(int widgetId) throws Exception {
++        // One line per draw, to compare the reported sizes with what the launcher actually shows.
++        Log.i("RNWidgetSize", RNWidgetUtil.describeWidgetSize(appContext, widgetId));
+         ReadableMap light = config.getMap("light");
+         ReadableMap dark = config.getMap("dark");
+ 
+@@ -114,6 +118,7 @@ public class RNWidget {
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
              addClickableAreas(widgetId, remoteWidgetView, widgetWithViews);
          }
@@ -18,7 +35,7 @@ index 5650d1e..38be03d 100644
          addCollectionViews(widgetId, remoteWidgetView, widgetWithViews);
  
          AppWidgetManager.getInstance(appContext)
-@@ -151,6 +153,33 @@ public class RNWidget {
+@@ -151,6 +156,33 @@ public class RNWidget {
          return RNWidgetImageProvider.getImageUri(appContext, fileName);
      }
  
@@ -52,6 +69,79 @@ index 5650d1e..38be03d 100644
      @RequiresApi(Build.VERSION_CODES.N)
      private void addClickableAreas(int widgetId, RemoteViews remoteWidgetView, WidgetWithViews widgetWithViews) {
          remoteWidgetView.removeAllViews(R.id.rn_widget_clickable_container);
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
+index a057c09..fb0e7a6 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
+@@ -6,7 +6,10 @@ import android.appwidget.AppWidgetManager;
+ import android.appwidget.AppWidgetProviderInfo;
+ import android.content.ComponentName;
+ import android.content.Context;
++import android.os.Build;
++import android.os.Bundle;
+ import android.util.DisplayMetrics;
++import android.util.SizeF;
+ import android.util.TypedValue;
+ 
+ import com.facebook.react.bridge.Arguments;
+@@ -14,13 +17,23 @@ import com.facebook.react.bridge.ReactApplicationContext;
+ import com.facebook.react.bridge.WritableArray;
+ import com.facebook.react.bridge.WritableMap;
+ 
++import java.util.ArrayList;
+ import java.util.List;
+ 
+ public class RNWidgetUtil {
+     public static int getWidgetWidth(Context context, int widgetId) {
+         boolean isPortrait = context.getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT;
+         if (isPortrait) {
+-            return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
++            // Some launchers (MIUI) report a min width wider than what they show, which cut the right
++            // edge of the bitmap. Android 12+ also lists every size the widget may be shown at; take
++            // the narrowest of all, so the drawing always fits.
++            int width = getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH);
++            for (SizeF size : getWidgetSizes(context, widgetId)) {
++                if (size.getWidth() > 0) {
++                    width = width > 0 ? Math.min(width, (int) Math.floor(size.getWidth())) : (int) Math.floor(size.getWidth());
++                }
++            }
++            return width;
+         } else {
+             return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH);
+         }
+@@ -44,6 +57,32 @@ public class RNWidgetUtil {
+         return pxValue / displayMetrics.density;
+     }
+ 
++    /** The sizes the host may show the widget at (Android 12+); empty elsewhere. */
++    public static List<SizeF> getWidgetSizes(Context context, int widgetId) {
++        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
++            return new ArrayList<>();
++        }
++        Bundle options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId);
++        // The typed getter is Android 13+; Android 12 only has the untyped one.
++        ArrayList<SizeF> sizes = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
++            ? options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES, SizeF.class)
++            : options.<SizeF>getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES);
++        return sizes != null ? sizes : new ArrayList<>();
++    }
++
++    /** Everything the host reported about the widget's size, for logcat (tag RNWidgetSize). */
++    public static String describeWidgetSize(Context context, int widgetId) {
++        Bundle options = AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId);
++        return "widget=" + widgetId
++            + " portrait=" + (context.getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT)
++            + " min=" + options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0) + "x" + options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
++            + " max=" + options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0) + "x" + options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
++            + " sizes=" + getWidgetSizes(context, widgetId)
++            + " drawn=" + getWidgetWidth(context, widgetId) + "x" + getWidgetHeight(context, widgetId)
++            + " screen=" + context.getResources().getConfiguration().screenWidthDp + "x" + context.getResources().getConfiguration().screenHeightDp
++            + " density=" + context.getResources().getDisplayMetrics().density;
++    }
++
+     private static int getWidgetSizeInDp(Context context, int widgetId, String key) {
+         return AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId).getInt(key, 0);
+     }
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java
 new file mode 100644
 index 0000000..d7664d9
@@ -126,7 +216,7 @@ index 0000000..d7664d9
 +    }
 +}
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java
-index 78e37ac..0169114 100644
+index 78e37ac..59cedd3 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetFactory.java
 @@ -29,11 +29,13 @@ import java.util.Objects;
@@ -194,7 +284,7 @@ index 78e37ac..0169114 100644
          if (!props.hasKey("borderRadius") || props.isNull("borderRadius")) {
              return 0f;
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java
-index 9b9e94e..c7d3a30 100644
+index 9b9e94e..b7b0076 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/WidgetWithViews.java
 @@ -4,6 +4,7 @@ import android.view.View;
@@ -237,7 +327,7 @@ index 9b9e94e..c7d3a30 100644
      public String getRootAccessibilityLabel() {
          return rootAccessibilityLabel;
 diff --git a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml
-index 870d18b..01f2ebf 100644
+index 870d18b..8b81a4f 100644
 --- a/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml
 +++ b/node_modules/react-native-android-widget/android/src/main/res/layout/rn_widget.xml
 @@ -19,6 +19,12 @@
