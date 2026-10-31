@@ -268,6 +268,7 @@ const en = {
   'profile.legal': 'Legal',
   'profile.privacy': 'Privacy policy',
   'profile.terms': 'Terms of service',
+  'profile.privacyOptions': 'Privacy options',
   'profile.account': 'Account',
   'profile.signOut': 'Sign out',
   'profile.signOutConfirm': 'You can sign back in at any time.',
