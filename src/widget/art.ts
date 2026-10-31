@@ -39,11 +39,12 @@ export function cardFrameSvg(w: number, h: number, radius = 22): string {
     `<radialGradient id="warm" cx="0.12" cy="0.05" r="0.6"><stop offset="0" stop-color="${GOLD}" stop-opacity="0.10"/><stop offset="1" stop-color="${GOLD}" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="cool" cx="0.95" cy="1" r="0.7"><stop offset="0" stop-color="${GREEN}" stop-opacity="0.14"/><stop offset="1" stop-color="${GREEN}" stop-opacity="0"/></radialGradient>` +
     '</defs>' +
-    halo(w, h, radius, x, 'url(#edge)', [0.22, 0.1, 0.04]) +
+    // Kept faint and thin: on a device the stacked glow read as a thick neon edge.
+    halo(w, h, radius, x, 'url(#edge)', [0.06]) +
     `<rect x="${x}" y="${x}" width="${rw}" height="${rh}" rx="${radius}" fill="url(#fill)"/>` +
     `<rect x="${x}" y="${x}" width="${rw}" height="${rh}" rx="${radius}" fill="url(#warm)"/>` +
     `<rect x="${x}" y="${x}" width="${rw}" height="${rh}" rx="${radius}" fill="url(#cool)"/>` +
-    `<rect x="${n(x + 0.5)}" y="${n(x + 0.5)}" width="${n(rw - 1)}" height="${n(rh - 1)}" rx="${radius}" fill="none" stroke="url(#edge)" stroke-opacity="0.85" stroke-width="1"/>` +
+    `<rect x="${n(x + 0.5)}" y="${n(x + 0.5)}" width="${n(rw - 1)}" height="${n(rh - 1)}" rx="${radius}" fill="none" stroke="url(#edge)" stroke-opacity="0.5" stroke-width="1"/>` +
     '</svg>'
   );
 }

@@ -12,6 +12,7 @@ import { ShareCardModal } from '@/components/share-card-modal';
 import { SupportModal } from '@/components/support-modal';
 import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
+import { WidgetDiagnostics } from '@/components/widget-diagnostics';
 import { WidgetWeatherSetting } from '@/components/widget-weather-setting';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/config';
 import { useMining } from '@/context/mining';
@@ -222,6 +223,8 @@ export default function ProfileScreen() {
         {deleting && <ActivityIndicator color={theme.colors.text} />}
 
         {!!version && <Text style={styles.version}>{t('profile.version', { version })}</Text>}
+
+        <WidgetDiagnostics />
       </ScrollView>
       <ShareCardModal card={shareCard} onClose={() => setShareCard(null)} />
       <SupportModal visible={supportOpen} onClose={() => setSupportOpen(false)} />
