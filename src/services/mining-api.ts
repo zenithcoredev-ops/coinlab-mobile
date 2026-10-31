@@ -52,6 +52,14 @@ export type MiningStatus = {
   thsBreakdown: ThsBreakdown;
   /** Null when no session is running. */
   session: MiningSession | null;
+  /** Rewarded speed boosts; missing from servers without them (then the rewarded ad stays hidden). */
+  ads?: {
+    usedToday: number;
+    dailyLimit: number;
+    /** ISO-8601; the next rewarded view is allowed from then (null: now). */
+    nextAllowedAt: string | null;
+    activeBoosts: number;
+  };
 };
 
 export type CompletedSession = {
@@ -82,11 +90,6 @@ export function startMining(token: string): Promise<MiningStatus> {
     tzOffsetMinutes: localUtcOffsetMinutes(),
     timezone: deviceTimeZone() ?? undefined,
   });
-}
-
-/** Call after an ad finishes playing. Limited to one call per 30s, 8 per session. */
-export function watchAd(token: string): Promise<MiningStatus> {
-  return apiRequest(token, 'POST', '/mining/watch-ad');
 }
 
 /** Settles a session early. Not required - an expired session closes itself on the next status/start call. */
