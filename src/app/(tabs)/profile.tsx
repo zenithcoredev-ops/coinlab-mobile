@@ -15,6 +15,7 @@ import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components
 import { WidgetDiagnostics } from '@/components/widget-diagnostics';
 import { WidgetWeatherSetting } from '@/components/widget-weather-setting';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/config';
+import { useAds } from '@/context/ads';
 import { useMining } from '@/context/mining';
 import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
@@ -41,6 +42,7 @@ export default function ProfileScreen() {
   const [shareCard, setShareCard] = useState<ShareCard | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const { active: notifOn, permission, setEnabled, refreshPermission } = useNotifications();
+  const { privacyOptionsRequired, openPrivacyOptions } = useAds();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -209,6 +211,7 @@ export default function ProfileScreen() {
         <SectionLabel>{t('profile.legal')}</SectionLabel>
         <LinkRow label={t('profile.privacy')} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)} />
         <LinkRow label={t('profile.terms')} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
+        {privacyOptionsRequired && <LinkRow label={t('profile.privacyOptions')} onPress={openPrivacyOptions} />}
 
         <SectionLabel>{t('profile.account')}</SectionLabel>
         <Button label={t('profile.signOut')} onPress={onSignOut} variant="ghost" style={styles.accountButton} />

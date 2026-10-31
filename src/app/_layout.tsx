@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { RootNavigator } from '@/components/root-navigator';
+import { AdsProvider } from '@/context/ads';
 import { NotificationsProvider } from '@/context/notifications';
 import { SessionProvider } from '@/context/session';
 import { I18nProvider } from '@/i18n';
@@ -38,10 +39,12 @@ export default function RootLayout() {
     <I18nProvider>
       <NotificationsProvider>
         <SessionProvider>
-          <ThemeProvider value={navigationTheme}>
-            <StatusBar style="light" />
-            <RootNavigator />
-          </ThemeProvider>
+          <AdsProvider>
+            <ThemeProvider value={navigationTheme}>
+              <StatusBar style="light" />
+              <RootNavigator />
+            </ThemeProvider>
+          </AdsProvider>
         </SessionProvider>
       </NotificationsProvider>
     </I18nProvider>

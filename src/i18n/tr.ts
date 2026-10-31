@@ -270,6 +270,7 @@ const tr: Record<TranslationKey, string> = {
   'profile.legal': 'Yasal',
   'profile.privacy': 'Gizlilik politikası',
   'profile.terms': 'Kullanım şartları',
+  'profile.privacyOptions': 'Gizlilik seçenekleri',
   'profile.account': 'Hesap',
   'profile.signOut': 'Çıkış yap',
   'profile.signOutConfirm': 'İstediğin zaman tekrar giriş yapabilirsin.',
