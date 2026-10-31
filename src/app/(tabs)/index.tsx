@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOp
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
+import { AdBoostCard } from '@/components/ad-boost-card';
 import { ProgressRing } from '@/components/progress-ring';
 import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
 import { ScreenHeader } from '@/components/screen-header';
@@ -105,6 +106,8 @@ export default function MineScreen() {
             <Text style={styles.error}>{error || t('mine.statusFailed')}</Text>
           ) : null}
         </View>
+
+        <AdBoostCard />
       </ScrollView>
 
       <RateBreakdownModal
