@@ -12,7 +12,7 @@ import { cardFrameSvg, diamondSvg, GOLD, GREEN, pillSvg, progressBarSvg } from '
 import { shownRemaining, WidgetModel } from './model';
 import { STEP_GOAL } from './steps';
 import { stepsRingSvg } from './steps-ring';
-import { WEATHER_CONDITION_KEYS, weatherConditionFor } from './weather-conditions';
+import { WEATHER_CONDITION_KEYS, WEATHER_CONDITION_SHORT_KEYS, weatherConditionFor } from './weather-conditions';
 import { weatherIconFor, weatherIconSvg } from './weather-icons';
 
 export type MiningWidgetName = 'MiningSmall' | 'MiningLarge';
@@ -22,9 +22,13 @@ export type WidgetSize = { width: number; height: number };
 
 // The library draws the widget into a bitmap as wide as the reported size and the launcher then
 // clips it; on some launchers (MIUI) the visible area is smaller, which cut the right and bottom
-// edges. The patched library now takes the narrowest reported width, and the card is drawn this much
-// smaller than that, centred, so the margin is split evenly and every corner shows.
-const SAFE_INSET = 16;
+// edges. The patched library now takes the narrowest reported width (capped by the screen), and the
+// card is drawn this much smaller than that, centred, so the margin is split evenly. The large widget
+// spans the screen, where the width cap already keeps it inside, so it only keeps a thin side margin.
+const SAFE_INSET: Record<MiningWidgetName, { x: number; y: number }> = {
+  MiningSmall: { x: 16, y: 16 },
+  MiningLarge: { x: 4, y: 16 },
+};
 const DEFAULT_SIZE: Record<MiningWidgetName, WidgetSize> = {
   MiningSmall: { width: 110, height: 40 },
   MiningLarge: { width: 250, height: 110 },
@@ -71,10 +75,20 @@ function textsFor(m: WidgetModel) {
     progress: active ? Math.min(1, Math.max(0, 1 - m.remainingMs / MINING_SESSION_MS)) : null,
     temperature: m.weather ? `${Math.round(m.weather.temperatureC)}°` : null,
     condition: m.weather ? t(WEATHER_CONDITION_KEYS[weatherConditionFor(m.weather.symbol)]) : null,
+    conditionShort: m.weather ? t(WEATHER_CONDITION_SHORT_KEYS[weatherConditionFor(m.weather.symbol)]) : null,
+    /** "1.444 adım"; null when Health Connect gave no count. */
+    steps: m.stepsToday !== null ? t('widget.steps', { steps: m.stepsToday.toLocaleString(m.language) }) : null,
   };
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(value)));
+
+/**
+ * Whether `text` stays readable (at least `minFont` sp) in `width` dp once auto-size shrinks it.
+ * Text is measured by an average glyph width (`em` per character): 0.56 errs on the side of dropping
+ * or shortening; text full of narrow glyphs ("Kazılıyor · 11sa" averages ~0.41 in bold sans) can pass less.
+ */
+const readable = (text: string, width: number, minFont = 10, em = 0.56) => text.length * minFont * em <= width;
 
 /**
  * One line of text in a fixed box. Nothing is ever cut off: the text shrinks to fit the box instead
@@ -143,63 +157,106 @@ function Card({ width, height, pad, children }: { width: number; height: number;
 
 export function MiningWidget({ name, model, size }: { name: MiningWidgetName; model: WidgetModel; size?: WidgetSize }) {
   const reported = size && size.width > 0 && size.height > 0 ? size : DEFAULT_SIZE[name];
-  const cardW = Math.max(80, reported.width - SAFE_INSET);
-  const cardH = Math.max(36, reported.height - SAFE_INSET);
+  const cardW = Math.max(80, reported.width - SAFE_INSET[name].x);
+  const cardH = Math.max(36, reported.height - SAFE_INSET[name].y);
   const x = textsFor(model);
   return name === 'MiningSmall' ? small(model, x, cardW, cardH) : large(model, x, cardW, cardH);
 }
 
 /**
- * Small (2x1). Top: clock, weather on the right. Bottom: short date, short mining label on the right,
- * a thin session bar under it. Too short for two rows: clock and label only. As space runs out the
- * bar goes first, then the date, then the weather; the clock and the label always stay.
+ * Small (2x1), three rows, each split left | right:
+ *   clock            | weather icon + temperature
+ *   short date       | weather condition
+ *   today's steps    | mining text ("Kazılıyor · 10sa")
+ * As space runs out the condition shortens, then goes; then the date (its row goes with it). The
+ * clock, the steps and the mining text always stay. Too short for three rows: clock | weather and
+ * steps | mining; too short for two: clock | mining.
  */
 function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   const pad = 10;
   const innerW = cardW - pad * 2;
   const innerH = cardH - pad * 2;
-  const pillMin = 46;
+  const gap = 6;
+  const miningColor = x.active ? c.green : c.gold;
+  const half = (w: number) => Math.floor((w - gap) / 2);
+  // A long short date ("31 Eki Cmt", "Wed, 30 Oct") and the room it needs to stay readable.
+  const DATE_SAMPLE = '31 Eki Cmt';
+  const DATE_MIN = 58;
+  // The mining text: the short form when it stays readable (small type is fine), else "10sa" / "Başlat".
+  const mining = (width: number) => (readable(x.labelShort, width, 8, 0.45) ? x.labelShort : x.labelTiny);
 
-  if (innerH < 34) {
+  if (innerH < 26) {
     const clockW = Math.floor(innerW * 0.42);
-    const pillW = innerW - clockW - 4;
-    const pillH = Math.min(innerH, 22);
+    const miningW = innerW - clockW - gap;
     return (
       <Card width={cardW} height={cardH} pad={pad}>
         <FlexWidget style={{ width: innerW, height: innerH, flexDirection: 'row', alignItems: 'center' }}>
           <Line text={timeClock()} width={clockW} height={innerH} color={c.text} bold />
-          <FlexWidget style={{ width: 4, height: 1 }} />
-          <Pill text={pillW < 90 ? x.labelTiny : x.labelShort} active={x.active} width={pillW} height={pillH} />
+          <FlexWidget style={{ width: gap, height: 1 }} />
+          <Line text={mining(miningW)} width={miningW} height={Math.min(innerH, 14)} color={miningColor} bold align="right" />
         </FlexWidget>
       </Card>
     );
   }
 
-  const topH = Math.round(innerH * 0.55);
-  const bottomH = innerH - topH;
-  // Width thresholds in drop order: the bar needs the most room, then the date, then the weather.
-  const showWeather = !!x.temperature && innerW >= 90;
-  const weatherW = showWeather ? Math.floor(innerW * 0.38) : 0;
-  const showDate = innerW >= 106;
-  const dateW = showDate ? Math.floor(innerW * 0.42) : 0;
-  const pillW = Math.max(pillMin, innerW - dateW - (showDate ? 6 : 0));
-  const withBar = x.progress !== null && showDate && innerW >= 150 && bottomH >= 24;
-  const pillH = Math.min(withBar ? bottomH - 6 : bottomH, 24);
+  // Middle row: the date keeps at least DATE_MIN; the condition gets the rest, full, else short, else
+  // nothing (then the date takes the whole row). The date itself only goes with its row (too short).
+  const leftW = Math.max(DATE_MIN, half(innerW));
+  const rightW = innerW - leftW - gap;
+  const condition = !x.condition
+    ? null
+    : readable(x.condition, rightW)
+      ? x.condition
+      : x.conditionShort && readable(x.conditionShort, rightW)
+        ? x.conditionShort
+        : null;
+  const dateW = condition ? leftW : innerW;
+  const threeRows = innerH >= 42 && readable(DATE_SAMPLE, dateW);
 
+  const topH = threeRows ? Math.round(innerH * 0.42) : Math.round(innerH * 0.55);
+  const rowH = threeRows ? Math.floor((innerH - topH) / 2) : innerH - topH;
+  const textH = Math.min(rowH, 15);
+  const weatherW = x.temperature ? Math.floor(innerW * 0.42) : 0;
+  // The steps take what "1.444 adım" needs (at most half), the mining text the rest.
+  const stepsW = x.steps ? Math.min(half(innerW), Math.ceil(x.steps.length * 9 * 0.56)) : 0;
+  const miningW = innerW - stepsW - (x.steps ? gap : 0);
+
+  // The widget library can't render fragments, so each row takes an array of keyed children.
+  const row = (key: string, height: number, children: ReactNode[]) => (
+    <FlexWidget key={key} style={{ width: innerW, height, flexDirection: 'row', alignItems: 'center' }}>
+      {children}
+    </FlexWidget>
+  );
   return (
     <Card width={cardW} height={cardH} pad={pad}>
-      <FlexWidget style={{ width: innerW, height: topH, flexDirection: 'row', alignItems: 'center' }}>
-        <Line text={timeClock()} width={innerW - weatherW} height={topH} color={c.text} bold />
-        {showWeather ? <WeatherRow model={model} temperature={x.temperature!} width={weatherW} height={Math.round(topH * 0.7)} /> : null}
-      </FlexWidget>
-      <FlexWidget style={{ width: innerW, height: bottomH, flexDirection: 'row', alignItems: 'center' }}>
-        {showDate ? <Line text={dateClock('d MMM EEE')} width={dateW} height={Math.min(bottomH, 14)} color={c.soft} /> : null}
-        {showDate ? <FlexWidget style={{ width: 6, height: 1 }} /> : null}
-        <FlexWidget style={{ width: pillW }}>
-          <Pill text={pillW < 90 ? x.labelTiny : x.labelShort} active={x.active} width={pillW} height={pillH} />
-          {withBar ? <SvgWidget svg={progressBarSvg(pillW - 8, 3, x.progress!)} style={{ width: pillW - 8, height: 3, marginTop: 3, marginLeft: 4 }} /> : null}
-        </FlexWidget>
-      </FlexWidget>
+      {row(
+        'top',
+        topH,
+        [
+          <Line key="clock" text={timeClock()} width={innerW - weatherW} height={topH} color={c.text} bold />,
+          x.temperature ? <WeatherRow key="weather" model={model} temperature={x.temperature} width={weatherW} height={Math.round(topH * 0.72)} /> : null,
+        ]
+      )}
+      {threeRows
+        ? row(
+            'date',
+            rowH,
+            [
+              <Line key="date" text={dateClock('d MMM EEE')} width={dateW} height={textH} color={c.soft} />,
+              condition ? <FlexWidget key="gap" style={{ width: gap, height: 1 }} /> : null,
+              condition ? <Line key="condition" text={condition} width={rightW} height={textH} color={c.soft} align="right" /> : null,
+            ]
+          )
+        : null}
+      {row(
+        'bottom',
+        rowH,
+        [
+          x.steps ? <Line key="steps" text={x.steps} width={stepsW} height={textH} color={c.gold} bold /> : null,
+          x.steps ? <FlexWidget key="gap" style={{ width: gap, height: 1 }} /> : null,
+          <Line key="mining" text={mining(miningW)} width={miningW} height={textH} color={miningColor} bold align="right" />,
+        ]
+      )}
     </Card>
   );
 }

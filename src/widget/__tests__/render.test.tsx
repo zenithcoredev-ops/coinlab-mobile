@@ -81,7 +81,7 @@ describe('MiningWidget', () => {
     expect(patch).toContain('Build.VERSION_CODES.TIRAMISU');
     expect(patch).toContain('Log.i("RNWidgetSize"');
     // Before Android 12 there is no size list; MIUI reports a min width as wide as the screen.
-    expect(patch).toContain('SCREEN_SIDE_MARGIN_DP = 22');
+    expect(patch).toContain('SCREEN_SIDE_MARGIN_DP = 20');
     expect(patch).toContain('screenWidthDp - 2 * SCREEN_SIDE_MARGIN_DP');
     // The report the Profile's diagnostics show.
     expect(patch).toContain('widgetMap.putString("sizeReport", describeWidgetSize(context, id));');
@@ -92,7 +92,8 @@ describe('MiningWidget', () => {
     expect(root.props.gravity & 0x11).toBe(0x11); // Gravity.CENTER_HORIZONTAL | CENTER_VERTICAL
     const card = root.children![0];
     expect(card.type).toBe('FrameLayoutWidget');
-    expect(card.props).toMatchObject({ width: 300 - 16, height: 160 - 16 });
+    // The large widget spans the screen (its width is capped by the screen), so only a thin side margin.
+    expect(card.props).toMatchObject({ width: 300 - (name === 'MiningLarge' ? 4 : 16), height: 160 - 16 });
     const frame = card.children![0].props.svgString as string;
     expect(frame).toContain('id="coinlab-card"');
     expect(frame).toContain('stop-color="#F5B942"'); // gold
@@ -148,46 +149,74 @@ describe('MiningWidget', () => {
   });
 
   describe('small', () => {
-    it('two rows: clock and weather on top; short date and a short label with the session bar below', () => {
-      const tree = draw('MiningSmall', mining({ weather: rainy }), { width: 260, height: 110 });
-      expect(clocks(tree)).toEqual([
-        expect.objectContaining({ format24Hour: 'HH:mm' }),
-        expect.objectContaining({ format24Hour: 'd MMM EEE' }),
+    const partly = { temperatureC: 16.2, symbol: 'partlycloudy_day', isDay: true, updatedAt: '2026-10-19T08:00:00Z' };
+    const full = (extra = {}) => mining({ stepsToday: 1444, weather: partly, ...extra });
+    const rows = (tree: Node) => {
+      const content = tree.children![0].children![1];
+      return content.children!.map((r) =>
+        walk(r)
+          .filter((n) => n.type === 'TextWidget' || n.type === 'SvgWidget')
+          .map((n) =>
+            n.type === 'SvgWidget'
+              ? 'icon'
+              : n.props.text.startsWith(CLOCK_PREFIX)
+                ? JSON.parse(n.props.text.slice(CLOCK_PREFIX.length)).format24Hour
+                : n.props.text
+          )
+      ).filter((r) => r.length > 0); // space-between adds empty spacer nodes between the rows
+    };
+
+    it('three rows: clock | weather, date | condition, steps | mining', () => {
+      expect(rows(draw('MiningSmall', full(), { width: 260, height: 110 }))).toEqual([
+        ['HH:mm', 'icon', '16°'],
+        ['d MMM EEE', 'Parçalı bulutlu'],
+        ['1.444 adım', 'Kazılıyor · 9sa'],
       ]);
-      expect(texts(tree)).toEqual(['-3°', 'Kazılıyor · 9sa']);
-      expect(art(tree)).toEqual(['card', 'weather', 'pill-green', undefined, 'progress']);
     });
 
-    it('drops the bar first, then the date, then the weather; the clock and the label always stay', () => {
-      const at = (width: number) => draw('MiningSmall', mining({ weather: rainy }), { width, height: 110 });
-      const parts = (width: number) => ({
-        dates: clocks(at(width)).filter((c) => c.format24Hour === 'd MMM EEE').length,
-        weather: art(at(width)).includes('weather'),
-        bar: art(at(width)).includes('progress'),
-        label: texts(at(width)).filter((t) => t !== '-3°'),
-      });
-      expect(parts(260)).toEqual({ dates: 1, weather: true, bar: true, label: ['Kazılıyor · 9sa'] });
-      expect(parts(160)).toEqual({ dates: 1, weather: true, bar: false, label: ['9sa'] }); // bar gone; the date narrows the label
-      expect(parts(126)).toEqual({ dates: 0, weather: true, bar: false, label: ['Kazılıyor · 9sa'] }); // then the date (the label gets its room back)
-      expect(parts(115)).toEqual({ dates: 0, weather: false, bar: false, label: ['9sa'] }); // then the weather
-      for (const width of [260, 160, 126, 115]) expect(clocks(at(width)).map((c) => c.format24Hour)).toContain('HH:mm');
+    it('as it narrows: the condition shortens, then goes, the date stays; clock, steps and mining always stay', () => {
+      const at = (width: number, height = 110) => rows(draw('MiningSmall', full(), { width, height }));
+      expect(at(260)[1]).toEqual(['d MMM EEE', 'Parçalı bulutlu']);
+      expect(at(190)[1]).toEqual(['d MMM EEE', 'Parçalı']); // shortened
+      expect(at(136)[1]).toEqual(['d MMM EEE']); // condition gone, the date takes the row
+      expect(at(96)[1]).toEqual(['d MMM EEE']); // the narrowest card still has room for the date
+      expect(at(260, 70)).toHaveLength(2); // the date's row only goes when there is no height for it
+      for (const [width, height] of [[260, 110], [190, 110], [136, 110], [96, 110], [260, 70]]) {
+        const r = at(width, height);
+        expect(r[0][0]).toBe('HH:mm');
+        expect(r[r.length - 1][0]).toBe('1.444 adım');
+        expect(r[r.length - 1][1]).toMatch(/9sa$/);
+      }
     });
 
-    it('keeps the date at the size seen on a Redmi Note 8 Pro (card ~136dp wide)', () => {
-      const tree = draw('MiningSmall', mining({ weather: rainy }), { width: 152, height: 80 });
-      expect(clocks(tree).map((c) => c.format24Hour)).toEqual(['HH:mm', 'd MMM EEE']);
+    it('at the size seen on a Redmi Note 8 Pro shows all three rows and the full mining text', () => {
+      // Its edge measured ~157x70dp on the screenshot, i.e. the launcher reports about 181x94dp.
+      expect(rows(draw('MiningSmall', full(), { width: 181, height: 94 }))).toEqual([
+        ['HH:mm', 'icon', '16°'],
+        ['d MMM EEE', 'Parçalı'],
+        ['1.444 adım', 'Kazılıyor · 9sa'],
+      ]);
     });
 
-    it('one row when short: clock and label', () => {
-      const tree = draw('MiningSmall', mining({ weather: rainy }), { width: 200, height: 60 });
-      expect(clocks(tree).map((c) => c.format24Hour)).toEqual(['HH:mm']);
-      expect(texts(tree)).toEqual(['Kazılıyor · 9sa']);
-      expect(texts(draw('MiningSmall', mining({}, idle), { width: 110, height: 40 }))).toEqual(['Başlat']);
-      expect(texts(draw('MiningSmall', mining({}, idle), { width: 200, height: 60 }))).toEqual(['Kazımı başlat']);
+    it('shows the start text when not mining, and no steps without a count', () => {
+      expect(rows(draw('MiningSmall', mining({ stepsToday: 1444, weather: partly }, idle), { width: 260, height: 110 }))[2]).toEqual([
+        '1.444 adım',
+        'Kazımı başlat',
+      ]);
+      expect(rows(draw('MiningSmall', mining({ weather: partly }), { width: 260, height: 110 }))[2]).toEqual(['Kazılıyor · 9sa']);
     });
 
-    it('never shows steps (only the large widget does)', () => {
-      expect(art(draw('MiningSmall', mining({ stepsToday: 348 }), { width: 260, height: 110 }))).not.toContain('ring');
+    it('too short for three rows: clock | weather and steps | mining; too short for two: clock | mining', () => {
+      expect(rows(draw('MiningSmall', full(), { width: 260, height: 70 }))).toEqual([
+        ['HH:mm', 'icon', '16°'],
+        ['1.444 adım', 'Kazılıyor · 9sa'],
+      ]);
+      expect(rows(draw('MiningSmall', full(), { width: 110, height: 40 }))).toEqual([['HH:mm', '9sa']]);
+    });
+
+    it('draws no ring, pill or bar (plain text only)', () => {
+      const pieces = art(draw('MiningSmall', full(), { width: 260, height: 110 }));
+      expect(pieces).toEqual(['card', 'weather']);
     });
   });
 

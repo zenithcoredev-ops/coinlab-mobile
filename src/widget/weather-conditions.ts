@@ -48,3 +48,15 @@ export const WEATHER_CONDITION_KEYS: Record<WeatherCondition, TranslationKey> = 
   snow: 'weather.snow',
   thunder: 'weather.thunder',
 };
+
+/** Shorter words for the small widget, where the full ones don't fit (same as full when already short). */
+export const WEATHER_CONDITION_SHORT_KEYS: Record<WeatherCondition, TranslationKey> = {
+  ...WEATHER_CONDITION_KEYS,
+  fair: 'weather.short.fair',
+  partlyCloudy: 'weather.short.partlyCloudy',
+  lightRain: 'weather.short.lightRain',
+  heavyRain: 'weather.short.heavyRain',
+  sleet: 'weather.short.sleet',
+  lightSnow: 'weather.short.lightSnow',
+  thunder: 'weather.short.thunder',
+};
