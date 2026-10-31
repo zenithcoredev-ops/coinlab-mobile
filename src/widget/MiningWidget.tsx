@@ -151,8 +151,8 @@ export function MiningWidget({ name, model, size }: { name: MiningWidgetName; mo
 
 /**
  * Small (2x1). Top: clock, weather on the right. Bottom: short date, short mining label on the right,
- * a thin session bar under it when there is height. Too short for two rows: clock and label only.
- * Narrow: the date goes first, then the weather; the clock and the label always stay.
+ * a thin session bar under it. Too short for two rows: clock and label only. As space runs out the
+ * bar goes first, then the date, then the weather; the clock and the label always stay.
  */
 function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   const pad = 10;
@@ -177,12 +177,13 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
 
   const topH = Math.round(innerH * 0.55);
   const bottomH = innerH - topH;
-  const showWeather = !!x.temperature && innerW >= 110;
+  // Width thresholds in drop order: the bar needs the most room, then the date, then the weather.
+  const showWeather = !!x.temperature && innerW >= 90;
   const weatherW = showWeather ? Math.floor(innerW * 0.38) : 0;
-  const showDate = innerW >= 150;
+  const showDate = innerW >= 106;
   const dateW = showDate ? Math.floor(innerW * 0.42) : 0;
   const pillW = Math.max(pillMin, innerW - dateW - (showDate ? 6 : 0));
-  const withBar = x.progress !== null && bottomH >= 24;
+  const withBar = x.progress !== null && showDate && innerW >= 150 && bottomH >= 24;
   const pillH = Math.min(withBar ? bottomH - 6 : bottomH, 24);
 
   return (

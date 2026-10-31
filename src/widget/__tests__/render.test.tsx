@@ -80,6 +80,11 @@ describe('MiningWidget', () => {
     // The typed Bundle getter only exists from Android 13; Android 12 must use the untyped one.
     expect(patch).toContain('Build.VERSION_CODES.TIRAMISU');
     expect(patch).toContain('Log.i("RNWidgetSize"');
+    // Before Android 12 there is no size list; MIUI reports a min width as wide as the screen.
+    expect(patch).toContain('SCREEN_SIDE_MARGIN_DP = 22');
+    expect(patch).toContain('screenWidthDp - 2 * SCREEN_SIDE_MARGIN_DP');
+    // The report the Profile's diagnostics show.
+    expect(patch).toContain('widgetMap.putString("sizeReport", describeWidgetSize(context, id));');
   });
 
   it.each(NAMES)('%s draws a centred glass card with a gold→green edge, smaller than the reported size', (name) => {
@@ -94,6 +99,10 @@ describe('MiningWidget', () => {
     expect(frame).toContain('stop-color="#4ADE80"'); // green
     expect(frame).toMatch(/stop-opacity="0\.8\d?"/); // translucent fill
     expect(frame).not.toContain('<filter'); // AndroidSVG has no filters; glow is drawn with strokes
+    // Thin, soft edge (a device showed the earlier stacked glow as a thick neon line).
+    expect(frame).toMatch(/stroke="url\(#edge\)" stroke-opacity="0\.5" stroke-width="1"\/>/);
+    expect(frame.match(/stroke="url\(#edge\)"/g)).toHaveLength(2); // the edge and one faint halo
+    expect(frame).toContain('stroke-opacity="0.06"');
   });
 
   describe('large', () => {
@@ -149,12 +158,24 @@ describe('MiningWidget', () => {
       expect(art(tree)).toEqual(['card', 'weather', 'pill-green', undefined, 'progress']);
     });
 
-    it('drops the date first, then the weather; the clock and the label always stay', () => {
-      const at = (width: number) => draw('MiningSmall', mining({ weather: rainy }), { width, height: 90 });
-      expect(clocks(at(180)).map((c) => c.format24Hour)).toEqual(['HH:mm']); // no date
-      expect(texts(at(180))).toEqual(['-3°', 'Kazılıyor · 9sa']);
-      expect(texts(at(120))).toEqual(['9sa']); // no weather; label shortened to fit
-      expect(clocks(at(120)).map((c) => c.format24Hour)).toEqual(['HH:mm']);
+    it('drops the bar first, then the date, then the weather; the clock and the label always stay', () => {
+      const at = (width: number) => draw('MiningSmall', mining({ weather: rainy }), { width, height: 110 });
+      const parts = (width: number) => ({
+        dates: clocks(at(width)).filter((c) => c.format24Hour === 'd MMM EEE').length,
+        weather: art(at(width)).includes('weather'),
+        bar: art(at(width)).includes('progress'),
+        label: texts(at(width)).filter((t) => t !== '-3°'),
+      });
+      expect(parts(260)).toEqual({ dates: 1, weather: true, bar: true, label: ['Kazılıyor · 9sa'] });
+      expect(parts(160)).toEqual({ dates: 1, weather: true, bar: false, label: ['9sa'] }); // bar gone; the date narrows the label
+      expect(parts(126)).toEqual({ dates: 0, weather: true, bar: false, label: ['Kazılıyor · 9sa'] }); // then the date (the label gets its room back)
+      expect(parts(115)).toEqual({ dates: 0, weather: false, bar: false, label: ['9sa'] }); // then the weather
+      for (const width of [260, 160, 126, 115]) expect(clocks(at(width)).map((c) => c.format24Hour)).toContain('HH:mm');
+    });
+
+    it('keeps the date at the size seen on a Redmi Note 8 Pro (card ~136dp wide)', () => {
+      const tree = draw('MiningSmall', mining({ weather: rainy }), { width: 152, height: 80 });
+      expect(clocks(tree).map((c) => c.format24Hour)).toEqual(['HH:mm', 'd MMM EEE']);
     });
 
     it('one row when short: clock and label', () => {

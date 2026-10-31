@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
-index 5650d1e..63f7fc0 100644
+index 5650d1e..c763f63 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 @@ -11,6 +11,7 @@ import android.net.Uri;
@@ -70,7 +70,7 @@ index 5650d1e..63f7fc0 100644
      private void addClickableAreas(int widgetId, RemoteViews remoteWidgetView, WidgetWithViews widgetWithViews) {
          remoteWidgetView.removeAllViews(R.id.rn_widget_clickable_container);
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
-index a057c09..fb0e7a6 100644
+index a057c09..659d726 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 @@ -6,7 +6,10 @@ import android.appwidget.AppWidgetManager;
@@ -84,7 +84,7 @@ index a057c09..fb0e7a6 100644
  import android.util.TypedValue;
  
  import com.facebook.react.bridge.Arguments;
-@@ -14,13 +17,23 @@ import com.facebook.react.bridge.ReactApplicationContext;
+@@ -14,13 +17,28 @@ import com.facebook.react.bridge.ReactApplicationContext;
  import com.facebook.react.bridge.WritableArray;
  import com.facebook.react.bridge.WritableMap;
  
@@ -92,6 +92,10 @@ index a057c09..fb0e7a6 100644
  import java.util.List;
  
  public class RNWidgetUtil {
++    // Home screens keep at least this much free on each side of a widget. Before Android 12 there is
++    // no list of real sizes, and MIUI (e.g. on Android 11) reports a min width as wide as the screen,
++    // so the width is also capped by the screen minus these margins.
++    private static final int SCREEN_SIDE_MARGIN_DP = 22;
      public static int getWidgetWidth(Context context, int widgetId) {
          boolean isPortrait = context.getResources().getConfiguration().orientation == ORIENTATION_PORTRAIT;
          if (isPortrait) {
@@ -105,11 +109,12 @@ index a057c09..fb0e7a6 100644
 +                    width = width > 0 ? Math.min(width, (int) Math.floor(size.getWidth())) : (int) Math.floor(size.getWidth());
 +                }
 +            }
-+            return width;
++            int screenCap = context.getResources().getConfiguration().screenWidthDp - 2 * SCREEN_SIDE_MARGIN_DP;
++            return screenCap > 0 && width > screenCap ? screenCap : width;
          } else {
              return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH);
          }
-@@ -44,6 +57,32 @@ public class RNWidgetUtil {
+@@ -44,6 +62,32 @@ public class RNWidgetUtil {
          return pxValue / displayMetrics.density;
      }
  
@@ -142,6 +147,14 @@ index a057c09..fb0e7a6 100644
      private static int getWidgetSizeInDp(Context context, int widgetId, String key) {
          return AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId).getInt(key, 0);
      }
+@@ -60,6 +104,7 @@ public class RNWidgetUtil {
+             widgetMap.putInt("height", getWidgetHeight(context, id));
+             widgetMap.putInt("width", getWidgetWidth(context, id));
+             widgetMap.putMap("screenInfo", getScreenInfo(context));
++            widgetMap.putString("sizeReport", describeWidgetSize(context, id));
+ 
+             writableArray.pushMap(widgetMap);
+         }
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/builder/ClockView.java
 new file mode 100644
 index 0000000..d7664d9
