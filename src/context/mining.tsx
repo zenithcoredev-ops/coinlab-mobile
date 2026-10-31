@@ -16,7 +16,8 @@ type MiningState = {
   error: string | null;
   starting: boolean;
   refresh: () => Promise<void>;
-  start: () => Promise<void>;
+  /** Resolves whether the session was started. */
+  start: () => Promise<boolean>;
 };
 
 const MiningContext = createContext<MiningState | null>(null);
@@ -49,13 +50,15 @@ export function MiningProvider({ children }: { children: ReactNode }) {
   }, [token, apply]);
 
   const start = useCallback(async () => {
-    if (!token) return;
+    if (!token) return false;
     setStarting(true);
     setError(null);
     try {
       apply(await startMining(token));
+      return true;
     } catch (e) {
       setError(e instanceof ApiError && e.message ? e.message : '');
+      return false;
     } finally {
       setStarting(false);
     }

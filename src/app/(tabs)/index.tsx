@@ -9,6 +9,7 @@ import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
 import { ScreenHeader } from '@/components/screen-header';
 import { useMining } from '@/context/mining';
 import { useNow } from '@/hooks/use-now';
+import { useStartMining } from '@/hooks/use-start-mining';
 import { useI18n } from '@/i18n';
 import { formatClb, formatDuration, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
 import { MINING_SESSION_MS } from '@/services/mining-api';
@@ -16,7 +17,7 @@ import { theme } from '@/theme';
 
 export default function MineScreen() {
   const { t } = useI18n();
-  const { status, fetchedAt, error, starting, start, refresh } = useMining();
+  const { status, fetchedAt, error, starting, refresh } = useMining();
   const now = useNow(1000);
   const [rateOpen, setRateOpen] = useState(false);
 
@@ -24,6 +25,7 @@ export default function MineScreen() {
   const session = status?.session ?? null;
   const remainingMs = remainingSinceFetch(status, sinceFetch);
   const isMining = remainingMs > 0;
+  const startMining = useStartMining(!!status && !isMining);
   const boosted = (status?.thsBreakdown.ads ?? 0) > 0;
   const ths = status?.currentThs ?? 0;
   const balance = liveBalanceAt(status, sinceFetch);
@@ -70,7 +72,7 @@ export default function MineScreen() {
             <TouchableOpacity
               activeOpacity={0.85}
               disabled={isMining || starting || !status}
-              onPress={start}
+              onPress={startMining}
               style={[styles.core, isMining ? styles.coreActive : styles.coreIdle]}
               accessibilityRole="button"
               accessibilityLabel={isMining ? t('mine.active') : t('mine.start')}>
