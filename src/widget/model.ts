@@ -1,5 +1,6 @@
 import { clbPerSecond } from '@/lib/mining-math';
 import type { Weather } from '@/services/weather-api';
+import { weatherConditionFor } from './weather-conditions';
 import { weatherIconFor } from './weather-icons';
 import { isSignedOut, StoredWidget, WidgetSnapshot } from './snapshot';
 
@@ -75,7 +76,9 @@ export function widgetDrawKey(m: WidgetModel): string {
     m.language,
     m.state === 'active' ? shownRemaining(m.remainingMs) : null,
     m.stepsToday,
-    m.weather ? [Math.round(m.weather.temperatureC), weatherIconFor(m.weather.symbol, m.weather.isDay)] : null,
+    m.weather
+      ? [Math.round(m.weather.temperatureC), weatherIconFor(m.weather.symbol, m.weather.isDay), weatherConditionFor(m.weather.symbol)]
+      : null,
   ]);
 }
 

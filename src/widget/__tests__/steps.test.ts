@@ -68,10 +68,10 @@ describe('updateTodaySteps', () => {
 describe('stepsRingSvg', () => {
   const arc = (svg: string) => svg.match(/stroke-dasharray="([\d.]+) ([\d.]+)"/);
   it('fills the arc in proportion, capped at a full ring', () => {
-    const half = arc(stepsRingSvg(0.5, '#F5B942'))!;
+    const half = arc(stepsRingSvg(0.5))!;
     expect(Number(half[1]) / Number(half[2])).toBeCloseTo(0.5);
-    const over = arc(stepsRingSvg(1.7, '#F5B942'))!;
+    const over = arc(stepsRingSvg(1.7))!;
     expect(Number(over[1])).toBeCloseTo(Number(over[2]));
-    expect(arc(stepsRingSvg(0, '#F5B942'))).toBeNull(); // just the track
+    expect(arc(stepsRingSvg(0))).toBeNull(); // just the track
   });
 });
