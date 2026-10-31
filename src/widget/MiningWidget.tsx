@@ -81,6 +81,9 @@ function textsFor(m: WidgetModel) {
   };
 }
 
+/** Extra right padding (dp) on the small widget so its right margin looks like its left one. */
+export const SMALL_RIGHT_OPTICAL_INSET = 3;
+
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Math.round(value)));
 
 /**
@@ -144,12 +147,16 @@ function Pill({ text, active, width, height }: { text: string; active: boolean; 
 }
 
 /** The card: the SVG frame (glass, gold→green edge, glow) behind the content. Taps open the app. */
-function Card({ width, height, pad, children }: { width: number; height: number; pad: number; children: ReactNode }) {
+function Card(props: { width: number; height: number; pad: number; padRight?: number; children: ReactNode }) {
+  const { width, height, pad, padRight = pad, children } = props;
   return (
     <FlexWidget clickAction="OPEN_APP" style={{ width: 'match_parent', height: 'match_parent', alignItems: 'center', justifyContent: 'center' }}>
       <OverlapWidget style={{ width, height }}>
         <SvgWidget svg={cardFrameSvg(width, height)} style={{ width, height }} />
-        <FlexWidget style={{ width, height, padding: pad, justifyContent: 'space-between' }}>{children}</FlexWidget>
+        <FlexWidget
+          style={{ width, height, paddingTop: pad, paddingBottom: pad, paddingLeft: pad, paddingRight: padRight, justifyContent: 'space-between' }}>
+          {children}
+        </FlexWidget>
       </OverlapWidget>
     </FlexWidget>
   );
@@ -174,7 +181,11 @@ export function MiningWidget({ name, model, size }: { name: MiningWidgetName; mo
  */
 function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   const pad = 10;
-  const innerW = cardW - pad * 2;
+  // The left column starts with digits ("16:34", "31 Eki", "1.444") whose side bearing (wide on "1")
+  // already sets them in from the edge, while right-aligned text ends right at its box. A slightly
+  // larger right padding makes the two margins look the same.
+  const padRight = pad + SMALL_RIGHT_OPTICAL_INSET;
+  const innerW = cardW - pad - padRight;
   const innerH = cardH - pad * 2;
   const gap = 6;
   const miningColor = x.active ? c.green : c.gold;
@@ -189,7 +200,7 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
     const clockW = Math.floor(innerW * 0.42);
     const miningW = innerW - clockW - gap;
     return (
-      <Card width={cardW} height={cardH} pad={pad}>
+      <Card width={cardW} height={cardH} pad={pad} padRight={padRight}>
         <FlexWidget style={{ width: innerW, height: innerH, flexDirection: 'row', alignItems: 'center' }}>
           <Line text={timeClock()} width={clockW} height={innerH} color={c.text} bold />
           <FlexWidget style={{ width: gap, height: 1 }} />
@@ -228,7 +239,7 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
     </FlexWidget>
   );
   return (
-    <Card width={cardW} height={cardH} pad={pad}>
+    <Card width={cardW} height={cardH} pad={pad} padRight={padRight}>
       {row(
         'top',
         topH,

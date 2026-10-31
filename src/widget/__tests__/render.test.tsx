@@ -2,7 +2,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({}));
 
 import { buildWidgetTree } from 'react-native-android-widget/src/api/build-widget-tree';
 
-import { CLOCK_PREFIX, ClockSpec, MiningWidget, MiningWidgetName, WidgetSize } from '../MiningWidget';
+import { CLOCK_PREFIX, ClockSpec, MiningWidget, MiningWidgetName, SMALL_RIGHT_OPTICAL_INSET, WidgetSize } from '../MiningWidget';
 import { buildWidgetModel } from '../model';
 import type { WidgetSnapshot } from '../snapshot';
 
@@ -212,6 +212,26 @@ describe('MiningWidget', () => {
         ['1.444 adım', 'Kazılıyor · 9sa'],
       ]);
       expect(rows(draw('MiningSmall', full(), { width: 110, height: 40 }))).toEqual([['HH:mm', '9sa']]);
+    });
+
+    it('keeps the right column as far from the edge as the left one looks', () => {
+      for (const size of [{ width: 181, height: 94 }, { width: 260, height: 110 }, { width: 260, height: 70 }, { width: 110, height: 40 }]) {
+        const content = draw('MiningSmall', full(), size).children![0].children![1];
+        const { left, right } = content.props.padding;
+        // The left column's digits sit in by their own side bearing; the right gets that much more padding.
+        expect(right).toBe(left + SMALL_RIGHT_OPTICAL_INSET);
+        expect(SMALL_RIGHT_OPTICAL_INSET).toBeGreaterThan(0);
+        // Every row fills the inner width exactly, so each right-aligned text ends on that same inset.
+        const innerW = content.props.width - left - right;
+        for (const row of content.children!.filter((r) => r.props.orientation === 'HORIZONTAL')) {
+          expect(row.props.width).toBe(innerW);
+          const filled = row.children!.reduce((sum, child) => sum + (child.props.width ?? 0) + (child.props.margin?.right ?? 0), 0);
+          expect(filled).toBe(innerW);
+        }
+      }
+      // The large widget keeps even padding.
+      const large = draw('MiningLarge', full(), { width: 420, height: 260 }).children![0].children![1];
+      expect(large.props.padding.right).toBe(large.props.padding.left);
     });
 
     it('draws no ring, pill or bar (plain text only)', () => {
