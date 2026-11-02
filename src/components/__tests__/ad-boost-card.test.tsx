@@ -34,6 +34,10 @@ describe('AdBoostCard', () => {
   it('is hidden without the server’s rewarded data, without a session, or without ad consent', () => {
     mockStatus = { session, ads: undefined };
     expect(render(<AdBoostCard />).toJSON()).toBeNull();
+    mockStatus = { session };
+    expect(render(<AdBoostCard />).toJSON()).toBeNull();
+    mockStatus = { session, ads: null };
+    expect(render(<AdBoostCard />).toJSON()).toBeNull();
     mockStatus = { session: null, ads: ads() };
     expect(render(<AdBoostCard />).toJSON()).toBeNull();
     mockStatus = { session, ads: ads() };
@@ -81,7 +85,12 @@ describe('AdBoostCard', () => {
     expect(screen.queryByText('Takviyen birkaç dakika içinde eklenecek.')).toBeNull();
   });
 
-  it('hides itself for good when the server has no rewarded endpoints (404)', async () => {
+  it('is hidden when the server’s daily limit is 0', () => {
+    mockStatus = { session, ads: ads({ usedToday: 0, dailyLimit: 0 }) };
+    expect(render(<AdBoostCard />).toJSON()).toBeNull();
+  });
+
+  it('hides itself for good when the server has no rewarded endpoints or ad units (404/503)', async () => {
     run.mockResolvedValue('unavailable');
     const view = render(<AdBoostCard />);
     await act(async () => fireEvent.press(screen.getByText('Reklam izle')));

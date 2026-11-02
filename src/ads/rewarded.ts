@@ -16,7 +16,7 @@ export type BoostOutcome =
   | 'dismissed'
   /** No ad could be loaded or shown. */
   | 'noAd'
-  /** The server has no rewarded endpoints (404): hide the feature. */
+  /** The server has no rewarded endpoints (404) or no rewarded ad units configured (503 on intent): hide the feature. */
   | 'unavailable'
   | 'error';
 
@@ -59,6 +59,8 @@ export function showRewardedAd(unitId: string, ssv: RewardedIntent['ssv']): Prom
 }
 
 const notFound = (e: unknown) => e instanceof ApiError && e.status === 404;
+/** Creating an intent answers 503 when the server has no rewarded ad units (ADMOB_REWARDED_AD_UNITS unset). */
+const intentUnavailable = (e: unknown) => notFound(e) || (e instanceof ApiError && e.status === 503);
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
@@ -81,7 +83,7 @@ export async function runRewardedBoost(
   try {
     intent = await createRewardedIntent(token);
   } catch (e) {
-    return notFound(e) ? 'unavailable' : 'error';
+    return intentUnavailable(e) ? 'unavailable' : 'error';
   }
 
   const shown = await show(unitId, intent.ssv);

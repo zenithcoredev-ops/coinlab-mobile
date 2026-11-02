@@ -13,7 +13,8 @@ export type BoostMessage = Exclude<BoostOutcome, 'dismissed' | 'unavailable'> | 
 
 /**
  * The optional rewarded speed boost on the Mine screen. Shown only while mining, with ad consent,
- * when the server reports rewarded limits (status.ads) and has the endpoints (a 404 hides it).
+ * when the server reports rewarded limits (status.ads with a daily limit above 0) and has the
+ * endpoints and ad units (a 404 or 503 on creating an intent hides it).
  */
 export function useRewardedBoost() {
   const { auth } = useSession();
@@ -26,7 +27,8 @@ export function useRewardedBoost() {
   const [message, setMessage] = useState<BoostMessage>(null);
 
   const unit = adUnitId('rewardedBoost');
-  const ads = status?.ads ?? null;
+  // No ads field, or a daily limit of 0, means rewarded boosts are off on the server.
+  const ads = status?.ads && status.ads.dailyLimit > 0 ? status.ads : null;
   const visible = ADS_SUPPORTED && canRequestAds && !!unit && !!ads && !!status?.session && !unavailable;
   const limitReached = !!ads && ads.usedToday >= ads.dailyLimit;
   const waitMs = ads?.nextAllowedAt ? Math.max(0, Date.parse(ads.nextAllowedAt) - now) : 0;
