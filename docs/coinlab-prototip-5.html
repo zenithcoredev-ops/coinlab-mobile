@@ -2226,7 +2226,7 @@
         <div class="today-card">
           <div class="today-top">
             <span class="today-label">TODAY</span>
-            <span class="today-count" id="todayCount">0/5 Completed</span>
+            <span class="today-count" id="todayCount">0/4 Completed</span>
           </div>
           <div id="todayChecklist"></div>
         </div>
@@ -2949,9 +2949,6 @@
     { id:'mine',    icon:'⛏', title:'Start daily mining', reward:0.05,
       progressText: s => s.tasks.mineStarted ? '1/1 done' : '0/1',
       done: s => s.tasks.mineStarted },
-    { id:'ads',     icon:'🎬', title:'Watch 3 ads', reward:0.10,
-      progressText: s => Math.min(s.adsUsed,3) + '/3 ads',
-      done: s => s.adsUsed >= 3 },
     { id:'friend',  icon:'👥', title:'Have an active friend mining with you', reward:0.15,
       progressText: s => (s.friends.some(f => isFriendActive(f, Date.now())) ? '1/1 done' : '0/1'),
       done: s => s.friends.some(f => isFriendActive(f, Date.now())) },
@@ -2980,7 +2977,7 @@
     tasks: {
       mineStarted: false,
       leaguePointsAtDayStart: 0,
-      claimed: { mine:false, ads:false, friend:false, league:false, steps:false },
+      claimed: { mine:false, friend:false, league:false, steps:false },
       earnedToday: 0
     },
     interstitialShownToday: false,
@@ -3407,7 +3404,7 @@
     state.tasks = {
       mineStarted: true,
       leaguePointsAtDayStart: state.weeklyPoints, // günlük Lig Puanı görevi için anlık görüntü
-      claimed: { mine:false, ads:false, friend:false, league:false, steps:false },
+      claimed: { mine:false, friend:false, league:false, steps:false },
       earnedToday: 0
     };
     state.todaySteps = 0;
@@ -4130,7 +4127,7 @@
       title: 'How Rewards Work',
       html: `
         <h4>Earning CLB</h4>
-        <p>You earn CLB by mining daily, watching optional rewarded ads, completing daily tasks, keeping your streak alive, and taking steps. CLB is an in-app point; it has no monetary value and cannot be converted into money.</p>
+        <p>You earn CLB by mining daily, completing daily tasks, keeping your streak alive, and taking steps. Optional rewarded ads only give a temporary speed boost. CLB is an in-app point; it has no monetary value and cannot be converted into money.</p>
         <h4>Leagues & the Diamond Tournament</h4>
         <p>Every week, your League ranking is based purely on effort — mining, tasks, streak, and steps. Climb through 10 leagues; reach the top of Diamond League and you enter the tournament (Quarterfinal → Semifinal → Final).</p>
         <h4>Rewards — no purchase necessary</h4>
@@ -4903,7 +4900,7 @@
       inviteCode: generateInviteCode(), friends: [], joinedAt: Date.now(),
       todaySteps: 0,
       tasks: { mineStarted:false, leaguePointsAtDayStart:0,
-                claimed:{mine:false,ads:false,friend:false,league:false,steps:false}, earnedToday:0 },
+                claimed:{mine:false,friend:false,league:false,steps:false}, earnedToday:0 },
       interstitialShownToday: false,
       league: 0, weeklyPoints: 0, weekStart: null, weekEnd: null,
       leagueCompetitors: null, lastLeagueResult: null, streakHistory: [], weekStartBalance: 0,
