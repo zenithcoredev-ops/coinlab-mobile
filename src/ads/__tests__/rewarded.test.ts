@@ -60,6 +60,13 @@ describe('runRewardedBoost', () => {
     createIntent.mockRejectedValue(new ApiError('', 500));
     expect(await runRewardedBoost('tok', 'u', { show, wait: noWait })).toBe('error');
   });
+
+  it('is "unavailable" when the server has no rewarded ad units (503 on intent), without showing an ad', async () => {
+    const show = jest.fn();
+    createIntent.mockRejectedValue(new ApiError('Service unavailable', 503));
+    expect(await runRewardedBoost('tok', 'u', { show, wait: noWait })).toBe('unavailable');
+    expect(show).not.toHaveBeenCalled();
+  });
 });
 
 describe('showRewardedAd', () => {
