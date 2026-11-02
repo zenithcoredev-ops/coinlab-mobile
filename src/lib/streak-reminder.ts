@@ -15,6 +15,11 @@ export type ReminderInput = {
   minedToday: boolean;
   /** ISO-8601; null when there's no streak. Undefined from servers that predate it. */
   streakExpiresAt?: string | null;
+  /**
+   * The streak through the last day covered before `streakExpiresAt`, i.e. what it will be when the
+   * reminder fires (from servers that send it).
+   */
+  streakAtExpiry?: number;
   /** The running session, if any. */
   session?: { startedAt: string; endsAt: string } | null;
 };
@@ -27,7 +32,8 @@ export const deviceClock: LocalClock = (day, dayOffset, hour) =>
   new Date(day.getFullYear(), day.getMonth(), day.getDate() + dayOffset, hour);
 
 export type PlannedReminder =
-  | { kind: 'streak'; fireAt: Date; hoursLeft: number }
+  /** `streak`: the streak the user will have when it fires (what the text shows). */
+  | { kind: 'streak'; fireAt: Date; hoursLeft: number; streak: number }
   | { kind: 'notStarted'; fireAt: Date };
 
 export type StreakReminder = {
@@ -55,6 +61,21 @@ function sessionCovers(session: ReminderInput['session'], at: Date): boolean {
 }
 
 /**
+ * The streak when the reminder fires, not when it was planned: the reminder fires on the first day
+ * not yet covered, so every day before it (covered by the running or a finished session) counts by
+ * then. The server's figure wins when it sends one. Otherwise: the server's streak counts through
+ * today if today is mined, else through yesterday; the days from there up to the day before the
+ * reminder are added.
+ */
+function streakAtReminder(now: Date, fireAt: Date, input: ReminderInput, clock: LocalClock): number {
+  if (typeof input.streakAtExpiry === 'number' && input.streakAtExpiry > 0) return input.streakAtExpiry;
+  const dayOf = (d: Date) => clock(d, 0, 0).getTime();
+  const daysAhead = Math.round((dayOf(fireAt) - dayOf(now)) / DAY_MS);
+  const countedThrough = input.minedToday ? 0 : -1;
+  return input.streak + Math.max(0, daysAhead - 1 - countedThrough);
+}
+
+/**
  * Every reminder that should be pending right now; the caller replaces whatever was scheduled.
  *
  * - Streak > 0: one reminder at 20:00 on the streak's last local day, unless that's already past or
@@ -68,8 +89,9 @@ export function planStreakReminders(now: Date, input: ReminderInput, clock: Loca
   const expiresAt = streakExpiresAt ? Date.parse(streakExpiresAt) : NaN;
 
   if (streakExpiresAt === undefined || (streak > 0 && Number.isNaN(expiresAt))) {
+    // UTC rule: the reminder fires on the first day that isn't mined, so the streak is unchanged by then.
     const legacy = nextStreakReminder(now, input);
-    return legacy ? [{ kind: 'streak', ...legacy }] : [];
+    return legacy ? [{ kind: 'streak', ...legacy, streak }] : [];
   }
 
   if (streak > 0) {
@@ -79,7 +101,7 @@ export function planStreakReminders(now: Date, input: ReminderInput, clock: Loca
     // The server counts days a session covers as mined, so this shouldn't happen; never tell the
     // user to start mining while a session is running.
     if (sessionCovers(session, fireAt)) return [];
-    return [{ kind: 'streak', fireAt, hoursLeft: hoursUntil(fireAt, expiresAt) }];
+    return [{ kind: 'streak', fireAt, hoursLeft: hoursUntil(fireAt, expiresAt), streak: streakAtReminder(now, fireAt, input, clock) }];
   }
 
   const first = clock(now, 0, REMINDER_LOCAL_HOUR).getTime() - now.getTime() < MIN_LEAD_MS ? 1 : 0;

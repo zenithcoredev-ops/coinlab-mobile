@@ -22,12 +22,13 @@ export function useStreakReminder() {
   const streak = status?.streak;
   const minedToday = status?.streakMinedToday;
   const streakExpiresAt = status?.streakExpiresAt;
+  const streakAtExpiry = status?.streakAtExpiry;
   const startedAt = status?.session?.startedAt;
   const endsAt = status?.session?.endsAt;
 
   useEffect(() => {
     if (streak === undefined || minedToday === undefined) return;
     const session = startedAt && endsAt ? { startedAt, endsAt } : null;
-    syncStreakReminder({ streak, minedToday, streakExpiresAt, session }, active, language).catch(() => {});
-  }, [streak, minedToday, streakExpiresAt, startedAt, endsAt, active, language, foregrounds]);
+    syncStreakReminder({ streak, minedToday, streakExpiresAt, streakAtExpiry, session }, active, language).catch(() => {});
+  }, [streak, minedToday, streakExpiresAt, streakAtExpiry, startedAt, endsAt, active, language, foregrounds]);
 }

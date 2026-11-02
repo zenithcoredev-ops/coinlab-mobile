@@ -52,7 +52,7 @@ async function schedule(state: ReminderInput | null, enabled: boolean, language:
       content: {
         title: translate(language, 'reminder.title'),
         body: isStreak
-          ? translate(language, 'streak.reminder', { count: state.streak, hours: reminder.hoursLeft })
+          ? translate(language, 'streak.reminder', { count: reminder.streak, hours: reminder.hoursLeft })
           : translate(language, 'streak.notStarted'),
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminder.fireAt, channelId: STREAK_CHANNEL_ID },
