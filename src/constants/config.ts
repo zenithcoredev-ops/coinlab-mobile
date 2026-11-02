@@ -5,6 +5,8 @@ export const API_URL = 'https://coinlab-backend-production.up.railway.app';
 export const GOOGLE_WEB_CLIENT_ID = '635281390211-uosidnt9iul2djhupts3u2r87ckhtr2a.apps.googleusercontent.com';
 export const APP_SCHEME = 'coinlabmobile';
 
-// Placeholders: replace with the real pages before release.
-export const PRIVACY_POLICY_URL = 'https://coinlab.example/privacy';
-export const TERMS_URL = 'https://coinlab.example/terms';
+/** A legal page served by the backend, in the app's language. */
+export const legalPageUrl = (page: 'privacy' | 'terms' | 'delete-account', language: 'tr' | 'en') =>
+  `${API_URL}/${page}?lang=${language}`;
+export const PRIVACY_POLICY_URL = (language: 'tr' | 'en') => legalPageUrl('privacy', language);
+export const TERMS_URL = (language: 'tr' | 'en') => legalPageUrl('terms', language);

@@ -209,8 +209,8 @@ export default function ProfileScreen() {
         <LinkRow label={t('profile.support')} onPress={() => setSupportOpen(true)} />
 
         <SectionLabel>{t('profile.legal')}</SectionLabel>
-        <LinkRow label={t('profile.privacy')} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL)} />
-        <LinkRow label={t('profile.terms')} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL)} />
+        <LinkRow label={t('profile.privacy')} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL(language))} />
+        <LinkRow label={t('profile.terms')} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL(language))} />
         {privacyOptionsRequired && <LinkRow label={t('profile.privacyOptions')} onPress={openPrivacyOptions} />}
 
         <SectionLabel>{t('profile.account')}</SectionLabel>
