@@ -44,6 +44,13 @@ describe('syncStreakReminder', () => {
     ]);
   });
 
+  it('writes the streak the user will have when it fires, not the one when it was planned', async () => {
+    // Today mined with 8 days; tomorrow is covered, the day after is at risk.
+    const expires = deviceClock(now, 3, 0).toISOString();
+    await syncStreakReminder({ streak: 8, minedToday: true, streakExpiresAt: expires, session: null }, true, 'tr', now);
+    expect(scheduled()[0]).toMatchObject({ date: deviceClock(now, 2, 20), body: '9 günlük serin 4 saat sonra bitiyor, korumak için kazımı başlat!' });
+  });
+
   it('schedules three "not started" reminders when there is no streak', async () => {
     await syncStreakReminder({ streak: 0, minedToday: false, streakExpiresAt: null, session: null }, true, 'en', now);
     expect(scheduled()).toEqual(

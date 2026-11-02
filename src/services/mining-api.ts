@@ -40,6 +40,8 @@ export type MiningStatus = {
   streak: number;
   /** False while the streak is alive only because today's mining hasn't happened yet. */
   streakMinedToday: boolean;
+  /** The streak through the last day covered before streakExpiresAt (when the server sends it). */
+  streakAtExpiry?: number;
   /**
    * ISO-8601; when the streak ends unless the user mines (midnight of their local day). Null with no
    * streak; missing from servers that predate it.

@@ -57,7 +57,7 @@ describe('planStreakReminders', () => {
       session: session(start),
     };
     const plan = planStreakReminders(start, input, istanbul.clock);
-    expect(plan).toEqual([{ kind: 'streak', fireAt: istanbul.at(2026, 3, 11, 20), hoursLeft: 4 }]);
+    expect(plan).toEqual([{ kind: 'streak', fireAt: istanbul.at(2026, 3, 11, 20), hoursLeft: 4, streak: 5 }]);
     expect(plan[0].fireAt.getTime()).toBeGreaterThanOrEqual(Date.parse(input.session!.endsAt));
   });
 
@@ -100,7 +100,7 @@ describe('planStreakReminders', () => {
     const near = (min: number) => ({ ...input, streakExpiresAt: istanbul.at(2026, 3, 10, 20, min).toISOString() });
     expect(planStreakReminders(now, near(9), istanbul.clock)).toEqual([]);
     expect(planStreakReminders(now, near(11), istanbul.clock)).toEqual([
-      { kind: 'streak', fireAt: istanbul.at(2026, 3, 10, 20), hoursLeft: 1 },
+      { kind: 'streak', fireAt: istanbul.at(2026, 3, 10, 20), hoursLeft: 1, streak: 3 },
     ]);
   });
 
@@ -110,14 +110,14 @@ describe('planStreakReminders', () => {
 
     // 20:00 EDT is already the next UTC day; the old UTC rule sent nothing here.
     expect(remind(newYork.at(2026, 7, 11), newYork.at(2026, 7, 10, 9))).toEqual([
-      { kind: 'streak', fireAt: newYork.at(2026, 7, 10, 20), hoursLeft: 4 },
+      { kind: 'streak', fireAt: newYork.at(2026, 7, 10, 20), hoursLeft: 4, streak: 7 },
     ]);
     // Clocks go back at 02:00 on 1 Nov and forward on 8 Mar.
     expect(remind(newYork.at(2026, 11, 2), newYork.at(2026, 10, 31, 12))).toEqual([
-      { kind: 'streak', fireAt: newYork.at(2026, 11, 1, 20), hoursLeft: 4 },
+      { kind: 'streak', fireAt: newYork.at(2026, 11, 1, 20), hoursLeft: 4, streak: 8 },
     ]);
     expect(remind(newYork.at(2026, 3, 9), newYork.at(2026, 3, 7, 12))).toEqual([
-      { kind: 'streak', fireAt: newYork.at(2026, 3, 8, 20), hoursLeft: 4 },
+      { kind: 'streak', fireAt: newYork.at(2026, 3, 8, 20), hoursLeft: 4, streak: 8 },
     ]);
     expect(newYork.at(2026, 11, 1, 20).toISOString()).toBe('2026-11-02T01:00:00.000Z');
     expect(newYork.at(2026, 3, 8, 20).toISOString()).toBe('2026-03-09T00:00:00.000Z');
@@ -127,12 +127,44 @@ describe('planStreakReminders', () => {
     const now = new Date(2026, 2, 10, 8);
     for (const minedToday of [true, false]) {
       const legacy = nextStreakReminder(now, { streak: 4, minedToday });
-      expect(planStreakReminders(now, { streak: 4, minedToday })).toEqual(legacy ? [{ kind: 'streak', ...legacy }] : []);
+      expect(planStreakReminders(now, { streak: 4, minedToday })).toEqual(legacy ? [{ kind: 'streak', ...legacy, streak: 4 }] : []);
     }
     expect(planStreakReminders(now, { streak: 0, minedToday: false })).toEqual([]);
     // A streak with a null expiry is inconsistent; the old rule is the safer bet.
     expect(planStreakReminders(now, { streak: 4, minedToday: true, streakExpiresAt: null })).toEqual([
-      { kind: 'streak', ...nextStreakReminder(now, { streak: 4, minedToday: true })! },
+      { kind: 'streak', ...nextStreakReminder(now, { streak: 4, minedToday: true })!, streak: 4 },
     ]);
+  });
+
+  describe('the streak in the text', () => {
+    // Planned on 31 Oct with an 8-day streak (today mined); 1 Nov is covered by sessions, 2 Nov is
+    // the day at risk (the streak expires at midnight ending it). At 20:00 on 2 Nov the streak is 9.
+    const planned = istanbul.at(2026, 10, 31, 10);
+    const input: ReminderInput = { streak: 8, minedToday: true, streakExpiresAt: istanbul.at(2026, 11, 3).toISOString(), session: null };
+
+    it('is the streak when the reminder fires, counting the days covered until then', () => {
+      expect(planStreakReminders(planned, input, istanbul.clock)).toEqual([
+        { kind: 'streak', fireAt: istanbul.at(2026, 11, 2, 20), hoursLeft: 4, streak: 9 },
+      ]);
+    });
+
+    it('is unchanged when the day at risk is today or tomorrow', () => {
+      const today = { ...input, streak: 9, minedToday: false, streakExpiresAt: istanbul.at(2026, 11, 3).toISOString() };
+      expect(planStreakReminders(istanbul.at(2026, 11, 2, 9), today, istanbul.clock)[0]).toMatchObject({ streak: 9 });
+      const tomorrow = { ...input, streakExpiresAt: istanbul.at(2026, 11, 2).toISOString() };
+      expect(planStreakReminders(planned, tomorrow, istanbul.clock)[0]).toMatchObject({ fireAt: istanbul.at(2026, 11, 1, 20), streak: 8 });
+    });
+
+    it('takes the server’s streakAtExpiry when it sends one', () => {
+      expect(planStreakReminders(planned, { ...input, streakAtExpiry: 12 }, istanbul.clock)[0]).toMatchObject({ streak: 12 });
+    });
+
+    it('counts across a daylight-saving change in New York', () => {
+      const ny: ReminderInput = { streak: 4, minedToday: true, streakExpiresAt: newYork.at(2026, 11, 3).toISOString(), session: null };
+      expect(planStreakReminders(newYork.at(2026, 10, 31, 9), ny, newYork.clock)[0]).toMatchObject({
+        fireAt: newYork.at(2026, 11, 2, 20),
+        streak: 5,
+      });
+    });
   });
 });
