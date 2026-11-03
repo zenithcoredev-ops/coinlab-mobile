@@ -57,7 +57,7 @@ export function ShareCardModal({ card, detail, onClose }: Props) {
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={t('common.close')}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <View style={styles.card}>
-            <Text style={styles.brand}>⛏️ CoinLab</Text>
+            <Text style={styles.brand}>⚡ CoinLab</Text>
             <Text style={styles.icon}>{card.icon}</Text>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>

@@ -5,6 +5,7 @@ import { useSteps } from '@/context/steps';
 import { useMining } from '@/context/mining';
 import { useI18n } from '@/i18n';
 import { stepsProgress } from '@/lib/health-steps';
+import { formatRate } from '@/lib/mining-math';
 import { STEP_BONUS_CAP_STEPS, STEPS_PER_BONUS_UNIT } from '@/services/steps-api';
 import { theme } from '@/theme';
 
@@ -16,7 +17,7 @@ export function StepsCard() {
 
   if (availability === 'unsupported') return null;
 
-  const params = { app: t('app.name'), clb: t('unit.clb'), ths: t('unit.ths') };
+  const params = { app: t('app.name'), clb: t('unit.clb'), unit: t('unit.rate') };
 
   if (availability === 'not_installed' || availability === 'update_required') {
     const update = availability === 'update_required';
@@ -60,8 +61,8 @@ export function StepsCard() {
       ) : (
         <Text style={styles.body}>
           {capReached
-            ? t('steps.bonusMax', { bonus: bonus.toFixed(2), ...params })
-            : t('steps.bonus', { bonus: bonus.toFixed(2), next: toNext.toLocaleString(), ...params })}
+            ? t('steps.bonusMax', { bonus: formatRate(bonus), ...params })
+            : t('steps.bonus', { bonus: formatRate(bonus), next: toNext.toLocaleString(), ...params })}
         </Text>
       )}
       {syncFailed && <Text style={styles.error}>{t('steps.syncError')}</Text>}

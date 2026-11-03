@@ -1,6 +1,6 @@
 import type { MiningStatus } from '@/services/mining-api';
 
-import { formatDuration, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
+import { CLB_PER_HOUR_PER_UNIT, clbPerSecond, formatDuration, formatRate, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
 
 function status(over: Partial<MiningStatus> = {}, session: Partial<NonNullable<MiningStatus['session']>> | null = {}): MiningStatus {
   return {
@@ -89,5 +89,19 @@ describe('streakDayIsLocal', () => {
     expect(streakDayIsLocal(status())).toBe(false);
     expect(streakDayIsLocal(status({ streakExpiresAt: null }))).toBe(true);
     expect(streakDayIsLocal(status({ streakExpiresAt: '2026-03-10T21:00:00Z' }))).toBe(true);
+  });
+});
+
+describe('formatRate', () => {
+  it('shows the server speed as CLB per hour at the rate the balance actually grows', () => {
+    // 1 unit of server speed collects 2.4 CLB a day, so 0.10 CLB an hour.
+    expect(CLB_PER_HOUR_PER_UNIT).toBeCloseTo(0.1, 12);
+    expect(clbPerSecond(1) * 3600).toBeCloseTo(CLB_PER_HOUR_PER_UNIT, 12);
+    expect(formatRate(1)).toBe('0.10');
+    expect(formatRate(2.35)).toBe('0.235');
+    expect(formatRate(0.2)).toBe('0.02');
+    expect(formatRate(0.05)).toBe('0.005');
+    expect(formatRate(12.5)).toBe('1.25');
+    expect(formatRate(0)).toBe('0.00');
   });
 });

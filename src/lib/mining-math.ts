@@ -9,6 +9,19 @@ export function clbPerSecond(ths: number): number {
   return BASE_CLB_PER_SECOND * ths;
 }
 
+/** CLB a speed of 1 (the server's Th/s unit) collects in an hour: 2.4 CLB a day = 0.10 CLB/h. */
+export const CLB_PER_HOUR_PER_UNIT = BASE_CLB_PER_SECOND * 3600;
+
+/**
+ * A speed from the server (in its Th/s unit) as the CLB it collects per hour, which is what the app
+ * shows. Two decimals, or three when needed (0.20 → "0.02", 0.05 → "0.005", 1.25 → "0.125").
+ */
+export function formatRate(ths: number): string {
+  const perHour = ths * CLB_PER_HOUR_PER_UNIT;
+  const three = perHour.toFixed(3);
+  return three.endsWith('0') ? perHour.toFixed(2) : three;
+}
+
 /** Milliseconds left in the running session, counting down from the last server snapshot. */
 export function remainingSinceFetch(status: MiningStatus | null, sinceFetchMs: number): number {
   if (!status?.session) return 0;

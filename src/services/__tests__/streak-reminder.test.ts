@@ -37,7 +37,7 @@ describe('syncStreakReminder', () => {
     expect(scheduled()).toEqual([
       {
         id: 'streak-reminder',
-        body: '6 günlük serin 4 saat sonra bitiyor, korumak için kazımı başlat!',
+        body: '6 günlük serin 4 saat sonra bitiyor, korumak için toplamayı başlat!',
         date: deviceClock(now, 0, 20),
         channelId: STREAK_CHANNEL_ID,
       },
@@ -48,7 +48,7 @@ describe('syncStreakReminder', () => {
     // Today mined with 8 days; tomorrow is covered, the day after is at risk.
     const expires = deviceClock(now, 3, 0).toISOString();
     await syncStreakReminder({ streak: 8, minedToday: true, streakExpiresAt: expires, session: null }, true, 'tr', now);
-    expect(scheduled()[0]).toMatchObject({ date: deviceClock(now, 2, 20), body: '9 günlük serin 4 saat sonra bitiyor, korumak için kazımı başlat!' });
+    expect(scheduled()[0]).toMatchObject({ date: deviceClock(now, 2, 20), body: '9 günlük serin 4 saat sonra bitiyor, korumak için toplamayı başlat!' });
   });
 
   it('schedules three "not started" reminders when there is no streak', async () => {
@@ -56,7 +56,7 @@ describe('syncStreakReminder', () => {
     expect(scheduled()).toEqual(
       [0, 1, 2].map((i) => ({
         id: `streak-not-started-${i}`,
-        body: 'You haven’t started mining today',
+        body: 'You haven’t started collecting today',
         date: deviceClock(now, i, 20),
         channelId: STREAK_CHANNEL_ID,
       }))

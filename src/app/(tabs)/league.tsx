@@ -22,6 +22,7 @@ import {
   STAGE_NAME_KEYS,
 } from '@/lib/league';
 import { leagueWeekEndParams } from '@/lib/league-week';
+import { formatRate } from '@/lib/mining-math';
 import { promotionCard, ShareCard, tournamentCard } from '@/lib/share';
 import {
   DIAMOND_LEAGUE,
@@ -270,7 +271,7 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
         <Text style={styles.leagueIcon}>{LEAGUE_ICONS[view.league]}</Text>
         <View style={styles.headerInfo}>
           <Text style={styles.leagueName}>{t(LEAGUE_NAME_KEYS[view.league])}</Text>
-          <Text style={styles.headerSub}>{t('league.bonus', { ths: view.speedBonus.toFixed(2) })}</Text>
+          <Text style={styles.headerSub}>{t('league.bonus', { rate: formatRate(view.speedBonus) })}</Text>
           <Text style={styles.headerSub}>{requirement}</Text>
           <Text style={styles.headerSub}>{t('league.weekEnds', { time: t('league.time', { days, hours, minutes }) })}</Text>
         </View>

@@ -12,7 +12,7 @@ import { useMining } from '@/context/mining';
 import { useNow } from '@/hooks/use-now';
 import { useStartMining } from '@/hooks/use-start-mining';
 import { useI18n } from '@/i18n';
-import { formatClb, formatDuration, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
+import { formatClb, formatDuration, formatRate, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
 
@@ -60,7 +60,7 @@ export default function MineScreen() {
           </View>
           <View style={styles.balanceSub}>
             <Text style={[styles.rateText, isMining && { color: ringColor }]}>
-              {isMining ? t('mine.rateActive', { ths: ths.toFixed(2) }) : t('mine.rateStopped')}
+              {isMining ? t('mine.rateActive', { rate: formatRate(ths) }) : t('mine.rateStopped')}
             </Text>
             <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
               <Ionicons name="information-circle-outline" size={16} color={theme.colors.textMuted} />
@@ -82,14 +82,14 @@ export default function MineScreen() {
               ) : isMining ? (
                 <>
                   <Animated.View style={pulseStyle}>
-                    <Ionicons name="hammer" size={30} color={theme.colors.text} />
+                    <Ionicons name="flash" size={30} color={theme.colors.text} />
                   </Animated.View>
                   <Text style={styles.coreActiveLabel}>{t('mine.active')}</Text>
-                  <Text style={[styles.coreRate, { color: ringColor }]}>{ths.toFixed(2)} Th/s</Text>
+                  <Text style={[styles.coreRate, { color: ringColor }]}>{formatRate(ths)} {t('unit.rate')}</Text>
                 </>
               ) : (
                 <>
-                  <Ionicons name="hammer" size={34} color={theme.colors.accentInk} />
+                  <Ionicons name="flash" size={34} color={theme.colors.accentInk} />
                   <Text style={styles.coreIdleLabel}>{t('mine.startLabel')}</Text>
                 </>
               )}
