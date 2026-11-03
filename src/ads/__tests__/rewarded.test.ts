@@ -27,8 +27,10 @@ describe('runRewardedBoost', () => {
   it('shows the ad with the server’s SSV values unchanged and reports the reward only once the server grants it', async () => {
     const show = jest.fn().mockResolvedValue('earned');
     const onVerifying = jest.fn();
-    getStatus.mockResolvedValueOnce('pending').mockResolvedValueOnce('pending').mockResolvedValueOnce('granted');
-    expect(await runRewardedBoost('tok', 'unit-rw', { show, wait: noWait, onVerifying })).toBe('granted');
+    const onGranted = jest.fn();
+    getStatus.mockResolvedValueOnce({ status: 'pending' }).mockResolvedValueOnce({ status: 'pending' }).mockResolvedValueOnce({ status: 'granted', clbPerHourBonus: 0.05 });
+    expect(await runRewardedBoost('tok', 'unit-rw', { show, wait: noWait, onVerifying, onGranted })).toBe('granted');
+    expect(onGranted).toHaveBeenCalledWith(0.05);
     expect(show).toHaveBeenCalledWith('unit-rw', { userId: 'user-42', customData: 'nonce-abc' });
     expect(onVerifying).toHaveBeenCalledTimes(1);
     expect(getStatus).toHaveBeenCalledTimes(3);
@@ -36,12 +38,16 @@ describe('runRewardedBoost', () => {
   });
 
   it('reports a refused reward', async () => {
-    getStatus.mockResolvedValue('rejected');
+    const onGranted = jest.fn();
+    getStatus.mockResolvedValueOnce({ status: 'granted' });
+    expect(await runRewardedBoost('tok', 'u', { show: async () => 'earned', wait: noWait, onGranted })).toBe('granted');
+    expect(onGranted).toHaveBeenCalledWith(null); // older server: no CLB/h in the answer
+    getStatus.mockResolvedValue({ status: 'rejected' });
     expect(await runRewardedBoost('tok', 'u', { show: async () => 'earned', wait: noWait })).toBe('rejected');
   });
 
   it('says "pending" (not granted) when the server has not confirmed in time', async () => {
-    getStatus.mockResolvedValue('pending');
+    getStatus.mockResolvedValue({ status: 'pending' });
     expect(await runRewardedBoost('tok', 'u', { show: async () => 'earned', wait: noWait, pollMs: 2000, waitMs: 6000 })).toBe('pending');
     expect(getStatus).toHaveBeenCalledTimes(4); // at 0, 2, 4 and 6 s
   });

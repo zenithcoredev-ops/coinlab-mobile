@@ -272,6 +272,11 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
         <View style={styles.headerInfo}>
           <Text style={styles.leagueName}>{t(LEAGUE_NAME_KEYS[view.league])}</Text>
           <Text style={styles.headerSub}>{t('league.bonus', { rate: formatClbPerHour(clbPerHourOf(view.speedBonusClbPerHour, view.speedBonus), language) })}</Text>
+          {!isDiamond && (typeof view.nextSpeedBonusClbPerHour === 'number' || typeof view.nextSpeedBonus === 'number') && (
+            <Text style={styles.headerSub}>
+              {t('league.nextBonus', { rate: formatClbPerHour(clbPerHourOf(view.nextSpeedBonusClbPerHour, view.nextSpeedBonus ?? 0), language) })}
+            </Text>
+          )}
           <Text style={styles.headerSub}>{requirement}</Text>
           <Text style={styles.headerSub}>{t('league.weekEnds', { time: t('league.time', { days, hours, minutes }) })}</Text>
         </View>

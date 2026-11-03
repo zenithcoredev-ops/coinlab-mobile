@@ -4,7 +4,7 @@ import { Button, Card } from '@/components/ui';
 import { useRewardedBoost } from '@/hooks/use-rewarded-boost';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
-import { formatDuration } from '@/lib/mining-math';
+import { activeBoostCount, activeBoostsClbPerHour, adBoostClbPerHour, formatClbPerHour, formatDuration } from '@/lib/mining-math';
 import { theme } from '@/theme';
 
 const MESSAGES: Record<NonNullable<ReturnType<typeof useRewardedBoost>['message']>, TranslationKey> = {
@@ -17,9 +17,14 @@ const MESSAGES: Record<NonNullable<ReturnType<typeof useRewardedBoost>['message'
 
 /** Mine screen: the optional "watch an ad for a speed boost" card. The reward is a speed boost only. */
 export function AdBoostCard() {
-  const { t } = useI18n();
-  const { visible, ads, limitReached, waitMs, canWatch, phase, message, watch } = useRewardedBoost();
+  const { t, language } = useI18n();
+  const { visible, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, watch } = useRewardedBoost();
   if (!visible || !ads) return null;
+
+  const rate = (perHour: number) => formatClbPerHour(perHour, language);
+  const perAd = adBoostClbPerHour(ads);
+  const activeCount = activeBoostCount(ads);
+  const activeRate = activeBoostsClbPerHour(ads);
 
   const hint = limitReached
     ? t('ads.boost.limit')
@@ -31,8 +36,15 @@ export function AdBoostCard() {
     <Card style={styles.card}>
       <Text style={styles.title}>{t('ads.boost.title')}</Text>
       <Text style={styles.body}>{t('ads.boost.body')}</Text>
+      {perAd !== null && <Text style={styles.hint}>{t('ads.boost.perAd', { rate: rate(perAd) })}</Text>}
       <Text style={styles.hint}>{hint}</Text>
-      {ads.activeBoosts > 0 && <Text style={styles.hint}>{t('ads.boost.active', { count: ads.activeBoosts })}</Text>}
+      {activeCount > 0 && (
+        <Text style={styles.hint}>
+          {activeRate !== null && activeRate > 0
+            ? t('ads.boost.activeRate', { count: activeCount, rate: rate(activeRate) })
+            : t('ads.boost.active', { count: activeCount })}
+        </Text>
+      )}
       <Button
         label={phase === 'verifying' ? t('ads.boost.verifying') : t('ads.boost.watch')}
         onPress={watch}
@@ -43,7 +55,13 @@ export function AdBoostCard() {
         variant="ghost"
         style={styles.button}
       />
-      {message && <Text style={message === 'granted' ? styles.ok : styles.note}>{t(MESSAGES[message])}</Text>}
+      {message && (
+        <Text style={message === 'granted' ? styles.ok : styles.note}>
+          {message === 'granted' && grantedClbPerHour !== null
+            ? t('ads.boost.grantedRate', { rate: rate(grantedClbPerHour) })
+            : t(MESSAGES[message])}
+        </Text>
+      )}
     </Card>
   );
 }

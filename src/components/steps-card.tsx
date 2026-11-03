@@ -5,14 +5,14 @@ import { useSteps } from '@/context/steps';
 import { useMining } from '@/context/mining';
 import { useI18n } from '@/i18n';
 import { stepsProgress } from '@/lib/health-steps';
-import { breakdownClbPerHour, formatClbPerHour } from '@/lib/mining-math';
+import { formatClbPerHour } from '@/lib/mining-math';
 import { STEP_BONUS_CAP_STEPS, STEPS_PER_BONUS_UNIT } from '@/services/steps-api';
 import { theme } from '@/theme';
 
 // Bonus per STEPS_PER_BONUS_UNIT comes from the server's breakdown, not a client constant.
 export function StepsCard() {
   const { t, language } = useI18n();
-  const { availability, steps, syncFailed, backgroundAccess, allowBackground, connect, openStore } = useSteps();
+  const { availability, steps, bonusClbPerHour, syncFailed, backgroundAccess, allowBackground, connect, openStore } = useSteps();
   const { status } = useMining();
 
   if (availability === 'unsupported') return null;
@@ -41,7 +41,7 @@ export function StepsCard() {
   }
 
   const session = status?.session;
-  const bonus = breakdownClbPerHour(status, 'steps');
+  const bonus = bonusClbPerHour;
   const capReached = steps >= STEP_BONUS_CAP_STEPS;
   const toNext = STEPS_PER_BONUS_UNIT - (steps % STEPS_PER_BONUS_UNIT);
 

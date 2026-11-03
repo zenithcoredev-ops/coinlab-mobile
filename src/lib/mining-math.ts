@@ -39,12 +39,52 @@ export function statusClbPerHour(status: Pick<MiningStatus, 'clbPerHour' | 'curr
   return status ? clbPerHourOf(status.clbPerHour, status.currentThs) : 0;
 }
 
+type AdsStatus = NonNullable<MiningStatus['ads']>;
+
+/** How many rewarded boosts are running (servers send a list; older ones a count). */
+export function activeBoostCount(ads: Pick<AdsStatus, 'activeBoosts'>): number {
+  return Array.isArray(ads.activeBoosts) ? ads.activeBoosts.length : ads.activeBoosts;
+}
+
+/** What one rewarded view adds in CLB/h, or null when the server doesn't say. */
+export function adBoostClbPerHour(ads: Pick<AdsStatus, 'clbPerHourBonus' | 'boostThs'>): number | null {
+  if (typeof ads.clbPerHourBonus !== 'number' && typeof ads.boostThs !== 'number') return null;
+  return clbPerHourOf(ads.clbPerHourBonus, ads.boostThs ?? 0);
+}
+
+/**
+ * The running rewarded boosts together in CLB/h: the server's total, else the sum of the listed
+ * boosts, else null (an older server that only sends a count).
+ */
+export function activeBoostsClbPerHour(ads: Pick<AdsStatus, 'activeBoosts' | 'activeClbPerHourBonus'>): number | null {
+  if (typeof ads.activeClbPerHourBonus === 'number') return ads.activeClbPerHourBonus;
+  if (!Array.isArray(ads.activeBoosts)) return null;
+  return ads.activeBoosts.reduce((sum, b) => sum + clbPerHourOf(b.clbPerHourBonus, b.boostThs), 0);
+}
+
 /** One source of the speed breakdown in CLB/h. */
 export function breakdownClbPerHour(
   status: Pick<MiningStatus, 'clbPerHourBreakdown' | 'thsBreakdown'> | null | undefined,
   key: keyof ThsBreakdown
 ): number {
-  return status ? clbPerHourOf(status.clbPerHourBreakdown?.[key], status.thsBreakdown[key]) : 0;
+  return status ? clbPerHourOf(status.clbPerHourBreakdown?.[key], status.thsBreakdown?.[key] ?? 0) : 0;
+}
+
+/** The CLB/h from the latest POST /steps/sync, with the session it was for and when it arrived. */
+export type StepSyncBonus = { session: string; at: number; bonusClbPerHour: number };
+
+/**
+ * The speed the steps add, in CLB/h: the latest sync's value when it belongs to the running session
+ * and arrived after the mining status was fetched, else the status breakdown.
+ */
+export function stepBonusClbPerHour(
+  status: Pick<MiningStatus, 'clbPerHourBreakdown' | 'thsBreakdown' | 'session'> | null | undefined,
+  fetchedAt: number,
+  lastSync: StepSyncBonus | null
+): number {
+  const session = status?.session?.startedAt ?? null;
+  if (lastSync && session && lastSync.session === session && lastSync.at > fetchedAt) return lastSync.bonusClbPerHour;
+  return breakdownClbPerHour(status, 'steps');
 }
 
 /** A number with fixed decimals in the app language's style: "16,29171" in Turkish, "16.29171" in English. */

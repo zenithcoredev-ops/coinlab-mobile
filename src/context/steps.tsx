@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
+import { clbPerHourOf, StepSyncBonus, stepBonusClbPerHour } from '@/lib/mining-math';
 import {
   getStepsAvailability,
   hasBackgroundStepsAccess,
@@ -22,6 +23,11 @@ type StepsState = {
   availability: StepsAvailability;
   /** Steps the server counted for the running session. */
   steps: number;
+  /**
+   * The speed the steps add, in CLB/h: from the latest sync when it is newer than the mining status,
+   * else from the status breakdown.
+   */
+  bonusClbPerHour: number;
   syncing: boolean;
   syncFailed: boolean;
   /**
@@ -41,7 +47,7 @@ const StepsContext = createContext<StepsState | null>(null);
 
 export function StepsProvider({ children }: { children: ReactNode }) {
   const { auth } = useSession();
-  const { status, refresh } = useMining();
+  const { status, fetchedAt, refresh } = useMining();
   const token = auth?.token ?? null;
   const session = status?.session ?? null;
   const sessionStartedAt = session?.startedAt ?? null;
@@ -49,6 +55,7 @@ export function StepsProvider({ children }: { children: ReactNode }) {
   const [availability, setAvailability] = useState<StepsAvailability>('unsupported');
   const [syncing, setSyncing] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [lastSync, setLastSync] = useState<StepSyncBonus | null>(null);
   const [backgroundAccess, setBackgroundAccess] = useState(false);
   const backgroundAskedRef = useRef(false);
   const lastSyncRef = useRef(0);
@@ -69,8 +76,13 @@ export function StepsProvider({ children }: { children: ReactNode }) {
       setSyncing(true);
       try {
         const steps = await readVerifiedSteps(sessionStartedAt);
-        await syncSteps(token, steps);
+        const result = await syncSteps(token, steps);
         lastSyncRef.current = Date.now();
+        setLastSync({
+          session: sessionStartedAt,
+          at: lastSyncRef.current,
+          bonusClbPerHour: clbPerHourOf(result.bonusClbPerHour, result.bonusThs),
+        });
         setSyncFailed(false);
         await refresh();
       } catch {
@@ -119,6 +131,7 @@ export function StepsProvider({ children }: { children: ReactNode }) {
     () => ({
       availability,
       steps: session ? (status?.todaySteps ?? 0) : 0,
+      bonusClbPerHour: stepBonusClbPerHour(status, fetchedAt, lastSync),
       syncing,
       syncFailed,
       backgroundAccess,
@@ -127,7 +140,7 @@ export function StepsProvider({ children }: { children: ReactNode }) {
       openStore: openHealthConnectStore,
       syncNow,
     }),
-    [availability, session, status?.todaySteps, syncing, syncFailed, backgroundAccess, allowBackground, connect, syncNow]
+    [availability, session, status, lastSync, fetchedAt, syncing, syncFailed, backgroundAccess, allowBackground, connect, syncNow]
   );
   return <StepsContext.Provider value={value}>{children}</StepsContext.Provider>;
 }

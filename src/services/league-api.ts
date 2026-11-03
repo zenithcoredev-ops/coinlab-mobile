@@ -69,6 +69,9 @@ export type LeagueView = {
   speedBonus: number;
   /** The same bonus in CLB/h; missing from older servers. */
   speedBonusClbPerHour?: number;
+  /** The next league's bonus (the same as now in Diamond), in Th/s and CLB/h; only while active, missing from older servers. */
+  nextSpeedBonus?: number;
+  nextSpeedBonusClbPerHour?: number;
   entry: { required: number; balance: number };
   lastResult: LeagueResult | null;
   tournamentResult: TournamentResult | null;

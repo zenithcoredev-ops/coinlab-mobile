@@ -77,7 +77,16 @@ export async function runRewardedBoost(
     wait = sleep,
     show = showRewardedAd,
     onVerifying,
-  }: { pollMs?: number; waitMs?: number; wait?: (ms: number) => Promise<unknown>; show?: typeof showRewardedAd; onVerifying?: () => void } = {}
+    onGranted,
+  }: {
+    pollMs?: number;
+    waitMs?: number;
+    wait?: (ms: number) => Promise<unknown>;
+    show?: typeof showRewardedAd;
+    onVerifying?: () => void;
+    /** Called once the server confirmed the reward, with the boost in CLB/h when the server says. */
+    onGranted?: (clbPerHourBonus: number | null) => void;
+  } = {}
 ): Promise<BoostOutcome> {
   let intent: RewardedIntent;
   try {
@@ -93,7 +102,8 @@ export async function runRewardedBoost(
 
   for (let waited = 0; ; waited += pollMs) {
     try {
-      const status = await getRewardedIntentStatus(token, intent.intentId);
+      const { status, clbPerHourBonus } = await getRewardedIntentStatus(token, intent.intentId);
+      if (status === 'granted') onGranted?.(typeof clbPerHourBonus === 'number' ? clbPerHourBonus : null);
       if (status === 'granted' || status === 'rejected') return status;
     } catch (e) {
       if (notFound(e)) return 'unavailable';

@@ -18,8 +18,8 @@ describe('ads API', () => {
   });
 
   it('GET /ads/rewarded/:intentId', async () => {
-    respond({ status: 'granted' });
-    expect(await getRewardedIntentStatus('tok', 'i/1')).toBe('granted');
+    respond({ status: 'granted', clbPerHourBonus: 0.05 });
+    expect(await getRewardedIntentStatus('tok', 'i/1')).toEqual({ status: 'granted', clbPerHourBonus: 0.05 });
     expect(call().url).toMatch(/\/ads\/rewarded\/i%2F1$/);
     expect(call().init.method).toBe('GET');
   });

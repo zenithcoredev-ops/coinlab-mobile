@@ -5,7 +5,7 @@ import { AdBoostCard } from '../ad-boost-card';
 
 jest.mock('@/ads/config', () => ({ ADS_SUPPORTED: true, adUnitId: () => 'unit-rw' }));
 jest.mock('@/ads/rewarded', () => ({ runRewardedBoost: jest.fn() }));
-jest.mock('@/i18n', () => ({ useI18n: () => ({ t: (k: string, p?: object) => require('@/i18n/translate').translate('tr', k, p) }) }));
+jest.mock('@/i18n', () => ({ useI18n: () => ({ language: 'tr', t: (k: string, p?: object) => require('@/i18n/translate').translate('tr', k, p) }) }));
 jest.mock('@/context/session', () => ({ useSession: () => ({ auth: { token: 'tok' } }) }));
 let mockConsent = true;
 jest.mock('@/context/ads', () => ({ useAds: () => ({ canRequestAds: mockConsent }) }));
@@ -83,6 +83,24 @@ describe('AdBoostCard', () => {
     run.mockResolvedValue('dismissed');
     await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
     expect(screen.queryByText('Takviyen birkaç dakika içinde eklenecek.')).toBeNull();
+  });
+
+  it('shows the boosts in CLB/h from the server’s list of running boosts', () => {
+    const running = { startsAt: 'a', endsAt: 'b', boostThs: 0.5, clbPerHourBonus: 0.05 };
+    mockStatus = { session, ads: ads({ activeBoosts: [running, running], clbPerHourBonus: 0.05, activeClbPerHourBonus: 0.1 }) };
+    render(<AdBoostCard />);
+    expect(screen.getByText('Her reklam: +0,05 CLB/saat, bir süreliğine')).toBeTruthy();
+    expect(screen.getByText('2 takviye aktif: +0,10 CLB/saat')).toBeTruthy();
+  });
+
+  it('says how much the granted boost added when the server tells', async () => {
+    run.mockImplementation(async (_t: string, _u: string, { onGranted }: { onGranted: (b: number | null) => void }) => {
+      onGranted(0.05);
+      return 'granted';
+    });
+    render(<AdBoostCard />);
+    await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
+    expect(screen.getByText('Hız takviyen eklendi: +0,05 CLB/saat.')).toBeTruthy();
   });
 
   it('is hidden when the server’s daily limit is 0', () => {
