@@ -72,4 +72,18 @@ describe('user-facing wording', () => {
     }
     expect(hits).toEqual([]);
   });
+
+  it('screens format decimals for the app language (comma in Turkish), never with a bare toFixed', () => {
+    const hits = ['src/app', 'src/components']
+      .flatMap(sourceFiles)
+      .flatMap((file) =>
+        fs
+          .readFileSync(file, 'utf8')
+          .split('\n')
+          .map((line, i) => [`${file}:${i + 1}`, line] as const)
+          .filter(([, line]) => /\.toFixed\(|toLocaleString\(\)/.test(line))
+          .map(([where]) => where)
+      );
+    expect(hits).toEqual([]);
+  });
 });

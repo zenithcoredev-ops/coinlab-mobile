@@ -22,7 +22,7 @@ import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
 import { FRAME_NAME_KEYS } from '@/lib/league';
-import { formatRate } from '@/lib/mining-math';
+import { formatDecimal, formatRate } from '@/lib/mining-math';
 import { badgeCard, ShareCard } from '@/lib/share';
 import { Badge, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
@@ -151,10 +151,10 @@ export default function ProfileScreen() {
         </Card>
 
         <Card style={styles.infoList}>
-          <InfoRow label={t('profile.balance')} value={`${balance.toFixed(3)} CLB`} valueColor={theme.colors.accent} />
+          <InfoRow label={t('profile.balance')} value={`${formatDecimal(balance, 3, language)} CLB`} valueColor={theme.colors.accent} />
           <InfoRow
             label={t('profile.speed')}
-            value={`${formatRate(status?.currentThs ?? 0)} ${t('unit.rate')}`}
+            value={`${formatRate(status?.currentThs ?? 0, language)} ${t('unit.rate')}`}
             valueColor={theme.colors.positive}
           />
           <InfoRow label={t('profile.streak')} value={t('streak.days', { count: status?.streak ?? account?.streak ?? 0 })} last />

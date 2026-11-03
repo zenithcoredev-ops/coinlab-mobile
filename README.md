@@ -1,79 +1,67 @@
 # CoinLab Mobile
 
-CoinLab'in Expo (React Native) mobil uygulamasi. Kullanici Google ile giris yapar, 24 saatlik kazim oturumu baslatir ve CLB puanini ile kazim hizini (Th/s) takip eder. iOS, Android ve web'de calisir.
+CoinLab'in Expo (React Native) mobil uygulaması. Kullanıcı Google ile giriş yapar, günde bir kez 24 saatlik toplama oturumu başlatır ve CLB puanını, toplama hızını (CLB/saat), serisini, görevlerini, ligini ve arkadaşlarını takip eder. Android ana ekran widget'ı saat, hava durumu, günlük adım ve toplama durumunu gösterir.
+
+CLB uygulama içi bir puandır; parasal değeri yoktur, paraya çevrilemez.
 
 ## Ekranlar
 
-| Rota | Dosya | Aciklama |
+| Rota | Dosya | Açıklama |
 |---|---|---|
-| `/` | `src/app/index.tsx` | Google ile giris. Kayitli oturum varsa dogrudan dashboard'a yonlendirir. |
-| `/dashboard` | `src/app/dashboard.tsx` | "Kazimi Baslat" butonu, 24 saatlik geri sayim, canli CLB puani ve Th/s hiz gostergesi. |
+| `/` | `src/app/index.tsx` | Google ile giriş; kayıtlı oturum varsa sekmelere yönlendirir. |
+| `/onboarding` | `src/app/onboarding.tsx` | İlk açılış tanıtımı ve davet kodu. |
+| Topla | `src/app/(tabs)/index.tsx` | "Toplamayı başlat" düğmesi, kalan süre, canlı CLB bakiyesi, hız dökümü, adım kartı, isteğe bağlı reklam takviyesi. |
+| Görevler | `src/app/(tabs)/tasks.tsx` | Günlük görevler ve ödülleri. |
+| Lig | `src/app/(tabs)/league.tsx` | Haftalık lig, sıralama ve Elmas Turnuvası. |
+| Arkadaşlar | `src/app/(tabs)/friends.tsx` | Davet kodu ve arkadaş bonusları. |
+| Profil | `src/app/(tabs)/profile.tsx` | Rozetler, ödüller, dil, bildirimler, widget ayarları, yasal bağlantılar, hesap silme. |
 
-Navigasyon basliksiz bir `Stack` ile yapilir (`src/app/_layout.tsx`).
-
-## Kurulum ve calistirma
+## Kurulum ve çalıştırma
 
 ```bash
 npm install
-npx expo start        # QR kod ile Expo Go / development build
-npm run web           # tarayicida
+npx expo start        # development build ile
 npm run android       # Android emulator
 npm run ios           # iOS simulator (macOS)
+npm run web           # tarayıcıda
 ```
 
-## Proje yapisi
+`npm install`, `patches/` altındaki yamaları `patch-package` ile uygular.
+
+## Proje yapısı
 
 ```
 src/
-  app/                  Expo Router rotalari (giris, dashboard, kok layout)
-  components/           Acilis animasyonu (animated-icon)
-  constants/config.ts   Backend adresi, Google client ID, URL scheme
-  services/
-    auth-storage.ts     Oturumu (token, isim) AsyncStorage'da saklar
-    mining-api.ts       Kazim API istemcisi + gecici sahte veri
+  app/          Expo Router rotaları (giriş, tanıtım, sekmeler)
+  components/   Kartlar, modallar ve ortak arayüz parçaları
+  context/      Oturum, toplama durumu, adımlar, bildirimler, reklam onayı
+  hooks/        Canlı bakiye, seri hatırlatması, widget eşitleme vb.
+  i18n/         TR/EN metinler (tr.ts, en.ts)
+  lib/          Saf hesaplar ve biçimlendirme (hız, süre, sayılar, lig, seri)
+  services/     Backend istemcileri, Health Connect, bildirimler
+  widget/       Android ana ekran widget'ı
+  ads/          AdMob yapılandırması, onay, geçiş ve ödüllü reklamlar
 ```
 
 ## Backend
 
-Backend adresi `src/constants/config.ts` icindeki `API_URL` degeridir (su an `https://coinlab-backend-production.up.railway.app`).
+Adres `src/constants/config.ts` içindeki `API_URL` değeridir (`https://coinlab-backend-production.up.railway.app`). Giriş `POST /auth/signin` ile yapılır; diğer istekler `Authorization: Bearer <token>` başlığıyla gönderilir. İstemciler `src/services/*-api.ts` dosyalarındadır.
 
-- **Giris:** `POST /auth/signin` Google access token'i ile cagrilir, donen `token` AsyncStorage'a `coinlab_auth` anahtariyla kaydedilir.
-- **Kazim:** Diger istekler `Authorization: Bearer <token>` basligi ile gonderilir.
+### Hız ve sayılar
 
-### Kazim ucnoktalari (henuz backend'de yok)
+- Sunucu hızı kendi biriminde gönderir; uygulama bunu saatte toplanan CLB'ye çevirerek gösterir. 1 birim 24 saatte 2,4 CLB toplar, yani **1,00 = 0,10 CLB/saat** (`src/lib/` içindeki `CLB_PER_HOUR_PER_UNIT` ve `formatRate`).
+- Bakiye, çalışan oturumun sunucudaki son değerinden yerel olarak saniye saniye artırılır; her yenilemede sunucunun değeri geçerlidir.
+- Ondalık sayılar uygulama diline göre yazılır: TR'de virgül (`16,29171 CLB`, `0,10 CLB/saat`), EN'de nokta (`formatDecimal`).
 
-Dashboard su an **sahte veriyle** calisir: `src/services/mining-api.ts` icinde `USE_MOCK_MINING = true` ve ekranda "Demo veri" etiketi gorunur. Sahte oturum AsyncStorage'da saklanir; 12.5 Th/s hiz ve saatte 0.25 CLB kullanir.
-
-Istemci, backend'in su iki ucnoktayi saglamasini bekler:
-
-- `GET /mining/status`
-- `POST /mining/start`: 24 saatlik oturumu baslatir; aktif oturum varsa yenisini acmadan mevcut durumu dondurur.
-
-Ikisi de ayni yaniti dondurur:
-
-```json
-{
-  "isActive": true,
-  "startedAt": "2026-09-23T10:00:00.000Z",
-  "endsAt": "2026-09-24T10:00:00.000Z",
-  "balance": 12.5,
-  "pointsPerHour": 0.25,
-  "hashrateThs": 12.5
-}
-```
-
-`balance`, calisan oturumun kazanci haric kesinlesmis puandir; uygulama anlik puani `pointsPerHour` ile kendisi hesaplar. Oturum bitince kazanilan puani `balance`'a eklemek backend'in isidir.
-
-Ucnoktalar hazir olunca `USE_MOCK_MINING = false` yapmak yeterli. Yol veya alan adlari farkli olursa sadece `mining-api.ts` degisir.
-
-## Tip kontrolu ve CI
+## Test ve tip kontrolü
 
 ```bash
 npx tsc --noEmit
+npm test
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`), `main`'e gelen push ve PR'larda tip kontrolu calistirir. `expo-env.d.ts` `.gitignore`'da oldugu icin (Expo onu `expo start` sirasinda uretir) CI bu dosyayi tip kontrolunden once kendisi olusturur.
+GitHub Actions (`.github/workflows/ci.yml`), `main`'e gelen push ve PR'larda tip kontrolü ve testleri çalıştırır. `expo-env.d.ts` `.gitignore`'da olduğu için (Expo onu `expo start` sırasında üretir) CI bu dosyayı tip kontrolünden önce kendisi oluşturur.
 
 ## Bilinen notlar
 
-- **Codespaces'te Metro dosya degisikliklerini gormeyebilir.** Degisiklik ekrana yansimiyorsa sunucuyu `npx expo start --clear` ile yeniden baslat.
+- **Codespaces'te Metro dosya değişikliklerini görmeyebilir.** Değişiklik ekrana yansımıyorsa sunucuyu `npx expo start --clear` ile yeniden başlat.

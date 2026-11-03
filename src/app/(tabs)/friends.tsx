@@ -31,7 +31,7 @@ import {
 import { theme } from '@/theme';
 
 export default function FriendsScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { auth } = useSession();
   const { refresh: refreshMining } = useMining();
   const token = auth?.token ?? null;
@@ -119,7 +119,7 @@ export default function FriendsScreen() {
         <ScreenHeader />
         <ScreenTitle
           title={t('friends.title')}
-          subtitle={t('friends.subtitle', { rate: formatRate(overview?.bonusPerFriendThs ?? 0.2) })}
+          subtitle={t('friends.subtitle', { rate: formatRate(overview?.bonusPerFriendThs ?? 0.2, language) })}
         />
 
         {!overview ? (
@@ -148,7 +148,7 @@ export default function FriendsScreen() {
               </View>
               <Text style={styles.benefit}>
                 {t('friends.benefit', {
-                  rate: formatRate(overview.bonusPerFriendThs),
+                  rate: formatRate(overview.bonusPerFriendThs, language),
                   bonus: overview.welcomeBonusClb,
                 })}
               </Text>
@@ -159,14 +159,14 @@ export default function FriendsScreen() {
             <View style={styles.statRow}>
               <Stat value={String(overview.invitedCount)} label={t('friends.stat.invited')} />
               <Stat value={String(overview.activeCount)} label={t('friends.stat.active')} />
-              <Stat value={`+${formatRate(overview.totalBonusThs)}`} label={t('friends.stat.bonus')} />
+              <Stat value={`+${formatRate(overview.totalBonusThs, language)}`} label={t('friends.stat.bonus')} />
             </View>
 
             <Card style={styles.stepsCard}>
               <Text style={styles.stepsTitle}>{t('friends.how.title')}</Text>
               <Step n={1} text={t('friends.how.step1')} />
               <Step n={2} text={t('friends.how.step2', { bonus: overview.welcomeBonusClb })} />
-              <Step n={3} text={t('friends.how.step3', { rate: formatRate(overview.bonusPerFriendThs) })} />
+              <Step n={3} text={t('friends.how.step3', { rate: formatRate(overview.bonusPerFriendThs, language) })} />
               <Step n={4} text={t('friends.how.step4')} />
             </Card>
 
@@ -240,7 +240,7 @@ function Step({ n, text }: { n: number; text: string }) {
 }
 
 function FriendRow({ friend }: { friend: Friend }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   return (
     <View style={[styles.friend, !friend.active && styles.friendInactive]}>
       <View style={[styles.avatar, !friend.active && styles.avatarInactive]}>
@@ -256,7 +256,7 @@ function FriendRow({ friend }: { friend: Friend }) {
           {friend.active ? t('friends.status.active') : t('friends.status.inactive')}
         </Text>
       </View>
-      <Text style={styles.friendBonus}>+{formatRate(friend.bonusThs)}</Text>
+      <Text style={styles.friendBonus}>+{formatRate(friend.bonusThs, language)}</Text>
     </View>
   );
 }

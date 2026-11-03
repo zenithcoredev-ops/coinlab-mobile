@@ -23,7 +23,7 @@ type Props = {
 };
 
 export function RateBreakdownModal({ visible, breakdown, total, onClose }: Props) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
@@ -37,12 +37,12 @@ export function RateBreakdownModal({ visible, breakdown, total, onClose }: Props
           {ROWS.map(({ key, label }) => (
             <View key={key} style={styles.row}>
               <Text style={styles.label}>{t(label)}</Text>
-              <Text style={styles.value}>+{formatRate(breakdown?.[key] ?? 0)} {t('unit.rate')}</Text>
+              <Text style={styles.value}>+{formatRate(breakdown?.[key] ?? 0, language)} {t('unit.rate')}</Text>
             </View>
           ))}
           <View style={[styles.row, styles.totalRow]}>
             <Text style={styles.totalLabel}>{t('rate.total')}</Text>
-            <Text style={styles.totalValue}>{formatRate(total)} {t('unit.rate')}</Text>
+            <Text style={styles.totalValue}>{formatRate(total, language)} {t('unit.rate')}</Text>
           </View>
         </Pressable>
       </Pressable>

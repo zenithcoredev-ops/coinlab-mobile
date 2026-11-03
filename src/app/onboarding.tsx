@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const router = useRouter();
   const { auth, onboarding, completeOnboarding } = useSession();
   const { setEnabled } = useNotifications();
@@ -102,7 +102,7 @@ export default function OnboardingScreen() {
             <Ionicons name={slide.icon} size={44} color={theme.colors.accent} />
           </View>
           <Text style={styles.title}>{t(slide.title)}</Text>
-          <Text style={styles.body}>{t(slide.body, { bonus: 25, rate: formatRate(0.2) })}</Text>
+          <Text style={styles.body}>{t(slide.body, { bonus: 25, rate: formatRate(0.2, language) })}</Text>
 
           {slide.extra === 'referral' && !applied && (
             <View style={styles.extra}>

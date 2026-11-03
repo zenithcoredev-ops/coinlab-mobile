@@ -22,7 +22,7 @@ import {
   STAGE_NAME_KEYS,
 } from '@/lib/league';
 import { leagueWeekEndParams } from '@/lib/league-week';
-import { formatRate } from '@/lib/mining-math';
+import { formatDecimal, formatRate } from '@/lib/mining-math';
 import { promotionCard, ShareCard, tournamentCard } from '@/lib/share';
 import {
   DIAMOND_LEAGUE,
@@ -46,7 +46,7 @@ const TOURNAMENT_SEEN_KEY = 'coinlab_tournament_result_seen';
 const NEXT_STAGE: Record<TournamentStage, TournamentStage | null> = { qf: 'sf', sf: 'final', final: null };
 
 export default function LeagueScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { auth } = useSession();
   const { refresh: refreshMining } = useMining();
   const token = auth?.token ?? null;
@@ -192,7 +192,7 @@ function HowItWorks() {
 }
 
 function ShareButton({ onPress }: { onPress: () => void }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={styles.bannerShare}>
       <Text style={styles.bannerShareText}>{t('share.share')}</Text>
@@ -209,12 +209,12 @@ function ResultBanner({
   onDismiss: () => void;
   onShare: (card: ShareCard, detail?: string) => void;
 }) {
-  const { t } = useI18n();
-  const card = promotionCard(result);
+  const { t, language } = useI18n();
+  const card = promotionCard(result, language);
   const text = t(RESULT_KEYS[result.resultType], {
     league: t(LEAGUE_NAME_KEYS[result.toLeague]),
     rank: result.rank ?? '-',
-    points: result.points.toFixed(2),
+    points: formatDecimal(result.points, 2, language),
   });
   const tone = result.resultType === 'demote' ? styles.bannerDemote : result.resultType === 'promote' ? styles.bannerPromote : null;
   return (
@@ -228,7 +228,7 @@ function ResultBanner({
 }
 
 function LockedCard({ entry }: { entry: LeagueView['entry'] }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   // Live like the Mine screen; the league snapshot's balance until the mining status arrives.
   const balance = useLiveBalance() ?? entry.balance;
   const progress = entryProgress({ ...entry, balance });
@@ -241,14 +241,14 @@ function LockedCard({ entry }: { entry: LeagueView['entry'] }) {
         <View style={[styles.fill, { width: `${progress * 100}%` }]} />
       </View>
       <Text style={styles.progressText}>
-        {t('league.locked.progress', { balance: Math.min(balance, entry.required).toFixed(2), required: entry.required })}
+        {t('league.locked.progress', { balance: formatDecimal(Math.min(balance, entry.required), 2, language), required: entry.required })}
       </Text>
     </Card>
   );
 }
 
 function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const bands = view.bands!;
   const standings = view.standings ?? [];
   const isDiamond = view.league === DIAMOND_LEAGUE;
@@ -271,7 +271,7 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
         <Text style={styles.leagueIcon}>{LEAGUE_ICONS[view.league]}</Text>
         <View style={styles.headerInfo}>
           <Text style={styles.leagueName}>{t(LEAGUE_NAME_KEYS[view.league])}</Text>
-          <Text style={styles.headerSub}>{t('league.bonus', { rate: formatRate(view.speedBonus) })}</Text>
+          <Text style={styles.headerSub}>{t('league.bonus', { rate: formatRate(view.speedBonus, language) })}</Text>
           <Text style={styles.headerSub}>{requirement}</Text>
           <Text style={styles.headerSub}>{t('league.weekEnds', { time: t('league.time', { days, hours, minutes }) })}</Text>
         </View>
@@ -300,7 +300,7 @@ function StandingRow({
   previous?: LeagueStanding;
   labels: ZoneLabels;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const medal = MEDALS[row.rank];
 
   // Zone labels sit on the boundary: the first row after the promotion band, and the first demotion row.
@@ -332,7 +332,7 @@ function StandingRow({
         <Text style={styles.name} numberOfLines={1}>
           {row.isYou ? t('league.you') : row.name}
         </Text>
-        <Text style={styles.points}>{row.points.toFixed(2)}</Text>
+        <Text style={styles.points}>{formatDecimal(row.points, 2, language)}</Text>
       </View>
     </>
   );
@@ -348,7 +348,7 @@ function rewardText(t: ReturnType<typeof useI18n>['t'], reward: { clb: number; v
 }
 
 function TournamentCard({ rewards }: { rewards: TournamentRewardRow[] }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const placeKeys = ['tournament.place.1', 'tournament.place.2', 'tournament.place.3'] as const;
   return (
     <Card style={styles.tournamentCard}>
@@ -375,7 +375,7 @@ function TournamentResultBanner({
   onDismiss: () => void;
   onShare: (card: ShareCard, detail?: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const card = tournamentCard(result);
   const stage = t(STAGE_NAME_KEYS[result.stage]);
   let text: string;
@@ -405,7 +405,7 @@ function TournamentResultBanner({
 }
 
 function TournamentStageView({ view, msLeft }: { view: LiveTournamentLeagueView; msLeft: number }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const tour = view.tournament;
   const { days, hours, minutes } = formatWeekCountdown(msLeft);
   const labels: ZoneLabels = { promote: t('tournament.zone.advance'), demote: t('tournament.zone.eliminated') };

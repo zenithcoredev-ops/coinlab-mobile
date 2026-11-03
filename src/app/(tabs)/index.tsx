@@ -17,7 +17,7 @@ import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
 
 export default function MineScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { status, fetchedAt, error, starting, refresh } = useMining();
   const now = useNow(1000);
   const [rateOpen, setRateOpen] = useState(false);
@@ -55,12 +55,12 @@ export default function MineScreen() {
         <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>{t('mine.balance')}</Text>
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceValue}>{formatClb(balance)}</Text>
+            <Text style={styles.balanceValue}>{formatClb(balance, language)}</Text>
             <Text style={styles.balanceUnit}>{t('mine.clb')}</Text>
           </View>
           <View style={styles.balanceSub}>
             <Text style={[styles.rateText, isMining && { color: ringColor }]}>
-              {isMining ? t('mine.rateActive', { rate: formatRate(ths) }) : t('mine.rateStopped')}
+              {isMining ? t('mine.rateActive', { rate: formatRate(ths, language) }) : t('mine.rateStopped')}
             </Text>
             <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
               <Ionicons name="information-circle-outline" size={16} color={theme.colors.textMuted} />
@@ -85,7 +85,7 @@ export default function MineScreen() {
                     <Ionicons name="flash" size={30} color={theme.colors.text} />
                   </Animated.View>
                   <Text style={styles.coreActiveLabel}>{t('mine.active')}</Text>
-                  <Text style={[styles.coreRate, { color: ringColor }]}>{formatRate(ths)} {t('unit.rate')}</Text>
+                  <Text style={[styles.coreRate, { color: ringColor }]}>{formatRate(ths, language)} {t('unit.rate')}</Text>
                 </>
               ) : (
                 <>

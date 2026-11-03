@@ -1,6 +1,8 @@
 import type { TranslationKey } from '@/i18n';
+import type { Language } from '@/i18n/translate';
 import { BADGE_META } from '@/lib/badges';
 import { LEAGUE_ICONS, LEAGUE_NAME_KEYS } from '@/lib/league';
+import { formatDecimal } from '@/lib/mining-math';
 import type { BadgeId } from '@/services/badges-api';
 import type { LeagueResult, TournamentResult } from '@/services/league-api';
 
@@ -28,14 +30,14 @@ export function badgeCard(id: BadgeId): ShareCard {
 }
 
 /** Only promotions are worth sharing; null for stays and demotions. */
-export function promotionCard(result: LeagueResult): ShareCard | null {
+export function promotionCard(result: LeagueResult, language: Language): ShareCard | null {
   if (result.resultType !== 'promote') return null;
   return {
     icon: LEAGUE_ICONS[result.toLeague],
     title: { key: 'share.promoted.title' },
     subtitle: {
       key: 'share.promoted.sub',
-      params: { rank: result.rank ?? '-', points: result.points.toFixed(2) },
+      params: { rank: result.rank ?? '-', points: formatDecimal(result.points, 2, language) },
     },
   };
 }
