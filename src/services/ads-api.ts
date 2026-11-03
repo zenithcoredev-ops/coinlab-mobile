@@ -34,7 +34,13 @@ export function createRewardedIntent(token: string): Promise<RewardedIntent> {
   return apiRequest(token, 'POST', '/ads/rewarded/intent');
 }
 
-export async function getRewardedIntentStatus(token: string, intentId: string): Promise<RewardedIntentStatus> {
-  const res = await apiRequest<{ status: RewardedIntentStatus }>(token, 'GET', `/ads/rewarded/${encodeURIComponent(intentId)}`);
-  return res.status;
+/** GET /ads/rewarded/:intentId. */
+export type RewardedIntentState = {
+  status: RewardedIntentStatus;
+  /** The boost the granted view added, in CLB/h; null until granted, missing from older servers. */
+  clbPerHourBonus?: number | null;
+};
+
+export function getRewardedIntentStatus(token: string, intentId: string): Promise<RewardedIntentState> {
+  return apiRequest(token, 'GET', `/ads/rewarded/${encodeURIComponent(intentId)}`);
 }

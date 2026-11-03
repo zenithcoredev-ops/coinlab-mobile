@@ -1,6 +1,6 @@
 import type { MiningStatus } from '@/services/mining-api';
 
-import { breakdownClbPerHour, CLB_PER_HOUR_PER_UNIT, clbPerHourOf, clbPerSecond, formatClb, formatClbPerHour, formatDecimal, formatDuration, formatRate, isStreakAtRisk, statusClbPerHour, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
+import { activeBoostCount, activeBoostsClbPerHour, adBoostClbPerHour, breakdownClbPerHour, stepBonusClbPerHour, CLB_PER_HOUR_PER_UNIT, clbPerHourOf, clbPerSecond, formatClb, formatClbPerHour, formatDecimal, formatDuration, formatRate, isStreakAtRisk, statusClbPerHour, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
 
 function status(over: Partial<MiningStatus> = {}, session: Partial<NonNullable<MiningStatus['session']>> | null = {}): MiningStatus {
   return {
@@ -139,5 +139,41 @@ describe('CLB/h from the server', () => {
     const at = (over: Partial<MiningStatus>) => liveBalanceAt(status(over, { remainingMs: 7_200_000 }), 3_600_000);
     expect(at({ currentThs: 1, clbPerHour: 0.25 })).toBeCloseTo(10.5 + 0.25, 6);
     expect(at({ currentThs: 1 })).toBeCloseTo(10.5 + 0.1, 6);
+  });
+});
+
+describe('rewarded boosts in CLB/h', () => {
+  const boost = (over = {}) => ({ startsAt: 'a', endsAt: 'b', boostThs: 0.5, ...over });
+
+  it('counts running boosts from a list (current servers) or a count (older ones)', () => {
+    expect(activeBoostCount({ activeBoosts: [boost(), boost()] })).toBe(2);
+    expect(activeBoostCount({ activeBoosts: 3 })).toBe(3);
+  });
+
+  it('takes the per-view bonus from the server, else converts boostThs, else does not know', () => {
+    expect(adBoostClbPerHour({ clbPerHourBonus: 0.05, boostThs: 0.5 })).toBe(0.05);
+    expect(adBoostClbPerHour({ boostThs: 0.5 })).toBeCloseTo(0.05, 12);
+    expect(adBoostClbPerHour({})).toBeNull();
+  });
+
+  it('adds up the running boosts: the server total, else each boost, else unknown for a bare count', () => {
+    expect(activeBoostsClbPerHour({ activeBoosts: [boost()], activeClbPerHourBonus: 0.07 })).toBe(0.07);
+    expect(activeBoostsClbPerHour({ activeBoosts: [boost({ clbPerHourBonus: 0.06 }), boost()] })).toBeCloseTo(0.11, 12);
+    expect(activeBoostsClbPerHour({ activeBoosts: 2 })).toBeNull();
+  });
+});
+
+describe('stepBonusClbPerHour', () => {
+  const running = status({ clbPerHourBreakdown: { base: 0.1, friends: 0, ads: 0, league: 0, steps: 0.01 } }, { startedAt: 'S1' });
+
+  it('uses the latest sync when it is newer than the status and for the same session', () => {
+    expect(stepBonusClbPerHour(running, 1000, { session: 'S1', at: 2000, bonusClbPerHour: 0.03 })).toBe(0.03);
+  });
+
+  it('otherwise the status breakdown', () => {
+    expect(stepBonusClbPerHour(running, 3000, { session: 'S1', at: 2000, bonusClbPerHour: 0.03 })).toBe(0.01);
+    expect(stepBonusClbPerHour(running, 1000, { session: 'S0', at: 2000, bonusClbPerHour: 0.03 })).toBe(0.01);
+    expect(stepBonusClbPerHour(running, 1000, null)).toBe(0.01);
+    expect(stepBonusClbPerHour(null, 0, null)).toBe(0);
   });
 });

@@ -11,6 +11,10 @@ export type Account = {
   /** Decimal, sent as a string. */
   balance: string;
   streak: number;
+  /** Current speed; missing from older servers. */
+  currentThs?: number;
+  /** The same speed in CLB/h; missing from older servers. */
+  clbPerHour?: number;
   league: number;
   hasUsedCode: boolean;
   onboardingComplete: boolean;

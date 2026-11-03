@@ -29,6 +29,15 @@ export type ThsBreakdown = {
   steps: number;
 };
 
+export type ActiveAdBoost = {
+  /** ISO-8601. */
+  startsAt: string;
+  endsAt: string;
+  boostThs: number;
+  /** The same boost in CLB/h; missing from older servers. */
+  clbPerHourBonus?: number;
+};
+
 export type MiningStatus = {
   /** ISO-8601 UTC; use it, not the device clock, if you need absolute time. */
   serverTime: string;
@@ -64,7 +73,13 @@ export type MiningStatus = {
     dailyLimit: number;
     /** ISO-8601; the next rewarded view is allowed from then (null: now). */
     nextAllowedAt: string | null;
-    activeBoosts: number;
+    /** The running boosts: a list from current servers, a count from older ones. */
+    activeBoosts: number | ActiveAdBoost[];
+    /** What one view adds, in Th/s and CLB/h; missing from older servers. */
+    boostThs?: number;
+    clbPerHourBonus?: number;
+    /** All running boosts together in CLB/h; missing from older servers. */
+    activeClbPerHourBonus?: number;
   };
 };
 

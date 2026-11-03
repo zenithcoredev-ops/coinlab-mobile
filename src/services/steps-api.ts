@@ -10,6 +10,8 @@ export type StepSyncResult = {
   todaySteps: number;
   /** Th/s the steps currently add to mining speed. */
   bonusThs: number;
+  /** The same bonus in CLB/h; missing from older servers. */
+  bonusClbPerHour?: number;
   capReached: boolean;
   /** Steps left until the next bonus level; null at the cap. */
   stepsToNextBonus: number | null;
