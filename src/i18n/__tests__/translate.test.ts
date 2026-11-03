@@ -4,8 +4,8 @@ import { translate } from '../translate';
 
 describe('translate', () => {
   it('returns the string for the requested language', () => {
-    expect(translate('en', 'tabs.mine')).toBe('Mine');
-    expect(translate('tr', 'tabs.mine')).toBe('Kazım');
+    expect(translate('en', 'tabs.mine')).toBe('Collect');
+    expect(translate('tr', 'tabs.mine')).toBe('Topla');
   });
 
   it('fills placeholders', () => {

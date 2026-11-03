@@ -18,6 +18,7 @@ import { Button, Card, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
+import { formatRate } from '@/lib/mining-math';
 import {
   Friend,
   FriendOverview,
@@ -118,7 +119,7 @@ export default function FriendsScreen() {
         <ScreenHeader />
         <ScreenTitle
           title={t('friends.title')}
-          subtitle={t('friends.subtitle', { ths: (overview?.bonusPerFriendThs ?? 0.2).toFixed(2) })}
+          subtitle={t('friends.subtitle', { rate: formatRate(overview?.bonusPerFriendThs ?? 0.2) })}
         />
 
         {!overview ? (
@@ -147,7 +148,7 @@ export default function FriendsScreen() {
               </View>
               <Text style={styles.benefit}>
                 {t('friends.benefit', {
-                  ths: overview.bonusPerFriendThs.toFixed(2),
+                  rate: formatRate(overview.bonusPerFriendThs),
                   bonus: overview.welcomeBonusClb,
                 })}
               </Text>
@@ -158,14 +159,14 @@ export default function FriendsScreen() {
             <View style={styles.statRow}>
               <Stat value={String(overview.invitedCount)} label={t('friends.stat.invited')} />
               <Stat value={String(overview.activeCount)} label={t('friends.stat.active')} />
-              <Stat value={`+${overview.totalBonusThs.toFixed(2)}`} label={t('friends.stat.bonus')} />
+              <Stat value={`+${formatRate(overview.totalBonusThs)}`} label={t('friends.stat.bonus')} />
             </View>
 
             <Card style={styles.stepsCard}>
               <Text style={styles.stepsTitle}>{t('friends.how.title')}</Text>
               <Step n={1} text={t('friends.how.step1')} />
               <Step n={2} text={t('friends.how.step2', { bonus: overview.welcomeBonusClb })} />
-              <Step n={3} text={t('friends.how.step3', { ths: overview.bonusPerFriendThs.toFixed(2) })} />
+              <Step n={3} text={t('friends.how.step3', { rate: formatRate(overview.bonusPerFriendThs) })} />
               <Step n={4} text={t('friends.how.step4')} />
             </Card>
 
@@ -255,7 +256,7 @@ function FriendRow({ friend }: { friend: Friend }) {
           {friend.active ? t('friends.status.active') : t('friends.status.inactive')}
         </Text>
       </View>
-      <Text style={styles.friendBonus}>+{friend.bonusThs.toFixed(2)}</Text>
+      <Text style={styles.friendBonus}>+{formatRate(friend.bonusThs)}</Text>
     </View>
   );
 }

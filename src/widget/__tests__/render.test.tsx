@@ -115,7 +115,7 @@ describe('MiningWidget', () => {
         expect.objectContaining({ format24Hour: 'HH:mm', bold: true }),
         expect.objectContaining({ format24Hour: 'd MMMM EEEE' }),
       ]);
-      expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Kazılıyor · 9sa kaldı', 'CoinLab']);
+      expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Toplanıyor · 9sa kaldı', 'CoinLab']);
       expect(art(tree)).toEqual(['card', 'weather', 'ring', 'pill-green', undefined, 'progress']); // undefined: the gem
     });
 
@@ -123,7 +123,7 @@ describe('MiningWidget', () => {
       const bar = walk(draw('MiningLarge', mining(), big)).find((n) => /coinlab-progress/.test(n.props.svgString ?? ''))!;
       expect(bar.props.svgString).toContain('data-progress="0.63"'); // 9h left of 24h
       const start = draw('MiningLarge', mining({}, idle), big);
-      expect(texts(start)).toContain('Kazımı başlatmak için dokun');
+      expect(texts(start)).toContain('Toplamayı başlatmak için dokun');
       expect(art(start)).toContain('pill-gold');
       expect(art(start)).not.toContain('progress');
       expect(texts(draw('MiningLarge', buildWidgetModel({ signedOut: true, language: 'tr' }, 0), big))).toContain('Giriş yapmak için dokun');
@@ -134,7 +134,7 @@ describe('MiningWidget', () => {
       expect(at(420, 260)).toEqual(expect.arrayContaining(['Hafif yağışlı', 'CoinLab', 'adım', 'Bugün']));
       expect(at(250, 200)).not.toContain('Hafif yağışlı'); // narrow: weather is icon + temperature only
       const smallest = at(250, 110);
-      expect(smallest).toEqual(expect.arrayContaining(['348', 'Kazılıyor · 9sa kaldı']));
+      expect(smallest).toEqual(expect.arrayContaining(['348', 'Toplanıyor · 9sa kaldı']));
       expect(smallest).not.toEqual(expect.arrayContaining(['CoinLab']));
       expect(smallest).not.toContain('Bugün');
       expect(smallest).not.toContain('adım');
@@ -144,7 +144,7 @@ describe('MiningWidget', () => {
       const tree = draw('MiningLarge', mining(), big);
       expect(art(tree)).not.toContain('ring');
       expect(art(tree)).not.toContain('weather');
-      expect(texts(tree)).toContain('Kazılıyor · 9sa kaldı');
+      expect(texts(tree)).toContain('Toplanıyor · 9sa kaldı');
     });
   });
 
@@ -170,7 +170,7 @@ describe('MiningWidget', () => {
       expect(rows(draw('MiningSmall', full(), { width: 260, height: 110 }))).toEqual([
         ['HH:mm', 'icon', '16°'],
         ['d MMM EEE', 'Parçalı bulutlu'],
-        ['1.444 adım', 'Kazılıyor · 9sa'],
+        ['1.444 adım', 'Toplanıyor · 9sa'],
       ]);
     });
 
@@ -194,22 +194,22 @@ describe('MiningWidget', () => {
       expect(rows(draw('MiningSmall', full(), { width: 181, height: 94 }))).toEqual([
         ['HH:mm', 'icon', '16°'],
         ['d MMM EEE', 'Parçalı'],
-        ['1.444 adım', 'Kazılıyor · 9sa'],
+        ['1.444 adım', 'Toplanıyor · 9sa'],
       ]);
     });
 
     it('shows the start text when not mining, and no steps without a count', () => {
       expect(rows(draw('MiningSmall', mining({ stepsToday: 1444, weather: partly }, idle), { width: 260, height: 110 }))[2]).toEqual([
         '1.444 adım',
-        'Kazımı başlat',
+        'Toplamayı başlat',
       ]);
-      expect(rows(draw('MiningSmall', mining({ weather: partly }), { width: 260, height: 110 }))[2]).toEqual(['Kazılıyor · 9sa']);
+      expect(rows(draw('MiningSmall', mining({ weather: partly }), { width: 260, height: 110 }))[2]).toEqual(['Toplanıyor · 9sa']);
     });
 
     it('too short for three rows: clock | weather and steps | mining; too short for two: clock | mining', () => {
       expect(rows(draw('MiningSmall', full(), { width: 260, height: 70 }))).toEqual([
         ['HH:mm', 'icon', '16°'],
-        ['1.444 adım', 'Kazılıyor · 9sa'],
+        ['1.444 adım', 'Toplanıyor · 9sa'],
       ]);
       expect(rows(draw('MiningSmall', full(), { width: 110, height: 40 }))).toEqual([['HH:mm', '9sa']]);
     });
@@ -242,8 +242,8 @@ describe('MiningWidget', () => {
 
   it('labels the session time in English too', () => {
     const en = { ...snap, language: 'en' as const };
-    expect(texts(draw('MiningLarge', mining({}, en), { width: 420, height: 260 }))).toContain('Mining · 9h left');
-    expect(texts(draw('MiningSmall', mining({}, en), { width: 260, height: 110 }))).toContain('Mining · 9h');
+    expect(texts(draw('MiningLarge', mining({}, en), { width: 420, height: 260 }))).toContain('Collecting · 9h left');
+    expect(texts(draw('MiningSmall', mining({}, en), { width: 260, height: 110 }))).toContain('Collecting · 9h');
   });
 
   it.each(NAMES)('%s never cuts text off and fits inside the card at every size', (name) => {

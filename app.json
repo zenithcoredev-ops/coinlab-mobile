@@ -78,8 +78,8 @@
           "widgets": [
             {
               "name": "MiningSmall",
-              "label": "Mining",
-              "description": "Clock and mining status",
+              "label": "CoinLab",
+              "description": "Clock and collecting status",
               "minWidth": "110dp",
               "minHeight": "40dp",
               "targetCellWidth": 2,
@@ -88,8 +88,8 @@
             },
             {
               "name": "MiningLarge",
-              "label": "Mining (large)",
-              "description": "Clock, date, weather, today's steps and mining status",
+              "label": "CoinLab (large)",
+              "description": "Clock, date, weather, today's steps and collecting status",
               "minWidth": "250dp",
               "minHeight": "110dp",
               "targetCellWidth": 4,

@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
+import { formatRate } from '@/lib/mining-math';
 import type { ThsBreakdown } from '@/services/mining-api';
 import { theme } from '@/theme';
 
@@ -36,12 +37,12 @@ export function RateBreakdownModal({ visible, breakdown, total, onClose }: Props
           {ROWS.map(({ key, label }) => (
             <View key={key} style={styles.row}>
               <Text style={styles.label}>{t(label)}</Text>
-              <Text style={styles.value}>+{(breakdown?.[key] ?? 0).toFixed(2)} Th/s</Text>
+              <Text style={styles.value}>+{formatRate(breakdown?.[key] ?? 0)} {t('unit.rate')}</Text>
             </View>
           ))}
           <View style={[styles.row, styles.totalRow]}>
             <Text style={styles.totalLabel}>{t('rate.total')}</Text>
-            <Text style={styles.totalValue}>{total.toFixed(2)} Th/s</Text>
+            <Text style={styles.totalValue}>{formatRate(total)} {t('unit.rate')}</Text>
           </View>
         </Pressable>
       </Pressable>

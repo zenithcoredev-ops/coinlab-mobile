@@ -28,7 +28,7 @@ import { theme } from '@/theme';
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
 const TASK_META: Record<string, { icon: IconName; title: TranslationKey; hint: TranslationKey }> = {
-  mine: { icon: 'hammer-outline', title: 'tasks.mine.title', hint: 'tasks.mine.hint' },
+  mine: { icon: 'flash-outline', title: 'tasks.mine.title', hint: 'tasks.mine.hint' },
   friend: { icon: 'people-outline', title: 'tasks.friend.title', hint: 'tasks.friend.hint' },
   steps: { icon: 'walk-outline', title: 'tasks.steps.title', hint: 'tasks.steps.hint' },
 };

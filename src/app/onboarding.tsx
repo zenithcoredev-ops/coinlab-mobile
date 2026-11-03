@@ -9,6 +9,7 @@ import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
+import { formatRate } from '@/lib/mining-math';
 import { inviteErrorKey, isInviteCodeFormat, normalizeInviteCode, submitInviteCode } from '@/services/friends-api';
 import { theme } from '@/theme';
 
@@ -23,7 +24,7 @@ type Slide = {
 };
 
 const SLIDES: Slide[] = [
-  { icon: 'hammer', title: 'onboarding.welcome.title', body: 'onboarding.welcome.body', extra: 'referral' },
+  { icon: 'sparkles', title: 'onboarding.welcome.title', body: 'onboarding.welcome.body', extra: 'referral' },
   { icon: 'flash', title: 'onboarding.mine.title', body: 'onboarding.mine.body' },
   { icon: 'people', title: 'onboarding.friends.title', body: 'onboarding.friends.body' },
   { icon: 'notifications', title: 'onboarding.notif.title', body: 'onboarding.notif.body', extra: 'notifications' },
@@ -101,7 +102,7 @@ export default function OnboardingScreen() {
             <Ionicons name={slide.icon} size={44} color={theme.colors.accent} />
           </View>
           <Text style={styles.title}>{t(slide.title)}</Text>
-          <Text style={styles.body}>{t(slide.body, { bonus: 25, ths: '0.20' })}</Text>
+          <Text style={styles.body}>{t(slide.body, { bonus: 25, rate: formatRate(0.2) })}</Text>
 
           {slide.extra === 'referral' && !applied && (
             <View style={styles.extra}>
