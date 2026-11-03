@@ -11,7 +11,7 @@ import { theme } from '@/theme';
 
 // Bonus per STEPS_PER_BONUS_UNIT comes from the server's breakdown, not a client constant.
 export function StepsCard() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { availability, steps, syncFailed, backgroundAccess, allowBackground, connect, openStore } = useSteps();
   const { status } = useMining();
 
@@ -50,7 +50,7 @@ export function StepsCard() {
       <View style={styles.row}>
         <Text style={styles.title}>{t('steps.title')}</Text>
         <Text style={styles.value}>
-          {t('steps.progress', { steps: steps.toLocaleString(), cap: STEP_BONUS_CAP_STEPS.toLocaleString() })}
+          {t('steps.progress', { steps: steps.toLocaleString(language), cap: STEP_BONUS_CAP_STEPS.toLocaleString(language) })}
         </Text>
       </View>
       <View style={styles.track}>
@@ -61,8 +61,8 @@ export function StepsCard() {
       ) : (
         <Text style={styles.body}>
           {capReached
-            ? t('steps.bonusMax', { bonus: formatRate(bonus), ...params })
-            : t('steps.bonus', { bonus: formatRate(bonus), next: toNext.toLocaleString(), ...params })}
+            ? t('steps.bonusMax', { bonus: formatRate(bonus, language), ...params })
+            : t('steps.bonus', { bonus: formatRate(bonus, language), next: toNext.toLocaleString(language), ...params })}
         </Text>
       )}
       {syncFailed && <Text style={styles.error}>{t('steps.syncError')}</Text>}

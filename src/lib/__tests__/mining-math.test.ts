@@ -1,6 +1,6 @@
 import type { MiningStatus } from '@/services/mining-api';
 
-import { CLB_PER_HOUR_PER_UNIT, clbPerSecond, formatDuration, formatRate, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
+import { CLB_PER_HOUR_PER_UNIT, clbPerSecond, formatClb, formatDecimal, formatDuration, formatRate, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
 
 function status(over: Partial<MiningStatus> = {}, session: Partial<NonNullable<MiningStatus['session']>> | null = {}): MiningStatus {
   return {
@@ -97,11 +97,23 @@ describe('formatRate', () => {
     // 1 unit of server speed collects 2.4 CLB a day, so 0.10 CLB an hour.
     expect(CLB_PER_HOUR_PER_UNIT).toBeCloseTo(0.1, 12);
     expect(clbPerSecond(1) * 3600).toBeCloseTo(CLB_PER_HOUR_PER_UNIT, 12);
-    expect(formatRate(1)).toBe('0.10');
-    expect(formatRate(2.35)).toBe('0.235');
-    expect(formatRate(0.2)).toBe('0.02');
-    expect(formatRate(0.05)).toBe('0.005');
-    expect(formatRate(12.5)).toBe('1.25');
-    expect(formatRate(0)).toBe('0.00');
+    expect(formatRate(1, 'en')).toBe('0.10');
+    expect(formatRate(2.35, 'en')).toBe('0.235');
+    expect(formatRate(0.2, 'en')).toBe('0.02');
+    expect(formatRate(0.05, 'en')).toBe('0.005');
+    expect(formatRate(12.5, 'en')).toBe('1.25');
+    expect(formatRate(0, 'en')).toBe('0.00');
+  });
+});
+
+describe('numbers in the app language', () => {
+  it('uses a decimal comma in Turkish and a point in English', () => {
+    expect(formatClb(16.291714, 'tr')).toBe('16,29171');
+    expect(formatClb(16.291714, 'en')).toBe('16.29171');
+    expect(formatRate(1, 'tr')).toBe('0,10');
+    expect(formatRate(0.05, 'tr')).toBe('0,005');
+    expect(formatDecimal(12.345, 2, 'tr')).toBe('12,35');
+    expect(formatDecimal(-3.5, 1, 'tr')).toBe('-3,5');
+    expect(formatDecimal(1234.5, 3, 'en')).toBe('1234.500');
   });
 });

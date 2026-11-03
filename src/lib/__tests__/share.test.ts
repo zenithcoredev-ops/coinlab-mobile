@@ -26,9 +26,10 @@ describe('badgeCard', () => {
 
 describe('promotionCard', () => {
   it('is created only for promotions, with the new league icon', () => {
-    expect(promotionCard(league('promote'))).toMatchObject({ icon: '🔷', subtitle: { params: { rank: 4, points: '12.35' } } });
-    expect(promotionCard(league('stay'))).toBeNull();
-    expect(promotionCard(league('demote'))).toBeNull();
+    expect(promotionCard(league('promote'), 'tr')).toMatchObject({ icon: '🔷', subtitle: { params: { rank: 4, points: '12,35' } } });
+    expect(promotionCard(league('promote'), 'en')).toMatchObject({ icon: '🔷', subtitle: { params: { rank: 4, points: '12.35' } } });
+    expect(promotionCard(league('stay'), 'en')).toBeNull();
+    expect(promotionCard(league('demote'), 'en')).toBeNull();
   });
 });
 

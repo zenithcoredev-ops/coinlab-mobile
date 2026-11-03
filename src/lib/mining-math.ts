@@ -1,3 +1,4 @@
+import type { Language } from '@/i18n/translate';
 import type { MiningStatus } from '@/services/mining-api';
 
 // Mirrors the backend's accrual rate (economy.js: BASE_SESSION_YIELD over
@@ -16,10 +17,15 @@ export const CLB_PER_HOUR_PER_UNIT = BASE_CLB_PER_SECOND * 3600;
  * A speed from the server (in its Th/s unit) as the CLB it collects per hour, which is what the app
  * shows. Two decimals, or three when needed (0.20 → "0.02", 0.05 → "0.005", 1.25 → "0.125").
  */
-export function formatRate(ths: number): string {
+export function formatRate(ths: number, language: Language): string {
   const perHour = ths * CLB_PER_HOUR_PER_UNIT;
-  const three = perHour.toFixed(3);
-  return three.endsWith('0') ? perHour.toFixed(2) : three;
+  return formatDecimal(perHour, perHour.toFixed(3).endsWith('0') ? 2 : 3, language);
+}
+
+/** A number with fixed decimals in the app language's style: "16,29171" in Turkish, "16.29171" in English. */
+export function formatDecimal(value: number, digits: number, language: Language): string {
+  const text = value.toFixed(digits);
+  return language === 'tr' ? text.replace('.', ',') : text;
 }
 
 /** Milliseconds left in the running session, counting down from the last server snapshot. */
@@ -56,8 +62,8 @@ export function formatDuration(ms: number): string {
   return [h, m, s].map((n) => String(n).padStart(2, '0')).join(':');
 }
 
-export function formatClb(value: number): string {
-  return value.toFixed(5);
+export function formatClb(value: number, language: Language): string {
+  return formatDecimal(value, 5, language);
 }
 
 /** Servers that send `streakExpiresAt` count streak days in the user's time zone; older ones in UTC. */

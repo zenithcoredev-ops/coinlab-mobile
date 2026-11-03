@@ -12,7 +12,7 @@ import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
-import { formatDuration, streakDayIsLocal } from '@/lib/mining-math';
+import { formatDecimal, formatDuration, streakDayIsLocal } from '@/lib/mining-math';
 import { ApiError } from '@/services/api';
 import {
   claimTask,
@@ -40,7 +40,7 @@ const CLAIM_ERRORS: Record<TaskErrorCode, TranslationKey> = {
 };
 
 export default function TasksScreen() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { auth } = useSession();
   const { status: miningStatus, refresh: refreshMining } = useMining();
   const token = auth?.token ?? null;
@@ -89,7 +89,7 @@ export default function TasksScreen() {
     setMessage(null);
     try {
       const res = await claimTask(token, task.id);
-      setMessage({ text: t('tasks.claimed', { reward: res.reward.toFixed(2) }), ok: true });
+      setMessage({ text: t('tasks.claimed', { reward: formatDecimal(res.reward, 2, language) }), ok: true });
     } catch (e) {
       const key = e instanceof ApiError && e.code ? CLAIM_ERRORS[e.code as TaskErrorCode] : undefined;
       setMessage({ text: key ? t(key) : t('common.unknownError'), ok: false });
@@ -124,7 +124,7 @@ export default function TasksScreen() {
             <Card style={styles.summary}>
               <View>
                 <Text style={styles.summaryLabel}>{t('tasks.earnedToday')}</Text>
-                <Text style={styles.summaryValue}>{progress.earnedToday.toFixed(2)} {t('unit.clb')}</Text>
+                <Text style={styles.summaryValue}>{formatDecimal(progress.earnedToday, 2, language)} {t('unit.clb')}</Text>
               </View>
               <View style={styles.summaryRight}>
                 <Ionicons
@@ -160,7 +160,7 @@ export default function TasksScreen() {
 }
 
 function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolean; onClaim: () => void }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const meta = TASK_META[task.id];
   if (!meta) return null;
   const state = taskState(task);
@@ -175,11 +175,11 @@ function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolean; onCl
         />
       </View>
       <View style={styles.taskInfo}>
-        <Text style={styles.taskTitle}>{t(meta.title, { target: task.target.toLocaleString() })}</Text>
+        <Text style={styles.taskTitle}>{t(meta.title, { target: task.target.toLocaleString(language) })}</Text>
         <Text style={styles.taskHint}>{t(meta.hint)}</Text>
         <Text style={styles.taskReward}>
-          +{task.reward.toFixed(2)} {t('unit.clb')}
-          {task.target > 1 && !task.claimed ? `  ·  ${task.progress.toLocaleString()} / ${task.target.toLocaleString()}` : ''}
+          +{formatDecimal(task.reward, 2, language)} {t('unit.clb')}
+          {task.target > 1 && !task.claimed ? `  ·  ${task.progress.toLocaleString(language)} / ${task.target.toLocaleString(language)}` : ''}
         </Text>
       </View>
       {state === 'ready' ? (
