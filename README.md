@@ -49,7 +49,7 @@ Adres `src/constants/config.ts` içindeki `API_URL` değeridir (`https://coinlab
 
 ### Hız ve sayılar
 
-- Sunucu hızı kendi biriminde gönderir; uygulama bunu saatte toplanan CLB'ye çevirerek gösterir. 1 birim 24 saatte 2,4 CLB toplar, yani **1,00 = 0,10 CLB/saat** (`src/lib/` içindeki `CLB_PER_HOUR_PER_UNIT` ve `formatRate`).
+- Hızlar CLB/saat olarak gösterilir. Sunucu yanıtlarındaki CLB/saat alanları (`clbPerHour`, `clbPerHourBreakdown`, `speedBonusClbPerHour`, `bonusPerFriendClbPerHour`, `totalBonusClbPerHour`, `bonusClbPerHour`) varsa doğrudan kullanılır; yoksa sunucunun hız birimi çevrilir: 1 birim 24 saatte 2,4 CLB toplar, yani **1,00 = 0,10 CLB/saat** (`src/lib/` içindeki `clbPerHourOf`).
 - Bakiye, çalışan oturumun sunucudaki son değerinden yerel olarak saniye saniye artırılır; her yenilemede sunucunun değeri geçerlidir.
 - Ondalık sayılar uygulama diline göre yazılır: TR'de virgül (`16,29171 CLB`, `0,10 CLB/saat`), EN'de nokta (`formatDecimal`).
 

@@ -1,4 +1,4 @@
-import { clbPerSecond } from '@/lib/mining-math';
+import { clbPerHourOf } from '@/lib/mining-math';
 import type { Weather } from '@/services/weather-api';
 import { weatherConditionFor } from './weather-conditions';
 import { weatherIconFor } from './weather-icons';
@@ -55,7 +55,7 @@ export function buildWidgetModel(
 
   const endsAt = Date.parse(snapshot.endsAt);
   const accruingMs = Math.max(0, Math.min(now, endsAt) - snapshot.savedAt);
-  const balance = snapshot.balance + (accruingMs / 1000) * clbPerSecond(snapshot.ths);
+  const balance = snapshot.balance + (accruingMs / 3_600_000) * clbPerHourOf(snapshot.clbPerHour, snapshot.ths);
   const remainingMs = Math.max(0, endsAt - now);
   return { ...base, state: remainingMs > 0 ? 'active' : 'finished', balance, remainingMs };
 }

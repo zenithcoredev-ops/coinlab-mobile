@@ -22,7 +22,7 @@ import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
 import { FRAME_NAME_KEYS } from '@/lib/league';
-import { formatDecimal, formatRate } from '@/lib/mining-math';
+import { formatClbPerHour, formatDecimal, statusClbPerHour } from '@/lib/mining-math';
 import { badgeCard, ShareCard } from '@/lib/share';
 import { Badge, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
@@ -154,7 +154,7 @@ export default function ProfileScreen() {
           <InfoRow label={t('profile.balance')} value={`${formatDecimal(balance, 3, language)} CLB`} valueColor={theme.colors.accent} />
           <InfoRow
             label={t('profile.speed')}
-            value={`${formatRate(status?.currentThs ?? 0, language)} ${t('unit.rate')}`}
+            value={`${formatClbPerHour(statusClbPerHour(status), language)} ${t('unit.rate')}`}
             valueColor={theme.colors.positive}
           />
           <InfoRow label={t('profile.streak')} value={t('streak.days', { count: status?.streak ?? account?.streak ?? 0 })} last />

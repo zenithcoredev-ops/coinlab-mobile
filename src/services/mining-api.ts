@@ -52,6 +52,10 @@ export type MiningStatus = {
   /** Current mining speed in Th/s (base speed even when idle). */
   currentThs: number;
   thsBreakdown: ThsBreakdown;
+  /** The same speed in CLB/h, which the app shows; missing from older servers (then converted from Th/s). */
+  clbPerHour?: number;
+  /** `thsBreakdown` in CLB/h, same keys; missing from older servers. */
+  clbPerHourBreakdown?: ThsBreakdown;
   /** Null when no session is running. */
   session: MiningSession | null;
   /** Rewarded speed boosts; missing from servers without them (then the rewarded ad stays hidden). */

@@ -12,7 +12,7 @@ import { useMining } from '@/context/mining';
 import { useNow } from '@/hooks/use-now';
 import { useStartMining } from '@/hooks/use-start-mining';
 import { useI18n } from '@/i18n';
-import { formatClb, formatDuration, formatRate, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
+import { formatClb, formatClbPerHour, formatDuration, statusClbPerHour, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
 
@@ -28,7 +28,6 @@ export default function MineScreen() {
   const isMining = remainingMs > 0;
   const startMining = useStartMining(!!status && !isMining);
   const boosted = (status?.thsBreakdown.ads ?? 0) > 0;
-  const ths = status?.currentThs ?? 0;
   const balance = liveBalanceAt(status, sinceFetch);
   const durationMs = session ? Math.max(1, Date.parse(session.endsAt) - Date.parse(session.startedAt)) : MINING_SESSION_MS;
   const progress = isMining ? sessionProgress(remainingMs, durationMs) : 0;
@@ -60,7 +59,7 @@ export default function MineScreen() {
           </View>
           <View style={styles.balanceSub}>
             <Text style={[styles.rateText, isMining && { color: ringColor }]}>
-              {isMining ? t('mine.rateActive', { rate: formatRate(ths, language) }) : t('mine.rateStopped')}
+              {isMining ? t('mine.rateActive', { rate: formatClbPerHour(statusClbPerHour(status), language) }) : t('mine.rateStopped')}
             </Text>
             <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
               <Ionicons name="information-circle-outline" size={16} color={theme.colors.textMuted} />
@@ -85,7 +84,7 @@ export default function MineScreen() {
                     <Ionicons name="flash" size={30} color={theme.colors.text} />
                   </Animated.View>
                   <Text style={styles.coreActiveLabel}>{t('mine.active')}</Text>
-                  <Text style={[styles.coreRate, { color: ringColor }]}>{formatRate(ths, language)} {t('unit.rate')}</Text>
+                  <Text style={[styles.coreRate, { color: ringColor }]}>{formatClbPerHour(statusClbPerHour(status), language)} {t('unit.rate')}</Text>
                 </>
               ) : (
                 <>
@@ -112,8 +111,7 @@ export default function MineScreen() {
 
       <RateBreakdownModal
         visible={rateOpen}
-        breakdown={status?.thsBreakdown ?? null}
-        total={ths}
+        status={status ?? null}
         onClose={() => setRateOpen(false)}
       />
     </SafeAreaView>

@@ -3,8 +3,8 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
-import { formatRate } from '@/lib/mining-math';
-import type { ThsBreakdown } from '@/services/mining-api';
+import { breakdownClbPerHour, formatClbPerHour, statusClbPerHour } from '@/lib/mining-math';
+import type { MiningStatus, ThsBreakdown } from '@/services/mining-api';
 import { theme } from '@/theme';
 
 const ROWS: { key: keyof ThsBreakdown; label: TranslationKey }[] = [
@@ -17,12 +17,11 @@ const ROWS: { key: keyof ThsBreakdown; label: TranslationKey }[] = [
 
 type Props = {
   visible: boolean;
-  breakdown: ThsBreakdown | null;
-  total: number;
+  status: MiningStatus | null;
   onClose: () => void;
 };
 
-export function RateBreakdownModal({ visible, breakdown, total, onClose }: Props) {
+export function RateBreakdownModal({ visible, status, onClose }: Props) {
   const { t, language } = useI18n();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -37,12 +36,12 @@ export function RateBreakdownModal({ visible, breakdown, total, onClose }: Props
           {ROWS.map(({ key, label }) => (
             <View key={key} style={styles.row}>
               <Text style={styles.label}>{t(label)}</Text>
-              <Text style={styles.value}>+{formatRate(breakdown?.[key] ?? 0, language)} {t('unit.rate')}</Text>
+              <Text style={styles.value}>+{formatClbPerHour(breakdownClbPerHour(status, key), language)} {t('unit.rate')}</Text>
             </View>
           ))}
           <View style={[styles.row, styles.totalRow]}>
             <Text style={styles.totalLabel}>{t('rate.total')}</Text>
-            <Text style={styles.totalValue}>{formatRate(total, language)} {t('unit.rate')}</Text>
+            <Text style={styles.totalValue}>{formatClbPerHour(statusClbPerHour(status), language)} {t('unit.rate')}</Text>
           </View>
         </Pressable>
       </Pressable>
