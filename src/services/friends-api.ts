@@ -12,6 +12,8 @@ export type Friend = {
   active: boolean;
   /** Th/s this friend currently adds to the user. */
   bonusThs: number;
+  /** The same in CLB/h; missing from older servers. */
+  bonusClbPerHour?: number;
 };
 
 export type FriendOverview = {
@@ -20,9 +22,11 @@ export type FriendOverview = {
   hasUsedCode: boolean;
   welcomeBonusClb: number;
   bonusPerFriendThs: number;
+  bonusPerFriendClbPerHour?: number;
   invitedCount: number;
   activeCount: number;
   totalBonusThs: number;
+  totalBonusClbPerHour?: number;
   friends: Friend[];
 };
 

@@ -5,7 +5,7 @@ import { useSteps } from '@/context/steps';
 import { useMining } from '@/context/mining';
 import { useI18n } from '@/i18n';
 import { stepsProgress } from '@/lib/health-steps';
-import { formatRate } from '@/lib/mining-math';
+import { breakdownClbPerHour, formatClbPerHour } from '@/lib/mining-math';
 import { STEP_BONUS_CAP_STEPS, STEPS_PER_BONUS_UNIT } from '@/services/steps-api';
 import { theme } from '@/theme';
 
@@ -41,7 +41,7 @@ export function StepsCard() {
   }
 
   const session = status?.session;
-  const bonus = status?.thsBreakdown.steps ?? 0;
+  const bonus = breakdownClbPerHour(status, 'steps');
   const capReached = steps >= STEP_BONUS_CAP_STEPS;
   const toNext = STEPS_PER_BONUS_UNIT - (steps % STEPS_PER_BONUS_UNIT);
 
@@ -61,8 +61,8 @@ export function StepsCard() {
       ) : (
         <Text style={styles.body}>
           {capReached
-            ? t('steps.bonusMax', { bonus: formatRate(bonus, language), ...params })
-            : t('steps.bonus', { bonus: formatRate(bonus, language), next: toNext.toLocaleString(language), ...params })}
+            ? t('steps.bonusMax', { bonus: formatClbPerHour(bonus, language), ...params })
+            : t('steps.bonus', { bonus: formatClbPerHour(bonus, language), next: toNext.toLocaleString(language), ...params })}
         </Text>
       )}
       {syncFailed && <Text style={styles.error}>{t('steps.syncError')}</Text>}

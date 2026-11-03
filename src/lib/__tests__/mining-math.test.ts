@@ -1,6 +1,6 @@
 import type { MiningStatus } from '@/services/mining-api';
 
-import { CLB_PER_HOUR_PER_UNIT, clbPerSecond, formatClb, formatDecimal, formatDuration, formatRate, isStreakAtRisk, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
+import { breakdownClbPerHour, CLB_PER_HOUR_PER_UNIT, clbPerHourOf, clbPerSecond, formatClb, formatClbPerHour, formatDecimal, formatDuration, formatRate, isStreakAtRisk, statusClbPerHour, liveBalanceAt, remainingSinceFetch, sessionProgress, streakDayIsLocal } from '../mining-math';
 
 function status(over: Partial<MiningStatus> = {}, session: Partial<NonNullable<MiningStatus['session']>> | null = {}): MiningStatus {
   return {
@@ -115,5 +115,29 @@ describe('numbers in the app language', () => {
     expect(formatDecimal(12.345, 2, 'tr')).toBe('12,35');
     expect(formatDecimal(-3.5, 1, 'tr')).toBe('-3,5');
     expect(formatDecimal(1234.5, 3, 'en')).toBe('1234.500');
+  });
+});
+
+describe('CLB/h from the server', () => {
+  it('uses the server’s CLB/h fields when it sends them, else converts Th/s at 0.10 CLB/h each', () => {
+    expect(clbPerHourOf(0.137, 1)).toBe(0.137);
+    expect(clbPerHourOf(0, 1)).toBe(0);
+    expect(clbPerHourOf(undefined, 1.5)).toBeCloseTo(0.15, 12);
+    expect(clbPerHourOf(null, 1.5)).toBeCloseTo(0.15, 12);
+
+    expect(statusClbPerHour(status({ clbPerHour: 0.137 }))).toBe(0.137);
+    expect(statusClbPerHour(status({ currentThs: 2 }))).toBeCloseTo(0.2, 12);
+    expect(statusClbPerHour(null)).toBe(0);
+
+    const breakdown = { base: 0.1, friends: 0.04, ads: 0, league: 0.03, steps: 0.007 };
+    expect(breakdownClbPerHour(status({ clbPerHourBreakdown: breakdown }), 'steps')).toBe(0.007);
+    expect(breakdownClbPerHour(status({ thsBreakdown: { base: 1, friends: 0, ads: 0, league: 0, steps: 0.05 } }), 'steps')).toBeCloseTo(0.005, 12);
+    expect(formatClbPerHour(0.137, 'tr')).toBe('0,137');
+  });
+
+  it('animates the balance at the server’s CLB/h when it sends one', () => {
+    const at = (over: Partial<MiningStatus>) => liveBalanceAt(status(over, { remainingMs: 7_200_000 }), 3_600_000);
+    expect(at({ currentThs: 1, clbPerHour: 0.25 })).toBeCloseTo(10.5 + 0.25, 6);
+    expect(at({ currentThs: 1 })).toBeCloseTo(10.5 + 0.1, 6);
   });
 });

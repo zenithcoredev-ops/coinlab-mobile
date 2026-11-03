@@ -18,6 +18,11 @@ const snap: WidgetSnapshot = {
 };
 
 describe('buildWidgetModel', () => {
+  it('grows the balance at the saved CLB/h, or at 0.10 CLB/h per Th/s for older snapshots', () => {
+    expect(buildWidgetModel({ ...snap, clbPerHour: 0.3 }, t0 + 2 * HOUR).balance).toBeCloseTo(10 + 0.6, 6);
+    expect(buildWidgetModel(snap, t0 + 2 * HOUR).balance).toBeCloseTo(10 + 0.2, 6);
+  });
+
   it('draws a start-mining state without a snapshot', () => {
     expect(buildWidgetModel(null, t0).state).toBe('idle');
     expect(buildWidgetModel(null, t0, 'tr').language).toBe('tr');
@@ -84,6 +89,11 @@ describe('buildSnapshot', () => {
     const s = buildSnapshot(status, 'en', 123);
     expect(s).toMatchObject({ balance: 5.5, ths: 1.5, streak: 3, streakAtRisk: true, steps: 1500, savedAt: 123 });
     expect(s.endsAt).toBe('2026-10-20T07:00:00Z');
+  });
+
+  it('saves the speed in CLB/h: the server’s when sent, else converted from Th/s', () => {
+    expect(buildSnapshot({ ...status, clbPerHour: 0.42 }, 'en', 1).clbPerHour).toBe(0.42);
+    expect(buildSnapshot(status, 'en', 1).clbPerHour).toBeCloseTo(0.15, 12);
   });
 
   it('drops session data when idle', () => {

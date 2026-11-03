@@ -1,5 +1,5 @@
 import type { Language } from '@/i18n/translate';
-import type { MiningStatus } from '@/services/mining-api';
+import type { MiningStatus, ThsBreakdown } from '@/services/mining-api';
 
 // Mirrors the backend's accrual rate (economy.js: BASE_SESSION_YIELD over
 // SESSION_DURATION_MS at 1 Th/s). Used only to animate the balance between
@@ -18,8 +18,33 @@ export const CLB_PER_HOUR_PER_UNIT = BASE_CLB_PER_SECOND * 3600;
  * shows. Two decimals, or three when needed (0.20 → "0.02", 0.05 → "0.005", 1.25 → "0.125").
  */
 export function formatRate(ths: number, language: Language): string {
-  const perHour = ths * CLB_PER_HOUR_PER_UNIT;
+  return formatClbPerHour(ths * CLB_PER_HOUR_PER_UNIT, language);
+}
+
+/**
+ * A speed in CLB/h: the server's own CLB/h field when it sends one, else its Th/s value converted
+ * (servers that predate the CLB/h fields).
+ */
+export function clbPerHourOf(serverClbPerHour: number | null | undefined, ths: number): number {
+  return typeof serverClbPerHour === 'number' && Number.isFinite(serverClbPerHour) ? serverClbPerHour : ths * CLB_PER_HOUR_PER_UNIT;
+}
+
+/** CLB/h with two decimals, or three when needed ("0.10", "0.02", "0.005", "0.125"). */
+export function formatClbPerHour(perHour: number, language: Language): string {
   return formatDecimal(perHour, perHour.toFixed(3).endsWith('0') ? 2 : 3, language);
+}
+
+/** The current speed in CLB/h from the mining status. */
+export function statusClbPerHour(status: Pick<MiningStatus, 'clbPerHour' | 'currentThs'> | null | undefined): number {
+  return status ? clbPerHourOf(status.clbPerHour, status.currentThs) : 0;
+}
+
+/** One source of the speed breakdown in CLB/h. */
+export function breakdownClbPerHour(
+  status: Pick<MiningStatus, 'clbPerHourBreakdown' | 'thsBreakdown'> | null | undefined,
+  key: keyof ThsBreakdown
+): number {
+  return status ? clbPerHourOf(status.clbPerHourBreakdown?.[key], status.thsBreakdown[key]) : 0;
 }
 
 /** A number with fixed decimals in the app language's style: "16,29171" in Turkish, "16.29171" in English. */
@@ -45,7 +70,7 @@ export function liveBalanceAt(status: MiningStatus | null, sinceFetchMs: number)
   const session = status.session;
   if (!session) return settled;
   const accruingMs = Math.min(Math.max(0, sinceFetchMs), session.remainingMs);
-  return settled + session.accruedClb + (accruingMs / 1000) * clbPerSecond(status.currentThs);
+  return settled + session.accruedClb + (accruingMs / 1000) * (statusClbPerHour(status) / 3600);
 }
 
 /** 0..1 share of the session already elapsed. */

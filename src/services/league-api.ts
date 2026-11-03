@@ -67,6 +67,8 @@ export type LeagueView = {
   league: number;
   /** Permanent Th/s bonus of the current league. */
   speedBonus: number;
+  /** The same bonus in CLB/h; missing from older servers. */
+  speedBonusClbPerHour?: number;
   entry: { required: number; balance: number };
   lastResult: LeagueResult | null;
   tournamentResult: TournamentResult | null;
