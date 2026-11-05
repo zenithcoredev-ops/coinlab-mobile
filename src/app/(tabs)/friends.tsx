@@ -181,7 +181,7 @@ export default function FriendsScreen() {
                       setCodeInput(v.toUpperCase());
                       setApplyMessage(null);
                     }}
-                    placeholder="CLB-XXXXX"
+                    placeholder="XXX-XXXXX"
                     placeholderTextColor={theme.colors.textMuted}
                     autoCapitalize="characters"
                     autoCorrect={false}

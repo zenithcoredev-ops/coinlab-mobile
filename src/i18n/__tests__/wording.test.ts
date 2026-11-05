@@ -87,3 +87,55 @@ describe('user-facing wording', () => {
     expect(hits).toEqual([]);
   });
 });
+
+// The app is Waligo and its points are Wago. Code names (formatClb, clbPerHour, coinlab_auth, the
+// com.zenithcore.coinlab package) may keep the old words; nothing a user reads may.
+const OLD_NAMES = /CoinLab|\bCLB\b/;
+
+/** A source line without its comment, so only code (and the strings in it) is checked. */
+const codeOf = (line: string) => {
+  const trimmed = line.trim();
+  if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) return '';
+  return line.replace(/(^|\s)\/\/.*$/, '').replace(/\/\*.*?\*\//g, '');
+};
+
+describe('the app name and the points', () => {
+  it.each([
+    ['tr', tr],
+    ['en', en],
+  ])('no %s text says CoinLab or CLB', (_lang, dict) => {
+    const hits = Object.entries(dict as Record<string, string>).filter(([, text]) => OLD_NAMES.test(text));
+    expect(hits).toEqual([]);
+  });
+
+  it('calls the app Waligo and the points Wago', () => {
+    expect([tr['app.name'], en['app.name']]).toEqual(['Waligo', 'Waligo']);
+    expect([tr['unit.clb'], en['unit.clb']]).toEqual(['Wago', 'Wago']);
+    expect([tr['unit.rate'], en['unit.rate']]).toEqual(['Wago/saat', 'Wago/h']);
+  });
+
+  it('the launcher name, permission texts and widget picker say Waligo', () => {
+    expect(app.expo.name).toBe('Waligo');
+    const shown = JSON.stringify(app.expo.plugins);
+    expect(shown.match(/"(label|description|locationWhenInUsePermission)":"[^"]*"/g)?.filter((s) => OLD_NAMES.test(s))).toEqual([]);
+  });
+
+  it('no screen, widget or notification code writes CoinLab or CLB', () => {
+    const hits = sourceFiles(SRC).flatMap((file) =>
+      fs
+        .readFileSync(file, 'utf8')
+        .split('\n')
+        .map((line, i) => [`${file}:${i + 1}`, codeOf(line)] as const)
+        .filter(([, code]) => OLD_NAMES.test(code))
+        .map(([where, code]) => `${where}: ${code.trim()}`)
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it('catches the old names and lets code names through', () => {
+    for (const text of ['CoinLab', '12,40 CLB', '0,10 CLB/saat', 'CoinLab’e hoş geldin']) expect([text, OLD_NAMES.test(text)]).toEqual([text, true]);
+    for (const text of ['formatClb(x)', 'clbPerHour', "'coinlab_auth'", 'com.zenithcore.coinlab', '12,40 Wago']) {
+      expect([text, OLD_NAMES.test(text)]).toEqual([text, false]);
+    }
+  });
+});

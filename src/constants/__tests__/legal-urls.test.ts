@@ -15,9 +15,9 @@ describe('legal page URLs', () => {
 });
 
 describe('money wording', () => {
-  it('the FAQ answers “can CLB be converted into cash” with the single statement', () => {
-    expect(translate('tr', 'faq.cash.a')).toBe('CLB uygulama içi bir puandır; parasal değeri yoktur, paraya çevrilemez.');
-    expect(translate('en', 'faq.cash.a')).toBe('CLB is an in-app point; it has no monetary value and cannot be converted into money.');
+  it('the FAQ answers “can Wago be converted into cash” with the single statement', () => {
+    expect(translate('tr', 'faq.cash.a')).toBe('Wago uygulama içi bir puandır; parasal değeri yoktur, paraya çevrilemez.');
+    expect(translate('en', 'faq.cash.a')).toBe('Wago is an in-app point; it has no monetary value and cannot be converted into money.');
   });
 
   it('no text promises withdrawals, cash prizes or earnings in money', () => {

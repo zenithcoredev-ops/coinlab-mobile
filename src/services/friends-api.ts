@@ -45,9 +45,12 @@ export function normalizeInviteCode(raw: string): string {
   return raw.trim().toUpperCase();
 }
 
-/** Matches the backend's format: `CLB-` plus five letters/digits. */
+/**
+ * The backend's shape: a three-letter prefix, a dash and five letters/digits (`CLB-AB3X9` today).
+ * Any prefix passes so a renamed prefix keeps working; the server decides whether the code exists.
+ */
 export function isInviteCodeFormat(raw: string): boolean {
-  return /^CLB-[A-Z0-9]{5}$/.test(normalizeInviteCode(raw));
+  return /^[A-Z]{3}-[A-Z0-9]{5}$/.test(normalizeInviteCode(raw));
 }
 
 const INVITE_ERROR_KEYS: Record<InviteErrorCode, TranslationKey> = {

@@ -89,8 +89,8 @@ describe('AdBoostCard', () => {
     const running = { startsAt: 'a', endsAt: 'b', boostThs: 0.5, clbPerHourBonus: 0.05 };
     mockStatus = { session, ads: ads({ activeBoosts: [running, running], clbPerHourBonus: 0.05, activeClbPerHourBonus: 0.1 }) };
     render(<AdBoostCard />);
-    expect(screen.getByText('Her reklam: +0,05 CLB/saat, bir süreliğine')).toBeTruthy();
-    expect(screen.getByText('2 takviye aktif: +0,10 CLB/saat')).toBeTruthy();
+    expect(screen.getByText('Her reklam: +0,05 Wago/saat, bir süreliğine')).toBeTruthy();
+    expect(screen.getByText('2 takviye aktif: +0,10 Wago/saat')).toBeTruthy();
   });
 
   it('says how much the granted boost added when the server tells', async () => {
@@ -100,7 +100,7 @@ describe('AdBoostCard', () => {
     });
     render(<AdBoostCard />);
     await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
-    expect(screen.getByText('Hız takviyen eklendi: +0,05 CLB/saat.')).toBeTruthy();
+    expect(screen.getByText('Hız takviyen eklendi: +0,05 Wago/saat.')).toBeTruthy();
   });
 
   it('is hidden when the server’s daily limit is 0', () => {

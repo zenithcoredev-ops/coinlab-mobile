@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "coinlab-mobile",
+    "name": "Waligo",
     "slug": "coinlab-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -48,7 +48,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "CoinLab uses your approximate location to show the weather on its home-screen widget.",
+          "locationWhenInUsePermission": "Waligo uses your approximate location to show the weather on its home-screen widget.",
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
         }
@@ -78,7 +78,7 @@
           "widgets": [
             {
               "name": "MiningSmall",
-              "label": "CoinLab",
+              "label": "Waligo",
               "description": "Clock and collecting status",
               "minWidth": "110dp",
               "minHeight": "40dp",
@@ -88,7 +88,7 @@
             },
             {
               "name": "MiningLarge",
-              "label": "CoinLab (large)",
+              "label": "Waligo (large)",
               "description": "Clock, date, weather, today's steps and collecting status",
               "minWidth": "250dp",
               "minHeight": "110dp",

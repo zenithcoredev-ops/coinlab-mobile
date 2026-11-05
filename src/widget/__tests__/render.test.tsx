@@ -115,7 +115,7 @@ describe('MiningWidget', () => {
         expect.objectContaining({ format24Hour: 'HH:mm', bold: true }),
         expect.objectContaining({ format24Hour: 'd MMMM EEEE' }),
       ]);
-      expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Toplanıyor · 9sa kaldı', 'CoinLab']);
+      expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Toplanıyor · 9sa kaldı', 'Waligo']);
       expect(art(tree)).toEqual(['card', 'weather', 'ring', 'pill-green', undefined, 'progress']); // undefined: the gem
     });
 
@@ -131,11 +131,11 @@ describe('MiningWidget', () => {
 
     it('drops what does not fit, in order: condition, brand, bar, "Bugün", "adım"; never the clock, count or label', () => {
       const at = (width: number, height: number) => texts(draw('MiningLarge', mining({ stepsToday: 348, weather: rainy }), { width, height }));
-      expect(at(420, 260)).toEqual(expect.arrayContaining(['Hafif yağışlı', 'CoinLab', 'adım', 'Bugün']));
+      expect(at(420, 260)).toEqual(expect.arrayContaining(['Hafif yağışlı', 'Waligo', 'adım', 'Bugün']));
       expect(at(250, 200)).not.toContain('Hafif yağışlı'); // narrow: weather is icon + temperature only
       const smallest = at(250, 110);
       expect(smallest).toEqual(expect.arrayContaining(['348', 'Toplanıyor · 9sa kaldı']));
-      expect(smallest).not.toEqual(expect.arrayContaining(['CoinLab']));
+      expect(smallest).not.toEqual(expect.arrayContaining(['Waligo']));
       expect(smallest).not.toContain('Bugün');
       expect(smallest).not.toContain('adım');
     });

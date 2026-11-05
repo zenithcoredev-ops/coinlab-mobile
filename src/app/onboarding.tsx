@@ -114,7 +114,7 @@ export default function OnboardingScreen() {
                     setCode(v.toUpperCase());
                     setReferralMessage(null);
                   }}
-                  placeholder="CLB-XXXXX"
+                  placeholder="XXX-XXXXX"
                   placeholderTextColor={theme.colors.textMuted}
                   autoCapitalize="characters"
                   autoCorrect={false}
