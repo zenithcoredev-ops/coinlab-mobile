@@ -38,19 +38,28 @@ export function getFriends(token: string): Promise<FriendOverview> {
 
 /** Redeems a friend's invite code. Resolves with the CLB welcome bonus granted. */
 export function submitInviteCode(token: string, code: string): Promise<{ ok: true; bonusClb: number }> {
-  return apiRequest(token, 'POST', '/friends/invite', { code: code.trim().toUpperCase() });
+  return apiRequest(token, 'POST', '/friends/invite', { code: normalizeInviteCode(code) });
 }
 
+/** Room for a long prefix plus a pasted space or two; the format check does the real work. */
+export const INVITE_CODE_MAX_LENGTH = 20;
+
+/**
+ * What the user typed or pasted, as the server expects it: upper case, no spaces, and a plain dash
+ * for the en/em dashes and minus signs keyboards and chat apps substitute. The prefix is left as
+ * typed: the server maps old `CLB-` codes to their `WAGO-` form itself.
+ */
 export function normalizeInviteCode(raw: string): string {
-  return raw.trim().toUpperCase();
+  return raw.replace(/\s+/g, '').replace(/[\u2010-\u2015\u2212]/g, '-').toUpperCase();
 }
 
 /**
- * The backend's shape: a three-letter prefix, a dash and five letters/digits (`CLB-AB3X9` today).
- * Any prefix passes so a renamed prefix keeps working; the server decides whether the code exists.
+ * The backend's shape: a letters-only prefix, a dash and five letters/digits (`WAGO-AB3X9`, and the
+ * older `CLB-AB3X9` the server still accepts). Any prefix length passes, so a renamed prefix keeps
+ * working; the server decides whether the code exists.
  */
 export function isInviteCodeFormat(raw: string): boolean {
-  return /^[A-Z]{3}-[A-Z0-9]{5}$/.test(normalizeInviteCode(raw));
+  return /^[A-Z]{2,8}-[A-Z0-9]{5}$/.test(normalizeInviteCode(raw));
 }
 
 const INVITE_ERROR_KEYS: Record<InviteErrorCode, TranslationKey> = {

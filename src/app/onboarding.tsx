@@ -10,7 +10,7 @@ import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
 import { formatRate } from '@/lib/mining-math';
-import { inviteErrorKey, isInviteCodeFormat, normalizeInviteCode, submitInviteCode } from '@/services/friends-api';
+import { INVITE_CODE_MAX_LENGTH, inviteErrorKey, isInviteCodeFormat, normalizeInviteCode, submitInviteCode } from '@/services/friends-api';
 import { theme } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -114,11 +114,11 @@ export default function OnboardingScreen() {
                     setCode(v.toUpperCase());
                     setReferralMessage(null);
                   }}
-                  placeholder="XXX-XXXXX"
+                  placeholder="WAGO-XXXXX"
                   placeholderTextColor={theme.colors.textMuted}
                   autoCapitalize="characters"
                   autoCorrect={false}
-                  maxLength={9}
+                  maxLength={INVITE_CODE_MAX_LENGTH}
                   style={styles.input}
                 />
                 <Button label={t('friends.enter.apply')} onPress={onApply} loading={applying} disabled={!code} style={styles.apply} />

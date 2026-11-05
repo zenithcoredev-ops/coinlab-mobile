@@ -24,6 +24,7 @@ import {
   FriendOverview,
   getFriends,
   inviteErrorKey,
+  INVITE_CODE_MAX_LENGTH,
   isInviteCodeFormat,
   normalizeInviteCode,
   submitInviteCode,
@@ -181,11 +182,11 @@ export default function FriendsScreen() {
                       setCodeInput(v.toUpperCase());
                       setApplyMessage(null);
                     }}
-                    placeholder="XXX-XXXXX"
+                    placeholder="WAGO-XXXXX"
                     placeholderTextColor={theme.colors.textMuted}
                     autoCapitalize="characters"
                     autoCorrect={false}
-                    maxLength={9}
+                    maxLength={INVITE_CODE_MAX_LENGTH}
                     style={styles.input}
                   />
                   <Button
