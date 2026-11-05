@@ -151,7 +151,7 @@ export default function ProfileScreen() {
         </Card>
 
         <Card style={styles.infoList}>
-          <InfoRow label={t('profile.balance')} value={`${formatDecimal(balance, 3, language)} CLB`} valueColor={theme.colors.accent} />
+          <InfoRow label={t('profile.balance')} value={`${formatDecimal(balance, 3, language)} ${t('unit.clb')}`} valueColor={theme.colors.accent} />
           <InfoRow
             label={t('profile.speed')}
             value={`${formatClbPerHour(status ? statusClbPerHour(status) : clbPerHourOf(account?.clbPerHour, account?.currentThs ?? 0), language)} ${t('unit.rate')}`}

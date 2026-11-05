@@ -18,7 +18,7 @@ export function ScreenHeader({ showStreak = true }: { showStreak?: boolean }) {
     <View style={styles.row}>
       <View style={styles.brand}>
         <View style={styles.dot} />
-        <Text style={styles.brandText}>CoinLab</Text>
+        <Text style={styles.brandText}>{t('app.name')}</Text>
       </View>
       {showStreak && (
         <View style={[styles.pill, atRisk && styles.pillAtRisk]} accessibilityLabel={t('streak.days', { count: streak })}>
