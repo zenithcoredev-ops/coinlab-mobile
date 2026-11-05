@@ -1,15 +1,16 @@
-import { hasBackgroundStepsAccess, readTodaySteps } from '@/services/health-connect';
-import { localDay, loadStoredSteps, stepsForToday, updateTodaySteps } from '../steps';
+import { hasBackgroundStepsAccess, readTodaySteps, readVerifiedSteps } from '@/services/health-connect';
+import { localDay, loadStoredSessionSteps, loadStoredSteps, stepsForToday, updateSessionSteps, updateTodaySteps } from '../steps';
 import { stepsRingSvg } from '../steps-ring';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
-jest.mock('@/services/health-connect', () => ({ hasBackgroundStepsAccess: jest.fn(), readTodaySteps: jest.fn() }));
+jest.mock('@/services/health-connect', () => ({ hasBackgroundStepsAccess: jest.fn(), readTodaySteps: jest.fn(), readVerifiedSteps: jest.fn() }));
 
 const AsyncStorage = require('@react-native-async-storage/async-storage');
 const access = hasBackgroundStepsAccess as jest.Mock;
 const read = readTodaySteps as jest.Mock;
+const readSession = readVerifiedSteps as jest.Mock;
 const morning = new Date(2026, 9, 30, 9, 0);
 const MIN = 60_000;
 
@@ -17,6 +18,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   access.mockReset().mockResolvedValue(true);
   read.mockReset().mockResolvedValue(6240);
+  readSession.mockReset().mockResolvedValue(1240);
 });
 
 describe('stepsForToday', () => {
@@ -73,5 +75,43 @@ describe('stepsRingSvg', () => {
     const over = arc(stepsRingSvg(1.7))!;
     expect(Number(over[1])).toBeCloseTo(Number(over[2]));
     expect(arc(stepsRingSvg(0))).toBeNull(); // just the track
+  });
+});
+
+describe('updateSessionSteps', () => {
+  const S = '2026-10-30T06:00:00.000Z';
+
+  it('reads the running session’s verified steps and saves them with the session', async () => {
+    expect(await updateSessionSteps(morning, S, { background: false })).toBe(true);
+    expect(readSession).toHaveBeenCalledWith(S);
+    expect(await loadStoredSessionSteps()).toEqual({ session: S, steps: 1240, readAt: morning.getTime() });
+    expect(await updateSessionSteps(new Date(morning.getTime() + MIN), S, { background: false })).toBe(false); // same count
+  });
+
+  it('reads nothing without a running session', async () => {
+    expect(await updateSessionSteps(morning, null, { background: true })).toBe(false);
+    expect(readSession).not.toHaveBeenCalled();
+  });
+
+  it('in the background: needs the permission and reads at most every 10 minutes per session', async () => {
+    access.mockResolvedValue(false);
+    expect(await updateSessionSteps(morning, S, { background: true })).toBe(false);
+    expect(readSession).not.toHaveBeenCalled();
+
+    access.mockResolvedValue(true);
+    expect(await updateSessionSteps(morning, S, { background: true })).toBe(true);
+    readSession.mockResolvedValue(2100);
+    expect(await updateSessionSteps(new Date(morning.getTime() + 5 * MIN), S, { background: true })).toBe(false); // too soon
+    expect(await updateSessionSteps(new Date(morning.getTime() + 31 * MIN), S, { background: true })).toBe(true); // the 30-minute update
+    expect((await loadStoredSessionSteps())!.steps).toBe(2100);
+    // A new session is read at once.
+    expect(await updateSessionSteps(new Date(morning.getTime() + 32 * MIN), 'S2', { background: true })).toBe(true);
+  });
+
+  it('keeps the saved value when Health Connect fails', async () => {
+    await updateSessionSteps(morning, S, { background: false });
+    readSession.mockRejectedValue(new Error('no access'));
+    expect(await updateSessionSteps(new Date(morning.getTime() + 31 * MIN), S, { background: false })).toBe(false);
+    expect((await loadStoredSessionSteps())!.steps).toBe(1240);
   });
 });

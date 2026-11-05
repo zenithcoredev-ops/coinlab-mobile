@@ -14,6 +14,8 @@ import {
   StepsAvailability,
 } from '@/services/health-connect';
 import { syncSteps } from '@/services/steps-api';
+import { refreshWidgets } from '@/widget/refresh';
+import { loadStoredSteps, stepsForToday, updateTodaySteps } from '@/widget/steps';
 
 // The server allows 6 reports a minute; we report far less often and only while a session runs.
 const MIN_SYNC_GAP_MS = 60_000;
@@ -23,6 +25,8 @@ type StepsState = {
   availability: StepsAvailability;
   /** Steps the server counted for the running session. */
   steps: number;
+  /** Today's Health Connect total (the widget's number); null until read or without access. */
+  todaySteps: number | null;
   /**
    * The speed the steps add, in CLB/h: from the latest sync when it is newer than the mining status,
    * else from the status breakdown.
@@ -56,6 +60,7 @@ export function StepsProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const [lastSync, setLastSync] = useState<StepSyncBonus | null>(null);
+  const [todaySteps, setTodaySteps] = useState<number | null>(null);
   const [backgroundAccess, setBackgroundAccess] = useState(false);
   const backgroundAskedRef = useRef(false);
   const lastSyncRef = useRef(0);
@@ -119,6 +124,20 @@ export function StepsProvider({ children }: { children: ReactNode }) {
     return () => sub.remove();
   }, [checkAvailability, runSync]);
 
+  // Today's total, read and saved the same way as the widget's, so the card and widget agree.
+  const refreshToday = useCallback(async () => {
+    const now = new Date();
+    if (await updateTodaySteps(now, { background: false })) refreshWidgets().catch(() => {});
+    setTodaySteps(stepsForToday(await loadStoredSteps(), now));
+  }, []);
+
+  useEffect(() => {
+    if (availability !== 'ready') return;
+    refreshToday().catch(() => {});
+    const id = setInterval(() => refreshToday().catch(() => {}), SYNC_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [availability, refreshToday]);
+
   const ready = availability === 'ready' && !!sessionStartedAt;
   useEffect(() => {
     if (!ready) return;
@@ -131,6 +150,7 @@ export function StepsProvider({ children }: { children: ReactNode }) {
     () => ({
       availability,
       steps: session ? (status?.todaySteps ?? 0) : 0,
+      todaySteps,
       bonusClbPerHour: stepBonusClbPerHour(status, fetchedAt, lastSync),
       syncing,
       syncFailed,
@@ -140,7 +160,7 @@ export function StepsProvider({ children }: { children: ReactNode }) {
       openStore: openHealthConnectStore,
       syncNow,
     }),
-    [availability, session, status, lastSync, fetchedAt, syncing, syncFailed, backgroundAccess, allowBackground, connect, syncNow]
+    [availability, session, status, todaySteps, lastSync, fetchedAt, syncing, syncFailed, backgroundAccess, allowBackground, connect, syncNow]
   );
   return <StepsContext.Provider value={value}>{children}</StepsContext.Provider>;
 }

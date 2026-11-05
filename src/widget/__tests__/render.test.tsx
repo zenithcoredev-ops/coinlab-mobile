@@ -115,7 +115,7 @@ describe('MiningWidget', () => {
         expect.objectContaining({ format24Hour: 'HH:mm', bold: true }),
         expect.objectContaining({ format24Hour: 'd MMMM EEEE' }),
       ]);
-      expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Toplanıyor · 9sa kaldı', 'Waligo']);
+      expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Toplanıyor · 9sa kaldı', 'Oturumda 14.800 adım', 'Waligo']);
       expect(art(tree)).toEqual(['card', 'weather', 'ring', 'pill-green', undefined, 'progress']); // undefined: the gem
     });
 
@@ -138,6 +138,48 @@ describe('MiningWidget', () => {
       expect(smallest).not.toEqual(expect.arrayContaining(['Waligo']));
       expect(smallest).not.toContain('Bugün');
       expect(smallest).not.toContain('adım');
+    });
+
+    describe('session steps line', () => {
+      const session: WidgetSnapshot = { ...snap, steps: 1240, sessionStartedAt: '2026-10-19T04:00:00Z', stepBonusClbPerHour: 0.005 };
+      const line = (tree: Node) => texts(tree).filter((t) => /Oturum|this session/.test(t));
+
+      it('shows the session’s steps and the server’s step bonus under the bar; the ring keeps today’s total', () => {
+        const tree = draw('MiningLarge', mining({ stepsToday: 16_048 }, session), big);
+        expect(line(tree)).toEqual(['Oturumda 1.240 adım · +0,005 Wago/saat']);
+        expect(texts(tree)).toContain('16.048'); // the ring: today's Health Connect total, unchanged
+        expect(art(tree)).toContain('progress');
+        const en = draw('MiningLarge', mining({ stepsToday: 16_048 }, { ...session, language: 'en' }), big);
+        expect(line(en)).toEqual(['1,240 steps this session · +0.005 Wago/h']);
+      });
+
+      it('is hidden without a running session (the pill says to start)', () => {
+        expect(line(draw('MiningLarge', mining({ stepsToday: 16_048 }, { ...session, endsAt: null }), big))).toEqual([]);
+        const finished = buildWidgetModel(session, t0 + 11 * HOUR, 'tr', { stepsToday: 16_048 });
+        expect(line(draw('MiningLarge', finished, big))).toEqual([]);
+      });
+
+      it('drops the bonus first, then the whole line, as it gets narrower or shorter; never cut', () => {
+        const at = (width: number, height: number) => line(draw('MiningLarge', mining({ stepsToday: 16_048 }, session), { width, height }));
+        expect(at(300, 200)).toEqual(['Oturumda 1.240 adım · +0,005 Wago/saat']);
+        expect(at(250, 200)).toEqual(['Oturumda 1.240 adım']);
+        expect(at(250, 110)).toEqual([]);
+        for (const width of [420, 380, 340, 300, 280, 260, 250]) {
+          const shown = at(width, 200);
+          expect(shown.length).toBe(1);
+          expect(['Oturumda 1.240 adım · +0,005 Wago/saat', 'Oturumda 1.240 adım']).toContain(shown[0]);
+        }
+      });
+
+      it('shows only the steps when the server sent no bonus (an older snapshot)', () => {
+        const { stepBonusClbPerHour: _drop, ...older } = session;
+        expect(line(draw('MiningLarge', mining({}, older), big))).toEqual(['Oturumda 1.240 adım']);
+      });
+
+      it('leaves the small widget as it was', () => {
+        const tree = draw('MiningSmall', mining({ stepsToday: 16_048 }, session), { width: 260, height: 110 });
+        expect(line(tree)).toEqual([]);
+      });
     });
 
     it('leaves out the ring without a step count and the weather when there is none', () => {
