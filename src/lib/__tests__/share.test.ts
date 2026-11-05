@@ -45,6 +45,8 @@ describe('tournamentCard', () => {
 describe('shareMessage', () => {
   it('appends the invite line when a code is known', () => {
     expect(shareMessage('Title', 'Sub', 'CLB-ABCDE', (c) => `Use ${c}`)).toBe('Title\nSub\n\nUse CLB-ABCDE');
+    // The code is shared exactly as the server sent it.
+    expect(shareMessage('Title', 'Sub', 'WAGO-AB3X9', (c) => `Use ${c}`)).toBe('Title\nSub\n\nUse WAGO-AB3X9');
   });
 
   it('is just the card text without a code', () => {
