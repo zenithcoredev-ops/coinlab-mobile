@@ -89,7 +89,7 @@ describe('user-facing wording', () => {
 });
 
 // The app is Waligo and its points are Wago. Code names (formatClb, clbPerHour, coinlab_auth, the
-// com.zenithcore.coinlab package) may keep the old words; nothing a user reads may.
+// Expo slug coinlab-mobile) may keep the old words; nothing a user reads may.
 const OLD_NAMES = /CoinLab|\bCLB\b/;
 
 /** A source line without its comment, so only code (and the strings in it) is checked. */
@@ -134,7 +134,7 @@ describe('the app name and the points', () => {
 
   it('catches the old names and lets code names through', () => {
     for (const text of ['CoinLab', '12,40 CLB', '0,10 CLB/saat', 'CoinLab’e hoş geldin']) expect([text, OLD_NAMES.test(text)]).toEqual([text, true]);
-    for (const text of ['formatClb(x)', 'clbPerHour', "'coinlab_auth'", 'com.zenithcore.coinlab', '12,40 Wago']) {
+    for (const text of ['formatClb(x)', 'clbPerHour', "'coinlab_auth'", 'coinlab-mobile', '12,40 Wago']) {
       expect([text, OLD_NAMES.test(text)]).toEqual([text, false]);
     }
   });

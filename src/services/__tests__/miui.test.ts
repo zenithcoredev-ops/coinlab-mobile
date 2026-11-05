@@ -4,7 +4,7 @@ import { Linking, Platform } from 'react-native';
 import { isXiaomiDevice, openAutostartSettings, openBatterySettings } from '../miui';
 
 jest.mock('expo-intent-launcher', () => ({ startActivityAsync: jest.fn() }));
-jest.mock('expo-constants', () => ({ expoConfig: { android: { package: 'com.zenithcore.coinlab' } } }));
+jest.mock('expo-constants', () => ({ expoConfig: { android: { package: 'com.zenithcore.waligo' } } }));
 
 const start = IntentLauncher.startActivityAsync as jest.Mock;
 
@@ -45,11 +45,11 @@ describe('miui', () => {
   });
 
   it('opens this app\'s battery saver page', async () => {
-    await openBatterySettings('CoinLab');
+    await openBatterySettings('Waligo');
     expect(start).toHaveBeenCalledWith('android.intent.action.MAIN', {
       packageName: 'com.miui.powerkeeper',
       className: 'com.miui.powerkeeper.ui.HiddenAppsConfigActivity',
-      extra: { package_name: 'com.zenithcore.coinlab', package_label: 'CoinLab' },
+      extra: { package_name: 'com.zenithcore.waligo', package_label: 'Waligo' },
     });
   });
 });
