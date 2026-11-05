@@ -7,8 +7,8 @@ import type { Language } from '@/i18n/translate';
 import { MiningWidget, MiningWidgetName, WidgetSize } from './MiningWidget';
 import { markDrawn } from './draw-cache';
 import { buildWidgetModel, WidgetModel, widgetDrawKey } from './model';
-import { loadSnapshot } from './snapshot';
-import { loadStoredSteps, stepsForToday, updateTodaySteps } from './steps';
+import { isSignedOut, loadSnapshot } from './snapshot';
+import { loadStoredSessionSteps, loadStoredSteps, stepsForToday, updateSessionSteps, updateTodaySteps } from './steps';
 import { isWeatherEnabled, loadWeather, updateWeather, weatherForWidget } from './weather';
 
 function deviceLanguage(): Language {
@@ -21,15 +21,17 @@ function deviceLanguage(): Language {
 
 /** The widget's model from everything saved. A broken snapshot still gives a "start mining" widget, never a blank one. */
 export async function loadWidgetModel(now = Date.now()): Promise<WidgetModel> {
-  const [snapshot, steps, weatherOn, weather] = await Promise.all([
+  const [snapshot, steps, sessionSteps, weatherOn, weather] = await Promise.all([
     loadSnapshot().catch(() => null),
     loadStoredSteps(),
+    loadStoredSessionSteps(),
     isWeatherEnabled(),
     loadWeather(),
   ]);
   return buildWidgetModel(snapshot, now, deviceLanguage(), {
     stepsToday: stepsForToday(steps, new Date(now)),
     weather: weatherForWidget(weatherOn, weather, now),
+    sessionSteps,
   });
 }
 
@@ -50,11 +52,15 @@ export async function widgetTaskHandler({ widgetInfo, widgetAction, renderWidget
   renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo, model));
   markDrawn(widgetDrawKey(model));
   if (widgetAction !== 'WIDGET_UPDATE' && widgetAction !== 'WIDGET_ADDED') return;
-  const [stepsChanged, weatherChanged] = await Promise.all([
+  const snapshot = await loadSnapshot().catch(() => null);
+  const runningSince =
+    snapshot && !isSignedOut(snapshot) && snapshot.endsAt && Date.parse(snapshot.endsAt) > Date.now() ? (snapshot.sessionStartedAt ?? null) : null;
+  const [stepsChanged, sessionStepsChanged, weatherChanged] = await Promise.all([
     updateTodaySteps(new Date(), { background: true }),
+    updateSessionSteps(new Date(), runningSince, { background: true }),
     updateWeather(Date.now()).catch(() => false),
   ]);
-  if (stepsChanged || weatherChanged) {
+  if (stepsChanged || sessionStepsChanged || weatherChanged) {
     const updated = await loadWidgetModel();
     renderWidget(await renderMiningWidget(widgetInfo.widgetName, widgetInfo, updated));
     markDrawn(widgetDrawKey(updated));

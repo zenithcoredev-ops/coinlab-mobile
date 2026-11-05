@@ -18,6 +18,28 @@ const snap: WidgetSnapshot = {
 };
 
 describe('buildWidgetModel', () => {
+  describe('session steps', () => {
+    const running: WidgetSnapshot = { ...snap, steps: 1240, sessionStartedAt: 'S1', stepBonusClbPerHour: 0.005 };
+
+    it('takes the server’s count from the snapshot, with its step bonus', () => {
+      const m = buildWidgetModel(running, t0 + HOUR);
+      expect([m.sessionSteps, m.sessionStepBonus]).toEqual([1240, 0.005]);
+    });
+
+    it('takes a newer background Health Connect read of the same session', () => {
+      const read = (session: string, at: number) => ({ sessionSteps: { session, steps: 2100, readAt: at } });
+      expect(buildWidgetModel(running, t0 + HOUR, 'tr', read('S1', t0 + 30 * 60_000)).sessionSteps).toBe(2100);
+      expect(buildWidgetModel(running, t0 + HOUR, 'tr', read('S1', t0 - 1)).sessionSteps).toBe(1240); // older than the snapshot
+      expect(buildWidgetModel(running, t0 + HOUR, 'tr', read('S0', t0 + 30 * 60_000)).sessionSteps).toBe(1240); // another session
+    });
+
+    it('is null without a running session', () => {
+      expect(buildWidgetModel({ ...running, endsAt: null }, t0).sessionSteps).toBeNull();
+      expect(buildWidgetModel(running, t0 + 11 * HOUR).sessionSteps).toBeNull(); // finished
+      expect(buildWidgetModel(null, t0).sessionSteps).toBeNull();
+    });
+  });
+
   it('grows the balance at the saved CLB/h, or at 0.10 CLB/h per Th/s for older snapshots', () => {
     expect(buildWidgetModel({ ...snap, clbPerHour: 0.3 }, t0 + 2 * HOUR).balance).toBeCloseTo(10 + 0.6, 6);
     expect(buildWidgetModel(snap, t0 + 2 * HOUR).balance).toBeCloseTo(10 + 0.2, 6);
@@ -89,6 +111,9 @@ describe('buildSnapshot', () => {
     const s = buildSnapshot(status, 'en', 123);
     expect(s).toMatchObject({ balance: 5.5, ths: 1.5, streak: 3, streakAtRisk: true, steps: 1500, savedAt: 123 });
     expect(s.endsAt).toBe('2026-10-20T07:00:00Z');
+    expect(s).toMatchObject({ sessionStartedAt: '2026-10-19T07:00:00Z', stepBonusClbPerHour: 0 });
+    const withBonus = buildSnapshot({ ...status, clbPerHourBreakdown: { base: 0.1, friends: 0, ads: 0, league: 0, steps: 0.005 } }, 'en', 1);
+    expect(withBonus.stepBonusClbPerHour).toBe(0.005);
   });
 
   it('saves the speed in CLB/h: the server’s when sent, else converted from Th/s', () => {

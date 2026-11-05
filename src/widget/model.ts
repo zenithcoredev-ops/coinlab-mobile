@@ -3,6 +3,7 @@ import type { Weather } from '@/services/weather-api';
 import { weatherConditionFor } from './weather-conditions';
 import { weatherIconFor } from './weather-icons';
 import { isSignedOut, StoredWidget, WidgetSnapshot } from './snapshot';
+import type { StoredSessionSteps } from './steps';
 
 export type WidgetState = 'signedOut' | 'idle' | 'active' | 'finished';
 
@@ -18,6 +19,10 @@ export type WidgetModel = {
   /** Current weather; null hides it (switched off, no location, no data yet). */
   weather: Weather | null;
   remainingMs: number;
+  /** Steps counted for the running session; null when none is running (hides the session line). */
+  sessionSteps: number | null;
+  /** The speed those steps add, in CLB/h, as the server last said; null when unknown. */
+  sessionStepBonus: number | null;
 };
 
 /** Nothing saved yet (just added): invite the user to start mining rather than draw nothing. */
@@ -31,6 +36,8 @@ const noSnapshot = (language: WidgetSnapshot['language']): WidgetModel => ({
   stepsToday: null,
   weather: null,
   remainingMs: 0,
+  sessionSteps: null,
+  sessionStepBonus: null,
 });
 
 /** Turns what the app saved into what to draw at `now`, extrapolating time-dependent values. */
@@ -38,7 +45,11 @@ export function buildWidgetModel(
   stored: StoredWidget | null,
   now: number,
   fallbackLanguage: WidgetSnapshot['language'] = 'en',
-  { stepsToday = null, weather = null }: { stepsToday?: number | null; weather?: Weather | null } = {}
+  {
+    stepsToday = null,
+    weather = null,
+    sessionSteps: storedSession = null,
+  }: { stepsToday?: number | null; weather?: Weather | null; sessionSteps?: StoredSessionSteps | null } = {}
 ): WidgetModel {
   if (!stored) return { ...noSnapshot(fallbackLanguage), stepsToday, weather };
   if (isSignedOut(stored)) return { ...noSnapshot(stored.language ?? fallbackLanguage), state: 'signedOut' };
@@ -50,6 +61,8 @@ export function buildWidgetModel(
     streakAtRisk: snapshot.streakAtRisk,
     stepsToday,
     weather,
+    sessionSteps: null,
+    sessionStepBonus: null,
   };
   if (!snapshot.endsAt) return { ...base, state: 'idle', balance: snapshot.balance, remainingMs: 0 };
 
@@ -57,7 +70,19 @@ export function buildWidgetModel(
   const accruingMs = Math.max(0, Math.min(now, endsAt) - snapshot.savedAt);
   const balance = snapshot.balance + (accruingMs / 3_600_000) * clbPerHourOf(snapshot.clbPerHour, snapshot.ths);
   const remainingMs = Math.max(0, endsAt - now);
-  return { ...base, state: remainingMs > 0 ? 'active' : 'finished', balance, remainingMs };
+  if (remainingMs <= 0) return { ...base, state: 'finished', balance, remainingMs };
+  // The session's steps: a newer Health Connect read for this session (the background update), else
+  // the server's count from the app's last status.
+  const fresher =
+    storedSession && snapshot.sessionStartedAt && storedSession.session === snapshot.sessionStartedAt && storedSession.readAt > snapshot.savedAt;
+  return {
+    ...base,
+    state: 'active',
+    balance,
+    remainingMs,
+    sessionSteps: fresher ? storedSession.steps : snapshot.steps,
+    sessionStepBonus: typeof snapshot.stepBonusClbPerHour === 'number' ? snapshot.stepBonusClbPerHour : null,
+  };
 }
 
 /** What the mining line shows of the time left: whole hours, or minutes within the last hour. */
@@ -76,6 +101,8 @@ export function widgetDrawKey(m: WidgetModel): string {
     m.language,
     m.state === 'active' ? shownRemaining(m.remainingMs) : null,
     m.stepsToday,
+    m.sessionSteps,
+    m.sessionStepBonus,
     m.weather
       ? [Math.round(m.weather.temperatureC), weatherIconFor(m.weather.symbol, m.weather.isDay), weatherConditionFor(m.weather.symbol)]
       : null,

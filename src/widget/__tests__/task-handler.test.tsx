@@ -1,4 +1,5 @@
-import { hasBackgroundStepsAccess, readTodaySteps } from '@/services/health-connect';
+import { hasBackgroundStepsAccess, readTodaySteps, readVerifiedSteps } from '@/services/health-connect';
+import { saveSnapshot } from '../snapshot';
 import { getWeather } from '@/services/weather-api';
 import { saveCoords, setWeatherEnabled } from '../weather';
 import { widgetTaskHandler } from '../widget-task-handler';
@@ -7,7 +8,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'tr' }] }));
-jest.mock('@/services/health-connect', () => ({ hasBackgroundStepsAccess: jest.fn(), readTodaySteps: jest.fn() }));
+jest.mock('@/services/health-connect', () => ({ hasBackgroundStepsAccess: jest.fn(), readTodaySteps: jest.fn(), readVerifiedSteps: jest.fn() }));
 jest.mock('@/services/weather-api', () => ({ getWeather: jest.fn() }));
 
 const AsyncStorage = require('@react-native-async-storage/async-storage');
@@ -17,6 +18,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   (hasBackgroundStepsAccess as jest.Mock).mockResolvedValue(true);
   (readTodaySteps as jest.Mock).mockReset().mockResolvedValue(4321);
+  (readVerifiedSteps as jest.Mock).mockReset().mockResolvedValue(2100);
 });
 
 const stepCounts = (renderWidget: jest.Mock) =>
@@ -27,6 +29,24 @@ describe('widgetTaskHandler', () => {
     const renderWidget = jest.fn();
     await widgetTaskHandler({ widgetInfo, widgetAction: 'WIDGET_UPDATE', renderWidget } as any);
     expect(stepCounts(renderWidget)).toEqual([null, 4321]);
+  });
+
+  it('on the periodic update also re-reads the running session’s steps for the session line', async () => {
+    const startedAt = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    await saveSnapshot({
+      language: 'tr', balance: 1, ths: 1, streak: 1, streakAtRisk: false,
+      endsAt: new Date(Date.now() + 10 * 3_600_000).toISOString(),
+      steps: 1240, sessionStartedAt: startedAt, stepBonusClbPerHour: 0.005, savedAt: Date.now() - 60_000,
+    });
+    const renderWidget = jest.fn();
+    await widgetTaskHandler({ widgetInfo, widgetAction: 'WIDGET_UPDATE', renderWidget } as any);
+    expect(readVerifiedSteps).toHaveBeenCalledWith(startedAt);
+    expect(renderWidget.mock.calls.map(([el]) => el.props.model.sessionSteps)).toEqual([1240, 2100]);
+  });
+
+  it('does not read session steps without a running session', async () => {
+    await widgetTaskHandler({ widgetInfo, widgetAction: 'WIDGET_UPDATE', renderWidget: jest.fn() } as any);
+    expect(readVerifiedSteps).not.toHaveBeenCalled();
   });
 
   it('does not draw twice when the count is unchanged', async () => {

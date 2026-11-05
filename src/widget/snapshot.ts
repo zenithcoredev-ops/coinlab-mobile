@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Language } from '@/i18n/translate';
-import { liveBalanceAt, statusClbPerHour } from '@/lib/mining-math';
+import { breakdownClbPerHour, liveBalanceAt, statusClbPerHour } from '@/lib/mining-math';
 import type { MiningStatus } from '@/services/mining-api';
 
 const STORAGE_KEY = 'coinlab_widget_snapshot';
@@ -24,6 +24,10 @@ export type WidgetSnapshot = {
   /** ISO-8601 UTC end of the running session; null when none is running. */
   endsAt: string | null;
   steps: number;
+  /** ISO-8601 start of the running session (to read its steps in the background); missing from older snapshots. */
+  sessionStartedAt?: string | null;
+  /** The speed the session's steps add, in CLB/h, as the server last said; missing from older snapshots. */
+  stepBonusClbPerHour?: number;
   /** Device time (ms) the snapshot was taken. */
   savedAt: number;
 };
@@ -47,6 +51,8 @@ export function buildSnapshot(status: MiningStatus, language: Language, now = Da
     streakAtRisk: status.streak > 0 && !status.streakMinedToday,
     endsAt: status.session ? status.session.endsAt : null,
     steps: status.session ? (status.todaySteps ?? 0) : 0,
+    sessionStartedAt: status.session ? status.session.startedAt : null,
+    stepBonusClbPerHour: status.session ? breakdownClbPerHour(status, 'steps') : 0,
     savedAt: now,
   };
 }

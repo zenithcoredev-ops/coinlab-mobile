@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { FlexWidget, OverlapWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 
 import { translate } from '@/i18n/translate';
+import { formatClbPerHour } from '@/lib/mining-math';
 import type { PluralKey, TranslationKey } from '@/i18n/en';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
@@ -78,7 +79,21 @@ function textsFor(m: WidgetModel) {
     conditionShort: m.weather ? t(WEATHER_CONDITION_SHORT_KEYS[weatherConditionFor(m.weather.symbol)]) : null,
     /** "1.444 adım"; null when Health Connect gave no count. */
     steps: m.stepsToday !== null ? t('widget.steps', { steps: m.stepsToday.toLocaleString(m.language) }) : null,
+    /**
+     * Large widget's session line, longest first: "Oturumda 1.240 adım · +0,005 Wago/saat", then
+     * "Oturumda 1.240 adım". Empty without a running session (the pill then says to start).
+     */
+    session: sessionLines(m, t),
   };
+}
+
+function sessionLines(m: WidgetModel, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string[] {
+  if (m.state !== 'active' || m.sessionSteps === null) return [];
+  const steps = m.sessionSteps.toLocaleString(m.language);
+  const short = t('widget.sessionSteps', { steps });
+  if (m.sessionStepBonus === null) return [short];
+  const rate = formatClbPerHour(m.sessionStepBonus, m.language);
+  return [t('widget.sessionStepsBonus', { steps, rate, unit: t('unit.rate') }), short];
 }
 
 /** Extra right padding (dp) on the small widget so its right margin looks like its left one. */
@@ -275,8 +290,10 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
 /**
  * Large (4x2). Top: clock and date on the left; weather icon, temperature and condition on the right.
  * A divider. Bottom: the gold steps ring with the count inside; the mining label with the session bar
- * under it; the brand, faint, bottom right. What doesn't fit goes, in this order: the condition, the
- * brand, the session bar, "Bugün" and then "adım" in the ring. Text is never cut.
+ * under it and, while a session runs, its steps and step bonus under that ("Oturumda 1.240 adım ·
+ * +0,005 Wago/saat"; the ring keeps today's Health Connect total); the brand, faint, bottom right.
+ * What doesn't fit goes, in this order: the condition, the brand, the session bar, the bonus, the
+ * session line, "Bugün" and then "adım" in the ring. Text is never cut.
  */
 function large(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   const pad = 16;
@@ -301,8 +318,15 @@ function large(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   const pillH = clamp(bottomH * 0.42, 18, 36);
   const barH = 4;
   const brandH = clamp(bottomH * 0.18, 9, 13);
-  const withBar = x.progress !== null && bottomH >= pillH + barH + 6;
-  const withBrand = bottomH >= pillH + (withBar ? barH + 6 : 0) + brandH + 8;
+  // The session line sits under the bar, as wide as it. Too narrow for the full line, the bonus goes;
+  // too narrow (or too short) for even that, the whole line goes. Never cut. Short on height, the bar
+  // goes before the line.
+  const lineW = rightW - 16;
+  const sessionH = clamp(bottomH * 0.15, 9, 12);
+  const sessionText = x.session.find((text) => readable(text, lineW, 8, 0.5)) ?? null;
+  const withSession = sessionText !== null && bottomH >= pillH + sessionH + 4;
+  const withBar = x.progress !== null && bottomH >= pillH + (withSession ? sessionH + 4 : 0) + barH + 6;
+  const withBrand = bottomH >= pillH + (withBar ? barH + 6 : 0) + (withSession ? sessionH + 4 : 0) + brandH + 8;
 
   const ringLines: ReactNode[] = [];
   if (steps !== null) {
@@ -344,6 +368,11 @@ function large(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
           <Pill text={x.label} active={x.active} width={rightW} height={pillH} />
           {withBar ? (
             <SvgWidget svg={progressBarSvg(rightW - 16, barH, x.progress!)} style={{ width: rightW - 16, height: barH, marginTop: 6, marginRight: 8 }} />
+          ) : null}
+          {withSession ? (
+            <FlexWidget style={{ width: lineW, height: sessionH, marginTop: 4, marginRight: 8 }}>
+              <Line text={sessionText!} width={lineW} height={sessionH} color={c.soft} align="right" />
+            </FlexWidget>
           ) : null}
           {withBrand ? <Line text={t('app.name')} width={Math.floor(rightW * 0.4)} height={brandH} color={c.faint} bold align="right" /> : null}
         </FlexWidget>
