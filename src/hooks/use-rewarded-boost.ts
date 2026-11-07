@@ -21,9 +21,8 @@ export function useRewardedBoost() {
   const { auth } = useSession();
   const token = auth?.token ?? null;
   const { status, refresh } = useMining();
-  const { canRequestAds } = useAds();
+  const { canRequestAds, rewardedUnavailable: unavailable, markRewardedUnavailable } = useAds();
   const now = useNow(15_000);
-  const [unavailable, setUnavailable] = useState(false);
   const [phase, setPhase] = useState<BoostPhase>(null);
   const [message, setMessage] = useState<BoostMessage>(null);
   /** What the last granted view added in CLB/h, when the server said. */
@@ -47,10 +46,10 @@ export function useRewardedBoost() {
       onGranted: (bonus) => setGrantedClbPerHour(bonus ?? (ads ? adBoostClbPerHour(ads) : null)),
     });
     setPhase(null);
-    if (outcome === 'unavailable') setUnavailable(true);
+    if (outcome === 'unavailable') markRewardedUnavailable();
     setMessage(outcome === 'dismissed' || outcome === 'unavailable' ? null : outcome);
     if (outcome === 'granted' || outcome === 'pending' || outcome === 'rejected') refresh();
-  }, [token, unit, phase, refresh, ads]);
+  }, [token, unit, phase, refresh, ads, markRewardedUnavailable]);
 
   return { visible, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, watch };
 }

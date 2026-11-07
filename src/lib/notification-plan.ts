@@ -14,6 +14,15 @@ export const QUIET_START_HOUR = 22;
 export const QUIET_END_HOUR = 9;
 export const COMEBACK_DAYS = [2, 4, 7] as const;
 export const COMEBACK_HOUR = 19;
+export const BOOST_HOUR = 14;
+/** A boost nudge only once the session has run this long. */
+export const BOOST_MIN_SESSION_MS = 2 * 60 * 60_000;
+export const STEPS_HOUR = 19;
+/** A steps nudge only when the next bonus level is this close. */
+export const STEPS_NEAR_NEXT = 1500;
+export const LEAGUE_HOUR = 20;
+/** The league nudge leaves at least this long before the week ends. */
+export const LEAGUE_MIN_LEAD_MS = 2 * 60 * 60_000;
 /** Nothing is scheduled sooner than this from now. */
 const MIN_LEAD_MS = 60_000;
 const DAY_MS = 24 * 60 * 60_000;
@@ -54,6 +63,9 @@ export const VARIANTS = {
   sessionEnd: ['notif.sessionEnd.1', 'notif.sessionEnd.2', 'notif.sessionEnd.3'],
   streak: ['notif.streak.1', 'notif.streak.2', 'notif.streak.3'],
   notStarted: ['notif.notStarted.1', 'notif.notStarted.2', 'notif.notStarted.3'],
+  league: ['notif.league.1', 'notif.league.2', 'notif.league.3'],
+  steps: ['notif.steps.1', 'notif.steps.2', 'notif.steps.3'],
+  boost: ['notif.boost.1', 'notif.boost.2', 'notif.boost.3'],
   comeback: ['notif.comeback.1', 'notif.comeback.2', 'notif.comeback.3'],
 } as const;
 export type VariantGroup = keyof typeof VARIANTS;
@@ -63,6 +75,12 @@ export type PlanInput = {
   streak: ReminderInput | null;
   /** The running session, if any. */
   session: { startedAt: string; endsAt: string } | null;
+  /** Rewarded boost state; null when the rewarded ad isn't offered (off, ad-free/VIP, no consent...). */
+  boost?: { usedToday: number; dailyLimit: number } | null;
+  /** The running session's steps; null when Health Connect isn't ready. */
+  steps?: { sessionSteps: number; perLevel: number; cap: number } | null;
+  /** When the current league week ends; null when the user isn't in a league. */
+  league?: { weekEndsAt: Date } | null;
 };
 
 /** Which types the user wants (all on unless switched off). */
@@ -131,6 +149,48 @@ function comebackCandidates(now: Date, clock: LocalClock): Candidate[] {
   return COMEBACK_DAYS.map((days) => ({ type: 'comeback' as const, fireAt: clock(now, days, COMEBACK_HOUR), group: 'comeback' as const }));
 }
 
+/** 14:00 on the session's days, once the session has run 2 h, while views are left (today's count; later days start at 0). */
+function boostCandidates(now: Date, input: PlanInput, clock: LocalClock): Candidate[] {
+  const { session, boost } = input;
+  if (!session || !boost || boost.dailyLimit <= 0) return [];
+  const startedAt = Date.parse(session.startedAt);
+  const endsAt = Date.parse(session.endsAt);
+  const out: Candidate[] = [];
+  for (let day = 0; day <= 1; day++) {
+    const fireAt = clock(now, day, BOOST_HOUR);
+    const t = fireAt.getTime();
+    if (day === 0 && boost.usedToday >= boost.dailyLimit) continue;
+    if (t < startedAt + BOOST_MIN_SESSION_MS || t >= endsAt) continue;
+    out.push({ type: 'boost', fireAt, group: 'boost', validUntil: endsAt });
+  }
+  return out;
+}
+
+/** 19:00 today while the session runs, when the next step bonus level is within 1,500 steps. */
+function stepsCandidates(now: Date, input: PlanInput, clock: LocalClock): Candidate[] {
+  const { session, steps } = input;
+  if (!session || !steps || steps.perLevel <= 0 || steps.sessionSteps >= steps.cap) return [];
+  const toNext = steps.perLevel - (steps.sessionSteps % steps.perLevel);
+  if (toNext > STEPS_NEAR_NEXT) return [];
+  const endsAt = Date.parse(session.endsAt);
+  const fireAt = clock(now, 0, STEPS_HOUR);
+  if (fireAt.getTime() >= endsAt) return [];
+  return [{ type: 'steps', fireAt, group: 'steps', params: { steps: toNext }, validUntil: endsAt }];
+}
+
+/** The last local 20:00 at least 2 h before the league week ends. */
+export function leagueReminderTime(weekEndsAt: Date, clock: LocalClock = deviceClock): Date {
+  const latest = new Date(weekEndsAt.getTime() - LEAGUE_MIN_LEAD_MS);
+  const sameDay = clock(latest, 0, LEAGUE_HOUR);
+  return sameDay.getTime() <= latest.getTime() ? sameDay : clock(latest, -1, LEAGUE_HOUR);
+}
+
+function leagueCandidates(input: PlanInput, clock: LocalClock): Candidate[] {
+  if (!input.league) return [];
+  const weekEnd = input.league.weekEndsAt.getTime();
+  return [{ type: 'league', fireAt: leagueReminderTime(input.league.weekEndsAt, clock), group: 'league', validUntil: weekEnd }];
+}
+
 /**
  * Every notification that should be pending now; the caller replaces whatever was scheduled.
  * `sent` lists what was scheduled earlier: entries already due today use up today's limit.
@@ -145,6 +205,9 @@ export function planNotifications(
   const candidates = [
     ...sessionEndCandidates(now, input),
     ...streakCandidates(now, input, clock),
+    ...leagueCandidates(input, clock),
+    ...stepsCandidates(now, input, clock),
+    ...boostCandidates(now, input, clock),
     ...comebackCandidates(now, clock),
   ]
     .filter((c) => prefs[c.type])

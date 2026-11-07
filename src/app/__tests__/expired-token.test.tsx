@@ -32,6 +32,7 @@ jest.mock('@/context/notifications', () => ({
   useNotifications: () => ({ active: false, setEnabled: jest.fn() }),
 }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+jest.mock('@/context/ads', () => ({ useAds: () => ({ rewardedOffered: false }) }));
 
 function Root() {
   return (
@@ -64,8 +65,10 @@ const EXPIRED = { error: 'Invalid or expired token' };
 function mockApi(onFetch: (path: string) => { status: number; body: unknown }) {
   globalThis.fetch = jest.fn(async (url: string) => {
     const path = new URL(String(url)).pathname;
-    // A server without token refresh, so only the requests under test can fail.
-    const { status, body } = path === '/auth/refresh' ? { status: 404, body: {} } : onFetch(path);
+    // A server without token refresh, so only the requests under test can fail. The league is read in
+    // the background for notifications; it answers normally here.
+    const { status, body } =
+      path === '/auth/refresh' ? { status: 404, body: {} } : path === '/league' ? { status: 200, body: { state: 'locked' } } : onFetch(path);
     return { ok: status < 300, status, headers: { get: () => null }, json: async () => body };
   }) as unknown as typeof fetch;
 }

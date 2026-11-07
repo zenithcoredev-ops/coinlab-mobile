@@ -45,6 +45,12 @@ export function syncNotifications(input: PlanInput, { enabled, language, prefs =
   return serialized(() => schedule(input, enabled, language, prefs, now));
 }
 
+/** Step counts read like the rest of the app ("1.240" in Turkish). */
+function localized(params: Record<string, string | number> | undefined, language: Language) {
+  if (!params || typeof params.steps !== 'number') return params;
+  return { ...params, steps: params.steps.toLocaleString(language) };
+}
+
 async function schedule(input: PlanInput, enabled: boolean, language: Language, prefs: TypePrefs, now: Date) {
   await cancelAll();
   // Nothing is pending now, so no notification can fire on a removed channel.
@@ -62,7 +68,7 @@ async function schedule(input: PlanInput, enabled: boolean, language: Language, 
       identifier: n.id,
       content: {
         title: translate(language, 'reminder.title'),
-        body: translate(language, n.textKey as TranslationKey | PluralKey, n.params),
+        body: translate(language, n.textKey as TranslationKey | PluralKey, localized(n.params, language)),
         data: { route: n.route, type: n.type },
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: n.fireAt, channelId: CHANNEL_IDS[n.channel] },

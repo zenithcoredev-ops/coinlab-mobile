@@ -39,6 +39,7 @@ import {
   TournamentRewardRow,
   TournamentStage,
 } from '@/services/league-api';
+import { saveLeagueSnapshot } from '@/services/league-cache';
 import { theme } from '@/theme';
 
 const RESULT_SEEN_KEY = 'coinlab_league_result_seen';
@@ -74,6 +75,7 @@ export default function LeagueScreen() {
     try {
       const next = await getLeague(token);
       setView(next);
+      saveLeagueSnapshot(next).catch(() => {});
       setFetchedAt(Date.now());
       setLoadError(false);
       // A promotion or demotion changes the league bonus in the mining speed.

@@ -8,7 +8,12 @@ jest.mock('@/ads/rewarded', () => ({ runRewardedBoost: jest.fn() }));
 jest.mock('@/i18n', () => ({ useI18n: () => ({ language: 'tr', t: (k: string, p?: object) => require('@/i18n/translate').translate('tr', k, p) }) }));
 jest.mock('@/context/session', () => ({ useSession: () => ({ auth: { token: 'tok' } }) }));
 let mockConsent = true;
-jest.mock('@/context/ads', () => ({ useAds: () => ({ canRequestAds: mockConsent }) }));
+jest.mock('@/context/ads', () => ({
+  useAds: () => {
+    const [unavailable, setUnavailable] = require('react').useState(false);
+    return { canRequestAds: mockConsent, rewardedUnavailable: unavailable, markRewardedUnavailable: () => setUnavailable(true) };
+  },
+}));
 const mockRefresh = jest.fn();
 let mockStatus: any;
 jest.mock('@/context/mining', () => ({ useMining: () => ({ status: mockStatus, refresh: mockRefresh }) }));

@@ -5,7 +5,7 @@ import { gatherConsent, initializeAds, showPrivacyOptions } from '@/ads/consent'
 import { flushImpressions } from '@/ads/impressions';
 import { AdsProvider, useAds } from '../ads';
 
-jest.mock('@/ads/config', () => ({ ADS_SUPPORTED: true }));
+jest.mock('@/ads/config', () => ({ ADS_SUPPORTED: true, adUnitId: () => 'unit-rw' }));
 jest.mock('@/ads/consent', () => ({ gatherConsent: jest.fn(), initializeAds: jest.fn(), showPrivacyOptions: jest.fn() }));
 jest.mock('@/ads/impressions', () => ({ flushImpressions: jest.fn().mockResolvedValue(undefined) }));
 let mockToken: string | null = 'tok';
@@ -59,6 +59,27 @@ describe('AdsProvider', () => {
     renderHook(() => useAds(), { wrapper });
     await act(async () => {});
     expect(flushImpressions).not.toHaveBeenCalled();
+  });
+
+  describe('rewarded boost reminder', () => {
+    it('is offered with consent to a normal account, never to an ad-free/VIP or unknown one, and not after a 404/503', async () => {
+      (gatherConsent as jest.Mock).mockResolvedValue({ canRequestAds: true, privacyOptionsRequired: false });
+      const { result } = renderHook(() => useAds(), { wrapper });
+      await waitFor(() => expect(result.current.rewardedOffered).toBe(true));
+      act(() => result.current.markRewardedUnavailable());
+      expect(result.current.rewardedUnavailable).toBe(true);
+      expect(result.current.rewardedOffered).toBe(false);
+
+      mockGetAccount.mockResolvedValue({ adFree: true, vipUntil: null });
+      const adFree = renderHook(() => useAds(), { wrapper });
+      await waitFor(() => expect(adFree.result.current.adFree).toBe(true));
+      expect(adFree.result.current.rewardedOffered).toBe(false);
+
+      mockGetAccount.mockRejectedValue(new Error('offline'));
+      const unknown = renderHook(() => useAds(), { wrapper });
+      await waitFor(() => expect(unknown.result.current.canRequestAds).toBe(true));
+      expect(unknown.result.current.rewardedOffered).toBe(false);
+    });
   });
 
   describe('interstitials', () => {
