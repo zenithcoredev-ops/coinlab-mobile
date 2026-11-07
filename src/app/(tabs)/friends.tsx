@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/screen-header';
-import { Button, Card, ScreenTitle, SectionLabel } from '@/components/ui';
+import { Button, Card, EmptyState, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
@@ -72,7 +72,7 @@ export default function FriendsScreen() {
     if (!overview) return;
     await Clipboard.setStringAsync(overview.inviteCode);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function onShare() {
@@ -155,7 +155,7 @@ export default function FriendsScreen() {
               </Text>
             </View>
 
-            <Button label={t('friends.share')} onPress={onShare} variant="positive" style={styles.shareButton} />
+            <Button label={t('friends.share')} onPress={onShare} icon="share-social" style={styles.shareButton} />
 
             <View style={styles.statRow}>
               <Stat value={String(overview.invitedCount)} label={t('friends.stat.invited')} />
@@ -207,9 +207,7 @@ export default function FriendsScreen() {
 
             <SectionLabel>{t('friends.team')}</SectionLabel>
             {overview.friends.length === 0 ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>{t('friends.empty')}</Text>
-              </View>
+              <EmptyState icon="people-outline" title={t('friends.emptyTitle')} body={t('friends.empty')} />
             ) : (
               overview.friends.map((f) => <FriendRow key={f.id} friend={f} />)
             )}
@@ -354,8 +352,6 @@ const styles = StyleSheet.create({
   applyButton: { minWidth: 88 },
   applyMessage: { fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.md },
 
-  empty: { alignItems: 'center', paddingVertical: theme.spacing.xl + 4 },
-  emptyText: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, textAlign: 'center', lineHeight: 20 },
   friend: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/screen-header';
 import { ShareCardModal } from '@/components/share-card-modal';
-import { Button, Card, ScreenTitle, SectionLabel } from '@/components/ui';
+import { Button, Card, EmptyState, ProgressBar, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useLiveBalance } from '@/hooks/use-live-balance';
@@ -236,12 +236,9 @@ function LockedCard({ entry }: { entry: LeagueView['entry'] }) {
   const progress = entryProgress({ ...entry, balance });
   return (
     <Card style={styles.block}>
-      <Text style={styles.lockIcon}>🔒</Text>
-      <Text style={styles.cardTitle}>{t('league.locked.title')}</Text>
+      <EmptyState icon="lock-closed-outline" title={t('league.locked.title')} body={t('league.locked.motivate')} style={styles.lockedEmpty} />
       <Text style={styles.howText}>{t('league.locked.body', { required: entry.required })}</Text>
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-      </View>
+      <ProgressBar progress={progress} style={styles.bar} />
       <Text style={styles.progressText}>
         {t('league.locked.progress', { balance: formatDecimal(Math.min(balance, entry.required), 2, language), required: entry.required })}
       </Text>
@@ -283,6 +280,13 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
           <Text style={styles.headerSub}>{t('league.weekEnds', { time: t('league.time', { days, hours, minutes }) })}</Text>
         </View>
       </View>
+
+      {(view.groupSize ?? standings.length) <= 1 && (
+        // Honest about an empty group: no made-up players fill it.
+        <View style={styles.alone}>
+          <Text style={styles.aloneText}>{t('league.alone')}</Text>
+        </View>
+      )}
 
       {view.yourRank !== undefined && (
         <Text style={styles.yourRank}>{t('league.yourRank', { rank: view.yourRank, size: view.groupSize ?? 0 })}</Text>
@@ -462,9 +466,17 @@ const styles = StyleSheet.create({
   howText: { flex: 1, color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19 },
   note: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, lineHeight: 17, marginTop: theme.spacing.md },
 
-  lockIcon: { fontSize: 28, marginBottom: theme.spacing.sm },
-  track: { height: 8, borderRadius: 4, backgroundColor: theme.colors.ringTrack, marginTop: theme.spacing.md, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: theme.colors.accent, borderRadius: 4 },
+  bar: { marginTop: theme.spacing.md },
+  lockedEmpty: { paddingVertical: theme.spacing.sm },
+  alone: {
+    backgroundColor: theme.colors.accentSoft,
+    borderColor: theme.colors.accentBorder,
+    borderWidth: 1,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+  },
+  aloneText: { color: theme.colors.text, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, lineHeight: 19 },
   progressText: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs + 0.5, marginTop: theme.spacing.sm },
 
   banner: {
