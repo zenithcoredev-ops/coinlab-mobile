@@ -4,11 +4,26 @@ import { Platform } from 'react-native';
 
 import { translate } from '@/i18n/translate';
 import type { Language } from '@/i18n/translate';
+import type { ChannelKey } from '@/lib/notification-plan';
 
 const ENABLED_KEY = 'coinlab_notifications_enabled';
 // Android fixes a channel's settings (importance, vibration) once it exists, so changing them means
 // a new id. The old channels are removed once no pending reminder points at them.
 export const STREAK_CHANNEL_ID = 'streak-reminders-v2';
+/** One Android channel per kind of notification, so each can be switched off in system settings. */
+export const CHANNEL_IDS: Record<ChannelKey, string> = {
+  // The streak channel keeps its id: a user's settings for it carry over.
+  streak: STREAK_CHANNEL_ID,
+  collect: 'collect-v1',
+  league: 'league-v1',
+  reminders: 'reminders-v1',
+};
+const CHANNEL_NAME_KEYS = {
+  streak: 'notif.channel.streak',
+  collect: 'notif.channel.collect',
+  league: 'notif.channel.league',
+  reminders: 'notif.channel.reminders',
+} as const;
 const LEGACY_CHANNEL_IDS = [
   'default',
   'streak-reminders',
@@ -28,18 +43,20 @@ export async function getPermissionState(): Promise<PermissionState> {
 }
 
 /**
- * Creates the streak reminder channel, or renames it to match `language`. Android 13+ only shows
- * the permission prompt once a channel exists, and a reminder whose channel is missing lands in a
- * generic "Miscellaneous" channel instead.
+ * Creates the notification channels, or renames them to match `language`. Android 13+ only shows
+ * the permission prompt once a channel exists, and a notification whose channel is missing lands in
+ * a generic "Miscellaneous" channel instead.
  */
-export async function ensureStreakChannel(language: Language) {
+export async function ensureChannels(language: Language) {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(STREAK_CHANNEL_ID, {
-    name: translate(language, 'profile.notif.reminders'),
-    importance: Notifications.AndroidImportance.HIGH,
-    enableVibrate: true,
-    vibrationPattern: [0, 250, 250, 250],
-  });
+  for (const key of Object.keys(CHANNEL_IDS) as ChannelKey[]) {
+    await Notifications.setNotificationChannelAsync(CHANNEL_IDS[key], {
+      name: translate(language, CHANNEL_NAME_KEYS[key]),
+      importance: Notifications.AndroidImportance.HIGH,
+      enableVibrate: true,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  }
 }
 
 /**
@@ -53,7 +70,7 @@ export async function removeLegacyChannels() {
 
 /** Asks the OS for notification permission (if still askable). Resolves the resulting state. */
 export async function requestPermission(language: Language): Promise<PermissionState> {
-  await ensureStreakChannel(language);
+  await ensureChannels(language);
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return 'granted';
   if (!current.canAskAgain) return 'denied';

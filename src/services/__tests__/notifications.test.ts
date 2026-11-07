@@ -1,8 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { ensureStreakChannel, requestPermission, STREAK_CHANNEL_ID } from '../notifications';
-import { syncStreakReminder } from '../streak-reminder';
+import { CHANNEL_IDS, ensureChannels, requestPermission, STREAK_CHANNEL_ID } from '../notifications';
+import { syncNotifications } from '../notification-scheduler';
+
+const streakOnly = (streak: number) => ({ streak: { streak, minedToday: true }, session: null });
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
@@ -20,7 +22,7 @@ jest.mock('expo-notifications', () => ({
 
 const mocked = Notifications as jest.Mocked<typeof Notifications>;
 
-describe('streak reminder channel', () => {
+describe('notification channels', () => {
   let restoreOS: () => void;
 
   beforeEach(() => {
@@ -32,25 +34,25 @@ describe('streak reminder channel', () => {
 
   afterEach(() => restoreOS());
 
-  it('is a new high-importance, vibrating channel named in the app language', async () => {
-    await ensureStreakChannel('tr');
+  it('are four high-importance, vibrating channels named in the app language; the streak one keeps its id', async () => {
+    await ensureChannels('tr');
     expect(STREAK_CHANNEL_ID).toBe('streak-reminders-v2');
-    expect(mocked.setNotificationChannelAsync).toHaveBeenCalledWith(STREAK_CHANNEL_ID, {
-      name: 'Seri hatırlatmaları',
-      importance: Notifications.AndroidImportance.HIGH,
-      enableVibrate: true,
-      vibrationPattern: [0, 250, 250, 250],
-    });
+    expect(CHANNEL_IDS).toEqual({ streak: 'streak-reminders-v2', collect: 'collect-v1', league: 'league-v1', reminders: 'reminders-v1' });
+    const settings = { importance: Notifications.AndroidImportance.HIGH, enableVibrate: true, vibrationPattern: [0, 250, 250, 250] };
+    expect(mocked.setNotificationChannelAsync.mock.calls).toEqual([
+      ['streak-reminders-v2', { name: 'Seri', ...settings }],
+      ['collect-v1', { name: 'Toplama', ...settings }],
+      ['league-v1', { name: 'Lig', ...settings }],
+      ['reminders-v1', { name: 'Hatırlatmalar', ...settings }],
+    ]);
 
-    await ensureStreakChannel('en');
-    expect(mocked.setNotificationChannelAsync).toHaveBeenLastCalledWith(
-      STREAK_CHANNEL_ID,
-      expect.objectContaining({ name: 'Streak reminders' })
-    );
+    jest.clearAllMocks();
+    await ensureChannels('en');
+    expect(mocked.setNotificationChannelAsync.mock.calls.map(([, c]) => c.name)).toEqual(['Streak', 'Collecting', 'League', 'Reminders']);
   });
 
   it('removes the earlier channels and "Miscellaneous", only after pending reminders are cancelled', async () => {
-    await syncStreakReminder({ streak: 3, minedToday: true }, true, 'en', new Date(2026, 2, 10, 8));
+    await syncNotifications(streakOnly(3), { enabled: true, language: 'en', now: new Date(2026, 2, 10, 8) });
     const deleted = mocked.deleteNotificationChannelAsync.mock.calls.map(([id]) => id).sort();
     expect(deleted).toEqual(['default', 'expo_notifications_fallback_notification_channel', 'streak-reminders']);
     const lastCancel = Math.max(...mocked.cancelScheduledNotificationAsync.mock.invocationCallOrder);
@@ -61,7 +63,7 @@ describe('streak reminder channel', () => {
 
     // Also with reminders off: nothing is pending, so it's safe.
     jest.clearAllMocks();
-    await syncStreakReminder(null, false, 'en');
+    await syncNotifications(streakOnly(0), { enabled: false, language: 'en' });
     expect(mocked.deleteNotificationChannelAsync).toHaveBeenCalledTimes(3);
   });
 
@@ -79,7 +81,7 @@ describe('streak reminder channel', () => {
   });
 
   it('is created before the reminder is scheduled on it', async () => {
-    await syncStreakReminder({ streak: 3, minedToday: true }, true, 'tr', new Date(2026, 2, 10, 8));
+    await syncNotifications(streakOnly(3), { enabled: true, language: 'tr', now: new Date(2026, 2, 10, 8) });
     expect(mocked.scheduleNotificationAsync).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: expect.objectContaining({ channelId: STREAK_CHANNEL_ID }) })
     );
@@ -90,7 +92,7 @@ describe('streak reminder channel', () => {
 
   it('is left alone on platforms without channels', async () => {
     restoreOS();
-    await ensureStreakChannel('en');
+    await ensureChannels('en');
     expect(mocked.setNotificationChannelAsync).not.toHaveBeenCalled();
   });
 });

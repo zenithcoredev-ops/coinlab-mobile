@@ -7,7 +7,7 @@ import { setUnauthorizedHandler } from '@/services/api';
 import { refreshToken } from '@/services/auth-api';
 import { completeOnboarding as completeOnboardingRequest, getAccount } from '@/services/me-api';
 import { signOutGoogle } from '@/services/google-auth';
-import { cancelStreakReminder } from '@/services/streak-reminder';
+import { cancelNotifications } from '@/services/notification-scheduler';
 import { clearWidget } from '@/widget/sync';
 import {
   clearStoredAuth,
@@ -60,7 +60,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (endingRef.current) return;
     endingRef.current = true;
     try {
-      await cancelStreakReminder();
+      await cancelNotifications();
       await clearWidget().catch(() => {});
       await clearStoredAuth().catch(() => {});
     } finally {
