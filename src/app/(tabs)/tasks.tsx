@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { ComponentProps, useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CollapsibleCard } from '@/components/collapsible-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { StepsCard } from '@/components/steps-card';
-import { Button, Card, EmptyState, ProgressBar, ScreenTitle } from '@/components/ui';
+import { TaskRow } from '@/components/task-row';
+import { Button, Card, EmptyState, ScreenTitle } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
@@ -21,17 +23,8 @@ import {
   msUntilReset,
   TaskErrorCode,
   TaskProgress,
-  taskState,
 } from '@/services/tasks-api';
 import { theme } from '@/theme';
-
-type IconName = ComponentProps<typeof Ionicons>['name'];
-
-const TASK_META: Record<string, { icon: IconName; title: TranslationKey; hint: TranslationKey }> = {
-  mine: { icon: 'flash-outline', title: 'tasks.mine.title', hint: 'tasks.mine.hint' },
-  friend: { icon: 'people-outline', title: 'tasks.friend.title', hint: 'tasks.friend.hint' },
-  steps: { icon: 'walk-outline', title: 'tasks.steps.title', hint: 'tasks.steps.hint' },
-};
 
 const CLAIM_ERRORS: Record<TaskErrorCode, TranslationKey> = {
   unknown_task: 'common.unknownError',
@@ -138,6 +131,17 @@ export default function TasksScreen() {
 
             <StepsCard />
 
+            <CollapsibleCard id="tasks" title={t('tasks.how.title')} style={styles.how}>
+              {(['tasks.how.step1', 'tasks.how.step2', 'tasks.how.step3'] as const).map((key, i) => (
+                <View key={key} style={styles.howRow}>
+                  <View style={styles.howNum}>
+                    <Text style={styles.howNumText}>{i + 1}</Text>
+                  </View>
+                  <Text style={styles.howText}>{t(key)}</Text>
+                </View>
+              ))}
+            </CollapsibleCard>
+
             {message && (
               <Text style={[styles.message, { color: message.ok ? theme.colors.positive : theme.colors.danger }]}>
                 {message.text}
@@ -158,53 +162,6 @@ export default function TasksScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolean; onClaim: () => void }) {
-  const { t, language } = useI18n();
-  const meta = TASK_META[task.id];
-  if (!meta) return null;
-  const state = taskState(task);
-
-  return (
-    <View style={[styles.task, state === 'ready' && styles.taskReady, state === 'claimed' && styles.taskClaimed]}>
-      <View style={[styles.taskIcon, state === 'ready' && styles.taskIconReady, state === 'claimed' && styles.taskIconClaimed]}>
-        <Ionicons
-          name={meta.icon}
-          size={20}
-          color={state === 'claimed' ? theme.colors.positive : state === 'ready' ? theme.colors.accent : theme.colors.textMuted}
-        />
-      </View>
-      <View style={styles.taskInfo}>
-        <Text style={styles.taskTitle}>{t(meta.title, { target: task.target.toLocaleString(language) })}</Text>
-        <Text style={styles.taskHint}>{t(meta.hint)}</Text>
-        <Text style={styles.taskReward}>
-          +{formatDecimal(task.reward, 2, language)} {t('unit.clb')}
-          {task.target > 1 && !task.claimed ? `  ·  ${task.progress.toLocaleString(language)} / ${task.target.toLocaleString(language)}` : ''}
-        </Text>
-        {task.target > 1 && !task.claimed ? <ProgressBar progress={task.progress / task.target} style={styles.taskBar} /> : null}
-      </View>
-      {state === 'ready' ? (
-        <Pressable
-          onPress={onClaim}
-          disabled={busy}
-          accessibilityRole="button"
-          style={[styles.action, styles.actionReady, busy && { opacity: 0.6 }]}>
-          {busy ? (
-            <ActivityIndicator color={theme.colors.accentInk} />
-          ) : (
-            <Text style={styles.actionReadyText}>{t('tasks.claim')}</Text>
-          )}
-        </Pressable>
-      ) : (
-        <View style={[styles.action, state === 'claimed' ? styles.actionClaimed : styles.actionLocked]}>
-          <Text style={state === 'claimed' ? styles.actionClaimedText : styles.actionLockedText}>
-            {state === 'claimed' ? t('tasks.done') : t('tasks.locked')}
-          </Text>
-        </View>
-      )}
-    </View>
   );
 }
 
@@ -232,48 +189,20 @@ const styles = StyleSheet.create({
   summaryValue: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.xl },
   summaryRight: { alignItems: 'flex-end', gap: 4 },
   resetText: { color: theme.colors.textMuted, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs },
+  how: { marginBottom: theme.spacing.md },
+  howRow: { flexDirection: 'row', gap: theme.spacing.md, alignItems: 'flex-start' },
+  howNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  howNumText: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.xs },
+  howText: { flex: 1, color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19 },
   message: { fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, marginBottom: theme.spacing.md },
 
-  task: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
-    backgroundColor: theme.colors.surfaceRaised,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md + 2,
-    padding: theme.spacing.md + 2,
-    marginBottom: theme.spacing.sm + 2,
-  },
-  taskReady: { borderColor: theme.colors.accentBorder },
-  taskClaimed: { opacity: 0.75 },
-  taskIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: theme.colors.ringTrack,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  taskIconReady: { backgroundColor: theme.colors.accentSoft },
-  taskIconClaimed: { backgroundColor: theme.colors.positiveSoft },
-  taskInfo: { flex: 1, minWidth: 0 },
-  taskTitle: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 1 },
-  taskHint: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
-  taskBar: { marginTop: theme.spacing.sm },
-  taskReward: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs + 0.5, marginTop: 3 },
-  action: {
-    minWidth: 84,
-    minHeight: 36,
-    borderRadius: theme.radius.sm + 2,
-    paddingHorizontal: theme.spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionReady: { backgroundColor: theme.colors.accent },
-  actionReadyText: { color: theme.colors.accentInk, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.sm },
-  actionLocked: { backgroundColor: theme.colors.ringTrack },
-  actionLockedText: { color: theme.colors.textMuted, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm },
-  actionClaimed: { backgroundColor: theme.colors.positiveSoft },
-  actionClaimedText: { color: theme.colors.positive, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm },
 });
