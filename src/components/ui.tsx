@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { theme } from '@/theme';
@@ -19,9 +20,11 @@ type ButtonProps = {
   disabled?: boolean;
   loading?: boolean;
   style?: ViewStyle;
+  /** An icon before the label. */
+  icon?: ComponentProps<typeof Ionicons>['name'];
 };
 
-export function Button({ label, onPress, variant = 'primary', disabled, loading, style }: ButtonProps) {
+export function Button({ label, onPress, variant = 'primary', disabled, loading, style, icon }: ButtonProps) {
   const c = buttonColors[variant];
   const inactive = disabled || loading;
   return (
@@ -35,7 +38,14 @@ export function Button({ label, onPress, variant = 'primary', disabled, loading,
         { backgroundColor: c.bg, borderColor: c.border, opacity: inactive ? 0.4 : pressed ? 0.85 : 1 },
         style,
       ]}>
-      {loading ? <ActivityIndicator color={c.text} /> : <Text style={[styles.buttonText, { color: c.text }]}>{label}</Text>}
+      {loading ? (
+        <ActivityIndicator color={c.text} />
+      ) : (
+        <View style={styles.buttonRow}>
+          {icon ? <Ionicons name={icon} size={18} color={c.text} /> : null}
+          <Text style={[styles.buttonText, { color: c.text }]}>{label}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -67,6 +77,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
+  buttonRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   buttonText: { fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md },
   sectionLabel: {
     color: theme.colors.textMuted,
@@ -92,6 +103,58 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSizes.sm,
     lineHeight: 19,
   },
+});
+
+/** A thick bar: green while filling, gold once complete. `progress` is 0..1. */
+export function ProgressBar({ progress, style }: { progress: number; style?: ViewStyle }) {
+  const p = Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0));
+  const done = p >= 1;
+  return (
+    <View
+      style={[barStyles.track, style]}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(p * 100) }}>
+      <View
+        testID="progress-fill"
+        style={[barStyles.fill, { width: `${p * 100}%`, backgroundColor: done ? theme.colors.progressDone : theme.colors.progressFill }]}
+      />
+    </View>
+  );
+}
+
+const barStyles = StyleSheet.create({
+  track: { height: 10, borderRadius: 5, backgroundColor: theme.colors.ringTrack, overflow: 'hidden' },
+  fill: { height: 10, borderRadius: 5 },
+});
+
+/** A friendly placeholder for an empty list or a not-yet-open feature: a round icon, a title and one line. */
+export function EmptyState({ icon, title, body, style }: { icon: ComponentProps<typeof Ionicons>['name']; title: string; body: string; style?: ViewStyle }) {
+  return (
+    <View style={[emptyStyles.box, style]}>
+      <View style={emptyStyles.icon}>
+        <Ionicons name={icon} size={26} color={theme.colors.accent} />
+      </View>
+      <Text style={emptyStyles.title}>{title}</Text>
+      <Text style={emptyStyles.body}>{body}</Text>
+    </View>
+  );
+}
+
+const emptyStyles = StyleSheet.create({
+  box: { alignItems: 'center', paddingVertical: theme.spacing.xl, paddingHorizontal: theme.spacing.lg, gap: theme.spacing.sm },
+  icon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.accentSoft,
+    borderWidth: 1,
+    borderColor: theme.colors.accentBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md, textAlign: 'center' },
+  body: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, textAlign: 'center', lineHeight: 20 },
 });
 
 type SegmentedProps<T extends string> = {

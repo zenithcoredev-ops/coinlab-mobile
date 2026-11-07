@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/screen-header';
 import { StepsCard } from '@/components/steps-card';
-import { Button, Card, ScreenTitle } from '@/components/ui';
+import { Button, Card, EmptyState, ProgressBar, ScreenTitle } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
@@ -144,6 +144,8 @@ export default function TasksScreen() {
               </Text>
             )}
 
+            {progress.tasks.length === 0 && <EmptyState icon="sparkles-outline" title={t('tasks.emptyTitle')} body={t('tasks.emptyBody')} />}
+
             {progress.tasks.map((task) => (
               <TaskRow
                 key={task.id}
@@ -181,6 +183,7 @@ function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolean; onCl
           +{formatDecimal(task.reward, 2, language)} {t('unit.clb')}
           {task.target > 1 && !task.claimed ? `  ·  ${task.progress.toLocaleString(language)} / ${task.target.toLocaleString(language)}` : ''}
         </Text>
+        {task.target > 1 && !task.claimed ? <ProgressBar progress={task.progress / task.target} style={styles.taskBar} /> : null}
       </View>
       {state === 'ready' ? (
         <Pressable
@@ -257,6 +260,7 @@ const styles = StyleSheet.create({
   taskInfo: { flex: 1, minWidth: 0 },
   taskTitle: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 1 },
   taskHint: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
+  taskBar: { marginTop: theme.spacing.sm },
   taskReward: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs + 0.5, marginTop: 3 },
   action: {
     minWidth: 84,

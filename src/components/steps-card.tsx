@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card } from '@/components/ui';
+import { Button, Card, ProgressBar } from '@/components/ui';
 import { useSteps } from '@/context/steps';
 import { useMining } from '@/context/mining';
 import { useI18n } from '@/i18n';
@@ -51,9 +51,7 @@ export function StepsCard() {
         {t('steps.sessionProgress', { steps: steps.toLocaleString(language), cap: STEP_BONUS_CAP_STEPS.toLocaleString(language) })}
       </Text>
       {todaySteps !== null && <Text style={styles.today}>{t('steps.todayTotal', { steps: todaySteps.toLocaleString(language) })}</Text>}
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${stepsProgress(steps, STEP_BONUS_CAP_STEPS) * 100}%` }]} />
-      </View>
+      <ProgressBar progress={stepsProgress(steps, STEP_BONUS_CAP_STEPS)} style={styles.bar} />
       <Text style={styles.body}>{t('steps.explain')}</Text>
       {!session ? (
         <Text style={styles.body}>{t('steps.needSession')}</Text>
@@ -82,6 +80,5 @@ const styles = StyleSheet.create({
   link: { color: theme.colors.accent, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs + 0.5, marginTop: theme.spacing.sm },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
   button: { marginTop: theme.spacing.md },
-  track: { height: 8, borderRadius: 4, backgroundColor: theme.colors.ringTrack, marginTop: theme.spacing.md, overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4, backgroundColor: theme.colors.accent },
+  bar: { marginTop: theme.spacing.md },
 });

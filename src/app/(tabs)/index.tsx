@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
   coreActiveLabel: { color: theme.colors.textMuted, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs },
   coreRate: { fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.md },
   status: {
+    flexShrink: 1,
     marginTop: theme.spacing.xl,
     color: theme.colors.textMuted,
     fontFamily: theme.fonts.mono,
@@ -177,7 +178,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: ringSize + 60,
   },
+  // Long warnings wrap onto a second line instead of running off the screen.
   streakWarning: {
+    alignSelf: 'stretch',
+    flexShrink: 1,
+    paddingHorizontal: theme.spacing.sm,
+    lineHeight: 19,
     color: theme.colors.danger,
     fontFamily: theme.fonts.bodyMedium,
     fontSize: theme.fontSizes.sm,
