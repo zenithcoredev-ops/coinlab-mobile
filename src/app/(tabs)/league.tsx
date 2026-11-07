@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CollapsibleCard } from '@/components/collapsible-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { Button, Card, EmptyState, ProgressBar, ScreenTitle, SectionLabel } from '@/components/ui';
@@ -178,8 +179,7 @@ function HowItWorks() {
   const weekEnd = leagueWeekEndParams(t, language, new Date());
   const steps = ['league.how.step1', 'league.how.step2', 'league.how.step3', 'league.how.step4'] as const;
   return (
-    <Card style={styles.block}>
-      <Text style={styles.cardTitle}>{t('league.how.title')}</Text>
+    <CollapsibleCard id="league" title={t('league.how.title')} style={styles.block}>
       {steps.map((key, i) => (
         <View key={key} style={styles.howRow}>
           <View style={styles.howNum}>
@@ -189,7 +189,7 @@ function HowItWorks() {
         </View>
       ))}
       <Text style={styles.note}>{t('league.how.note')}</Text>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

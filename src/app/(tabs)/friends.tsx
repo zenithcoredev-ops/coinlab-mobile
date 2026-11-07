@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CollapsibleCard } from '@/components/collapsible-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { Button, Card, EmptyState, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
@@ -163,13 +164,12 @@ export default function FriendsScreen() {
               <Stat value={`+${formatClbPerHour(clbPerHourOf(overview.totalBonusClbPerHour, overview.totalBonusThs), language)}`} label={t('friends.stat.bonus')} />
             </View>
 
-            <Card style={styles.stepsCard}>
-              <Text style={styles.stepsTitle}>{t('friends.how.title')}</Text>
+            <CollapsibleCard id="friends" title={t('friends.how.title')} style={styles.stepsCard}>
               <Step n={1} text={t('friends.how.step1')} />
               <Step n={2} text={t('friends.how.step2', { bonus: overview.welcomeBonusClb })} />
               <Step n={3} text={t('friends.how.step3', { rate: formatClbPerHour(clbPerHourOf(overview.bonusPerFriendClbPerHour, overview.bonusPerFriendThs), language) })} />
               <Step n={4} text={t('friends.how.step4')} />
-            </Card>
+            </CollapsibleCard>
 
             {!overview.hasUsedCode && (
               <Card style={styles.enterCard}>
@@ -318,8 +318,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  stepsCard: { marginBottom: theme.spacing.lg, gap: theme.spacing.md },
-  stepsTitle: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
+  stepsCard: { marginBottom: theme.spacing.lg },
   step: { flexDirection: 'row', gap: theme.spacing.md, alignItems: 'flex-start' },
   stepNum: {
     width: 22,

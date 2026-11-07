@@ -7,6 +7,7 @@ import { ComponentProps, useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BadgeDetailModal } from '@/components/badge-detail-modal';
 import { BadgeGrid } from '@/components/badge-grid';
 import { NotificationTypeSettings } from '@/components/notification-type-settings';
 import { ShareCardModal } from '@/components/share-card-modal';
@@ -25,7 +26,7 @@ import type { LanguagePreference } from '@/i18n';
 import { FRAME_NAME_KEYS } from '@/lib/league';
 import { clbPerHourOf, formatClbPerHour, formatDecimal, statusClbPerHour } from '@/lib/mining-math';
 import { badgeCard, ShareCard } from '@/lib/share';
-import { Badge, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
+import { Badge, BadgeId, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
 import { theme } from '@/theme';
 
@@ -42,6 +43,7 @@ export default function ProfileScreen() {
   const [badgesFailed, setBadgesFailed] = useState(false);
   const [newBadgeIds, setNewBadgeIds] = useState<string[]>([]);
   const [shareCard, setShareCard] = useState<ShareCard | null>(null);
+  const [badgeOpen, setBadgeOpen] = useState<{ id: BadgeId; earnedAt: string | null } | null>(null);
   const [supportOpen, setSupportOpen] = useState(false);
   const { active: notifOn, permission, setEnabled, refreshPermission } = useNotifications();
   const { privacyOptionsRequired, openPrivacyOptions } = useAds();
@@ -165,7 +167,11 @@ export default function ProfileScreen() {
         {badges ? (
           <>
             <Text style={styles.badgeCount}>{t('profile.badgesCount', { earned: earnedCount(badges), total: badges.length })}</Text>
-            <BadgeGrid badges={badges} newIds={newBadgeIds} onPressBadge={(id, earned) => earned && setShareCard(badgeCard(id))} />
+            <BadgeGrid
+              badges={badges}
+              newIds={newBadgeIds}
+              onPressBadge={(id) => setBadgeOpen({ id, earnedAt: badges.find((b) => b.id === id)?.earnedAt ?? null })}
+            />
           </>
         ) : (
           badgesFailed && <Text style={styles.error}>{t('profile.badgeLoadFailed')}</Text>
@@ -232,6 +238,14 @@ export default function ProfileScreen() {
 
         <WidgetDiagnostics />
       </ScrollView>
+      <BadgeDetailModal
+        badge={badgeOpen}
+        onClose={() => setBadgeOpen(null)}
+        onShare={(id) => {
+          setBadgeOpen(null);
+          setShareCard(badgeCard(id));
+        }}
+      />
       <ShareCardModal card={shareCard} onClose={() => setShareCard(null)} />
       <SupportModal visible={supportOpen} onClose={() => setSupportOpen(false)} />
     </SafeAreaView>
