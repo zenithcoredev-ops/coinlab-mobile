@@ -386,6 +386,15 @@ const en = {
   'notif.comeback.1': '👋 We miss you! Come back to Waligo and pick up where you left off.',
   'notif.comeback.2': '⚡ A new session is waiting for you. Start it today?',
   'notif.comeback.3': '🌱 A quick return is all it takes: start collecting and build a new streak.',
+  'notif.league.1': '🏆 The league week ends soon! Keep collecting today to hold your rank.',
+  'notif.league.2': '🏆 Last evening of the week: your last chance to move up a league, keep collecting.',
+  'notif.league.3': '⏳ The league week is almost over. Keep your session running to secure your spot.',
+  'notif.steps.1': '👟 {steps} steps to your next step bonus. Fancy a short walk?',
+  'notif.steps.2': '👟 Take {steps} more steps and your speed bonus goes up a level.',
+  'notif.steps.3': '🚶 You’re close: {steps} steps until your collecting speed goes up.',
+  'notif.boost.1': '⚡ Want to raise your collecting speed for a while? A short video is all it takes.',
+  'notif.boost.2': '⚡ Today’s speed boost is still waiting for you.',
+  'notif.boost.3': '🚀 Your session is running: collect faster with a speed boost.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

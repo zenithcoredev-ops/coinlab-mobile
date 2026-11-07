@@ -1,5 +1,5 @@
 import { translate } from '@/i18n/translate';
-import { ALL_TYPES_ON, DAILY_LIMIT, outOfQuietHours, PlanInput, planNotifications, VARIANTS } from '../notification-plan';
+import { ALL_TYPES_ON, DAILY_LIMIT, leagueReminderTime, outOfQuietHours, PlanInput, planNotifications, VARIANTS } from '../notification-plan';
 import { LocalClock, planStreakReminders } from '../streak-reminder';
 
 // Jest can't switch the process time zone per file, so the planner runs on a clock for a named zone.
@@ -104,7 +104,90 @@ describe('come back', () => {
   });
 });
 
-describe('daily limit and priority', () => {
+describe('league', () => {
+  // Weeks end Monday 00:00 UTC: 03:00 Monday in Istanbul, 20:00 Sunday (EDT) in New York.
+  const weekEnd = new Date('2026-03-16T00:00:00Z');
+
+  it('reminds at the last local 20:00 at least 2 h before the week ends', () => {
+    expect(leagueReminderTime(weekEnd, ist.clock)).toEqual(ist.at(2026, 3, 15, 20)); // Sunday evening
+    expect(leagueReminderTime(weekEnd, ny.clock)).toEqual(ny.at(2026, 3, 14, 20)); // Saturday: Sunday 20:00 is the end
+  });
+
+  it('only for someone in a league, on the league channel, opening the League tab', () => {
+    const now = ist.at(2026, 3, 13, 12);
+    expect(of(plan(now, { league: { weekEndsAt: weekEnd } }), 'league')).toEqual([
+      expect.objectContaining({ id: 'notif-league-0', fireAt: ist.at(2026, 3, 15, 20), channel: 'league', route: '/(tabs)/league' }),
+    ]);
+    expect(of(plan(now, { league: null }), 'league')).toEqual([]);
+    expect(of(plan(ist.at(2026, 3, 15, 21), { league: { weekEndsAt: weekEnd } }), 'league')).toEqual([]); // already past
+  });
+});
+
+describe('steps', () => {
+  const session = { startedAt: iso(ist.at(2026, 3, 10, 8)), endsAt: iso(ist.at(2026, 3, 11, 8)) };
+  const steps = (sessionSteps: number) => ({ sessionSteps, perLevel: 1000, cap: 10_000 });
+
+  it('reminds at 19:00 while the session runs, when the next level is within 1,500 steps, with the steps left', () => {
+    const planned = of(plan(ist.at(2026, 3, 10, 12), { session, steps: steps(1240) }), 'steps');
+    expect(planned).toEqual([
+      expect.objectContaining({ fireAt: ist.at(2026, 3, 10, 19), channel: 'collect', route: '/(tabs)/tasks', params: { steps: 760 } }),
+    ]);
+  });
+
+  it('not without a session, without Health Connect, at the cap, or once 19:00 has passed', () => {
+    const now = ist.at(2026, 3, 10, 12);
+    expect(of(plan(now, { steps: steps(1240) }), 'steps')).toEqual([]);
+    expect(of(plan(now, { session, steps: null }), 'steps')).toEqual([]);
+    expect(of(plan(now, { session, steps: steps(10_000) }), 'steps')).toEqual([]);
+    expect(of(plan(ist.at(2026, 3, 10, 19, 30), { session, steps: steps(1240) }), 'steps')).toEqual([]);
+  });
+
+  it('not when the session ends before 19:00', () => {
+    const short = { startedAt: iso(ist.at(2026, 3, 9, 17)), endsAt: iso(ist.at(2026, 3, 10, 17)) };
+    expect(of(plan(ist.at(2026, 3, 10, 12), { session: short, steps: steps(1240) }), 'steps')).toEqual([]);
+  });
+});
+
+describe('boost', () => {
+  const session = { startedAt: iso(ist.at(2026, 3, 10, 8)), endsAt: iso(ist.at(2026, 3, 11, 8)) };
+
+  it('reminds at 14:00 once the session has run 2 h, while views are left today', () => {
+    const planned = of(plan(ist.at(2026, 3, 10, 9), { session, boost: { usedToday: 1, dailyLimit: 3 } }), 'boost');
+    expect(planned.map((n) => n.fireAt)).toEqual([ist.at(2026, 3, 10, 14)]);
+    expect(planned[0]).toMatchObject({ channel: 'collect', route: '/(tabs)' });
+  });
+
+  it('not when today’s views are used up, when not offered (ad-free/VIP, no consent...), or without a session', () => {
+    const now = ist.at(2026, 3, 10, 9);
+    expect(of(plan(now, { session, boost: { usedToday: 3, dailyLimit: 3 } }), 'boost')).toEqual([]);
+    expect(of(plan(now, { session, boost: null }), 'boost')).toEqual([]);
+    expect(of(plan(now, { boost: { usedToday: 0, dailyLimit: 3 } }), 'boost')).toEqual([]);
+  });
+
+  it('on the session’s second day too (its views start again), and not before the session is 2 h old', () => {
+    const late = { startedAt: iso(ist.at(2026, 3, 10, 13)), endsAt: iso(ist.at(2026, 3, 11, 13)) };
+    const planned = of(plan(ist.at(2026, 3, 10, 13, 30), { session: late, boost: { usedToday: 0, dailyLimit: 3 } }), 'boost');
+    expect(planned.map((n) => n.fireAt)).toEqual([]); // 14:00 today is too early, 14:00 tomorrow is after the end
+    const long = { startedAt: iso(ist.at(2026, 3, 10, 10)), endsAt: iso(ist.at(2026, 3, 11, 15)) };
+    const both = of(plan(ist.at(2026, 3, 10, 13), { session: long, boost: { usedToday: 3, dailyLimit: 3 } }), 'boost');
+    expect(both.map((n) => n.fireAt)).toEqual([ist.at(2026, 3, 11, 14)]); // today used up; tomorrow starts at 0
+  });
+});
+
+describe('daily limit and priority: all types', () => {
+  it('ranks league over steps over boost over come back on one day', () => {
+    // The 15th (Sunday): league 20:00, steps 19:00, boost 14:00; only the top two stay.
+    const now = ist.at(2026, 3, 15, 10);
+    const session = { startedAt: iso(ist.at(2026, 3, 15, 8)), endsAt: iso(ist.at(2026, 3, 16, 8)) };
+    const planned = plan(now, {
+      session,
+      league: { weekEndsAt: new Date('2026-03-16T00:00:00Z') },
+      steps: { sessionSteps: 1240, perLevel: 1000, cap: 10_000 },
+      boost: { usedToday: 0, dailyLimit: 3 },
+    }).filter((n) => n.fireAt < ist.at(2026, 3, 16));
+    expect(planned.map((n) => n.type)).toEqual(['steps', 'league']); // in time order; boost dropped
+  });
+
   it('keeps at most two a day, by priority: session end > streak > ... > come back', () => {
     // The 12th: session end (09:00 after quiet hours), streak "not started" at 20:00, come back at 19:00.
     const now = ist.at(2026, 3, 10, 12);
@@ -152,7 +235,7 @@ describe('text variants', () => {
     for (const [group, keys] of Object.entries(VARIANTS)) {
       for (const key of keys) {
         for (const lang of ['tr', 'en'] as const) {
-          const params = group === 'streak' ? { count: 5, hours: 4 } : undefined;
+          const params: Record<string, number> | undefined = group === 'streak' ? { count: 5, hours: 4 } : group === 'steps' ? { steps: 1200 } : undefined;
           const text = translate(lang, key as never, params);
           expect([key, text]).not.toEqual([key, key]);
           expect(text).not.toMatch(/\{\w+\}/);

@@ -73,6 +73,19 @@ describe('syncNotifications', () => {
     for (const body of bodies) expect(variants).toContain(body);
   });
 
+  it('the step and league reminders: their channels, screens and step count in the app’s style', async () => {
+    const session = { startedAt: new Date(now.getTime() - HOUR).toISOString(), endsAt: new Date(now.getTime() + 20 * HOUR).toISOString() };
+    await syncNotifications(
+      { streak: null, session, steps: { sessionSteps: 8_600, perLevel: 1000, cap: 10_000 }, league: { weekEndsAt: deviceClock(now, 2, 23) } },
+      options()
+    );
+    const steps = scheduled().find((n) => n.id === 'notif-steps-0')!;
+    expect(steps).toMatchObject({ channelId: CHANNEL_IDS.collect, route: '/(tabs)/tasks', date: deviceClock(now, 0, 19) });
+    expect(steps.body).toMatch(/400/);
+    const league = scheduled().find((n) => n.id === 'notif-league-0')!;
+    expect(league).toMatchObject({ channelId: CHANNEL_IDS.league, route: '/(tabs)/league', date: deviceClock(now, 2, 20) });
+  });
+
   it('cancels every id first (old streak ones too), and schedules nothing when notifications are off', async () => {
     await syncNotifications({ streak: null, session: null }, { ...options(), enabled: false });
     expect(mocked.cancelScheduledNotificationAsync.mock.calls.map(([id]) => id).sort()).toEqual([...ALL_NOTIFICATION_IDS, ...LEGACY_IDS].sort());

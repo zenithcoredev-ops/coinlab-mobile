@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 
-import { ADS_SUPPORTED } from '@/ads/config';
+import { ADS_SUPPORTED, adUnitId } from '@/ads/config';
 import { ConsentState, gatherConsent, initializeAds, showPrivacyOptions } from '@/ads/consent';
 import { flushImpressions } from '@/ads/impressions';
 import { useSession } from '@/context/session';
@@ -13,6 +13,17 @@ type AdsState = ConsentState & {
    * ad-free/VIP (unknown, e.g. offline, counts as no, so a paying user never sees one by mistake).
    */
   interstitialsAllowed: boolean;
+  /** The account is known to be ad-free/VIP; null until known. */
+  adFree: boolean | null;
+  /** The server has no rewarded ads (a 404/503 on creating an intent); hidden for the rest of the run. */
+  rewardedUnavailable: boolean;
+  markRewardedUnavailable: () => void;
+  /**
+   * The rewarded speed boost can be offered (for the boost reminder): supported, consented,
+   * configured, not hidden after a 404/503, and never to ad-free/VIP accounts (unknown counts as
+   * ad-free, as for the interstitial). The card adds the server's limits and a running session.
+   */
+  rewardedOffered: boolean;
   /** Profile → Privacy options. */
   openPrivacyOptions: () => Promise<void>;
 };
@@ -28,6 +39,8 @@ export function AdsProvider({ children }: { children: ReactNode }) {
   const token = auth?.token ?? null;
   const [consent, setConsent] = useState<ConsentState>({ canRequestAds: false, privacyOptionsRequired: false });
   const [adFree, setAdFree] = useState<boolean | null>(null);
+  const [rewardedUnavailable, setRewardedUnavailable] = useState(false);
+  const markRewardedUnavailable = useCallback(() => setRewardedUnavailable(true), []);
 
   const apply = useCallback((next: ConsentState) => {
     setConsent(next);
@@ -61,8 +74,16 @@ export function AdsProvider({ children }: { children: ReactNode }) {
   }, [apply]);
 
   const value = useMemo(
-    () => ({ ...consent, interstitialsAllowed: consent.canRequestAds && adFree === false, openPrivacyOptions }),
-    [consent, adFree, openPrivacyOptions]
+    () => ({
+      ...consent,
+      interstitialsAllowed: consent.canRequestAds && adFree === false,
+      adFree,
+      rewardedUnavailable,
+      markRewardedUnavailable,
+      rewardedOffered: ADS_SUPPORTED && consent.canRequestAds && !!adUnitId('rewardedBoost') && !rewardedUnavailable && adFree === false,
+      openPrivacyOptions,
+    }),
+    [consent, adFree, rewardedUnavailable, markRewardedUnavailable, openPrivacyOptions]
   );
   return <AdsContext.Provider value={value}>{children}</AdsContext.Provider>;
 }

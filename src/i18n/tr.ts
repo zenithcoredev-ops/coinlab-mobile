@@ -388,6 +388,15 @@ const tr: Record<TranslationKey, string> = {
   'notif.comeback.1': '👋 Seni özledik! Waligo’ya dön, kaldığın yerden devam et.',
   'notif.comeback.2': '⚡ Yeni bir oturum seni bekliyor. Bugün başlatmaya ne dersin?',
   'notif.comeback.3': '🌱 Kısa bir dönüş yeter: toplamayı başlat, yeni bir seri kur.',
+  'notif.league.1': '🏆 Lig haftası yakında bitiyor! Sıralamanı korumak için bugün toplamayı sürdür.',
+  'notif.league.2': '🏆 Haftanın son akşamı: bir üst lig için son şansın, toplamaya devam et.',
+  'notif.league.3': '⏳ Lig haftası bitmek üzere. Yerini sağlamlaştırmak için oturumunu aktif tut.',
+  'notif.steps.1': '👟 Bir sonraki adım bonusuna {steps} adım kaldı. Kısa bir yürüyüşe ne dersin?',
+  'notif.steps.2': '👟 {steps} adım daha at, hız bonusun bir kademe artsın.',
+  'notif.steps.3': '🚶 Hedefe çok yakınsın: {steps} adımda toplama hızın artıyor.',
+  'notif.boost.1': '⚡ Toplama hızını bir süreliğine artırmak ister misin? Kısa bir video yeter.',
+  'notif.boost.2': '⚡ Bugünkü hız takviyen hâlâ seni bekliyor.',
+  'notif.boost.3': '🚀 Oturumun sürüyor: bir hız takviyesiyle daha hızlı topla.',
 };
 
 export default tr;
