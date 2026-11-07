@@ -17,6 +17,9 @@ jest.mock('expo-notifications', () => ({
   cancelScheduledNotificationAsync: jest.fn().mockResolvedValue(undefined),
   scheduleNotificationAsync: jest.fn().mockResolvedValue('id'),
   getPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  useLastNotificationResponse: () => null,
+  clearLastNotificationResponse: jest.fn(),
+  DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
 }));
 jest.mock('@/services/google-auth', () => ({
   signOutGoogle: jest.fn().mockResolvedValue(undefined),

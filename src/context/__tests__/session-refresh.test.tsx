@@ -8,7 +8,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 jest.mock('@/services/google-auth', () => ({ signOutGoogle: jest.fn().mockResolvedValue(undefined) }));
-jest.mock('@/services/streak-reminder', () => ({ cancelStreakReminder: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('@/services/notification-scheduler', () => ({ cancelNotifications: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('@/widget/sync', () => ({ clearWidget: jest.fn().mockResolvedValue(undefined) }));
 
 const AsyncStorage = require('@react-native-async-storage/async-storage');

@@ -6,7 +6,8 @@ import { ColorValue } from 'react-native';
 import { MiningProvider } from '@/context/mining';
 import { StepsProvider } from '@/context/steps';
 import { useSession } from '@/context/session';
-import { useStreakReminder } from '@/hooks/use-streak-reminder';
+import { useNotificationPlanner } from '@/hooks/use-notification-planner';
+import { useNotificationRouting } from '@/hooks/use-notification-routing';
 import { useTimezoneSync } from '@/hooks/use-timezone-sync';
 import { useWidgetSync } from '@/hooks/use-widget-sync';
 import { useI18n } from '@/i18n';
@@ -17,7 +18,8 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 // Rendered inside MiningProvider so it can read the streak state and mirror it to the widget.
 function ReminderSync() {
   useTimezoneSync();
-  useStreakReminder();
+  useNotificationPlanner();
+  useNotificationRouting();
   useWidgetSync();
   return null;
 }

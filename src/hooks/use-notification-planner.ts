@@ -4,14 +4,17 @@ import { AppState } from 'react-native';
 import { useMining } from '@/context/mining';
 import { useNotifications } from '@/context/notifications';
 import { useI18n } from '@/i18n';
-import { syncStreakReminder } from '@/services/streak-reminder';
+import { syncNotifications } from '@/services/notification-scheduler';
 
-/** Keeps the pending local reminders in step with the server's streak state, language and settings. */
-export function useStreakReminder() {
+/**
+ * Keeps the pending local notifications in step with the latest state: re-planned on opening the
+ * app, on every return to it, when the session starts or ends, when the status changes, and when
+ * the language or the user's choice changes. "Come back" reminders count from the last of these.
+ */
+export function useNotificationPlanner() {
   const { status } = useMining();
   const { active } = useNotifications();
   const { language } = useI18n();
-  // Rebuilt on every return to the app too, so the "not started" days roll forward.
   const [foregrounds, setForegrounds] = useState(0);
 
   useEffect(() => {
@@ -29,6 +32,9 @@ export function useStreakReminder() {
   useEffect(() => {
     if (streak === undefined || minedToday === undefined) return;
     const session = startedAt && endsAt ? { startedAt, endsAt } : null;
-    syncStreakReminder({ streak, minedToday, streakExpiresAt, streakAtExpiry, session }, active, language).catch(() => {});
+    syncNotifications(
+      { streak: { streak, minedToday, streakExpiresAt, streakAtExpiry, session }, session },
+      { enabled: active, language }
+    ).catch(() => {});
   }, [streak, minedToday, streakExpiresAt, streakAtExpiry, startedAt, endsAt, active, language, foregrounds]);
 }
