@@ -8,6 +8,7 @@ import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, S
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BadgeGrid } from '@/components/badge-grid';
+import { NotificationTypeSettings } from '@/components/notification-type-settings';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { SupportModal } from '@/components/support-modal';
 import { ScreenHeader } from '@/components/screen-header';
@@ -203,6 +204,7 @@ export default function ProfileScreen() {
             thumbColor={theme.colors.text}
           />
         </Card>
+        <NotificationTypeSettings />
 
         <WidgetWeatherSetting />
 

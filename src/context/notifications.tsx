@@ -1,15 +1,19 @@
 import * as Notifications from 'expo-notifications';
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
 import { useI18n } from '@/i18n';
 
+import { ALL_TYPES_ON } from '@/lib/notification-plan';
+import type { NotificationType, TypePrefs } from '@/lib/notification-plan';
 import {
   getPermissionState,
   loadNotificationsEnabled,
+  loadTypePrefs,
   PermissionState,
   requestPermission,
   saveNotificationsEnabled,
+  saveTypePrefs,
 } from '@/services/notifications';
 
 // Show reminders even if the app happens to be open when one fires.
@@ -31,6 +35,9 @@ type NotificationsState = {
   /** Turns reminders on (asking the OS if needed) or off. Resolves whether they ended up on. */
   setEnabled: (enabled: boolean) => Promise<boolean>;
   refreshPermission: () => Promise<void>;
+  /** Which kinds of notification are wanted (Profile → one switch each). */
+  typePrefs: TypePrefs;
+  setTypeEnabled: (type: NotificationType, enabled: boolean) => Promise<void>;
 };
 
 const Ctx = createContext<NotificationsState | null>(null);
@@ -38,6 +45,9 @@ const Ctx = createContext<NotificationsState | null>(null);
 export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [preferred, setPreferred] = useState(true);
   const [permission, setPermission] = useState<PermissionState>('undetermined');
+  const [typePrefs, setTypePrefs] = useState<TypePrefs>(ALL_TYPES_ON);
+  // The latest choice, so quick taps on two switches never save over each other.
+  const prefsRef = useRef<TypePrefs>(ALL_TYPES_ON);
   const { language } = useI18n();
 
   const refreshPermission = useCallback(async () => {
@@ -46,6 +56,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadNotificationsEnabled().then(setPreferred);
+    loadTypePrefs().then((saved) => {
+      prefsRef.current = saved;
+      setTypePrefs(saved);
+    });
     refreshPermission();
     // The user can change the permission in system settings while the app is backgrounded.
     const sub = AppState.addEventListener('change', (s) => s === 'active' && refreshPermission());
@@ -66,9 +80,24 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return true;
   }, [language]);
 
+  const setTypeEnabled = useCallback(async (type: NotificationType, enabled: boolean) => {
+    const next = { ...prefsRef.current, [type]: enabled };
+    prefsRef.current = next;
+    setTypePrefs(next);
+    await saveTypePrefs(next).catch(() => {});
+  }, []);
+
   const value = useMemo(
-    () => ({ preferred, permission, active: preferred && permission === 'granted', setEnabled, refreshPermission }),
-    [preferred, permission, setEnabled, refreshPermission]
+    () => ({
+      preferred,
+      permission,
+      active: preferred && permission === 'granted',
+      setEnabled,
+      refreshPermission,
+      typePrefs,
+      setTypeEnabled,
+    }),
+    [preferred, permission, setEnabled, refreshPermission, typePrefs, setTypeEnabled]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -4,9 +4,11 @@ import { Platform } from 'react-native';
 
 import { translate } from '@/i18n/translate';
 import type { Language } from '@/i18n/translate';
-import type { ChannelKey } from '@/lib/notification-plan';
+import { ALL_TYPES_ON } from '@/lib/notification-plan';
+import type { ChannelKey, NotificationType, TypePrefs } from '@/lib/notification-plan';
 
 const ENABLED_KEY = 'coinlab_notifications_enabled';
+const TYPES_KEY = 'coinlab_notification_types';
 // Android fixes a channel's settings (importance, vibration) once it exists, so changing them means
 // a new id. The old channels are removed once no pending reminder points at them.
 export const STREAK_CHANNEL_ID = 'streak-reminders-v2';
@@ -88,4 +90,21 @@ export async function loadNotificationsEnabled(): Promise<boolean> {
 
 export async function saveNotificationsEnabled(enabled: boolean) {
   await AsyncStorage.setItem(ENABLED_KEY, enabled ? 'true' : 'false');
+}
+
+/** Which kinds of notification the user wants; every kind is on unless switched off. */
+export async function loadTypePrefs(): Promise<TypePrefs> {
+  try {
+    const raw = await AsyncStorage.getItem(TYPES_KEY);
+    const saved = raw ? (JSON.parse(raw) as Partial<Record<NotificationType, unknown>>) : {};
+    const prefs = { ...ALL_TYPES_ON };
+    for (const type of Object.keys(prefs) as NotificationType[]) if (saved[type] === false) prefs[type] = false;
+    return prefs;
+  } catch {
+    return { ...ALL_TYPES_ON };
+  }
+}
+
+export async function saveTypePrefs(prefs: TypePrefs) {
+  await AsyncStorage.setItem(TYPES_KEY, JSON.stringify(prefs));
 }
