@@ -28,7 +28,7 @@ export function useNotificationPlanner() {
   const { auth } = useSession();
   const token = auth?.token ?? null;
   const { status } = useMining();
-  const { active } = useNotifications();
+  const { active, typePrefs } = useNotifications();
   const { language } = useI18n();
   const { availability, steps } = useSteps();
   const { rewardedOffered: boostOffered } = useAds();
@@ -83,7 +83,7 @@ export function useNotificationPlanner() {
         steps: stepsReady ? { sessionSteps: steps, perLevel: STEPS_PER_BONUS_UNIT, cap: STEP_BONUS_CAP_STEPS } : null,
         league: weekEndsAt ? { weekEndsAt } : null,
       },
-      { enabled: active, language, now }
+      { enabled: active, language, now, prefs: typePrefs }
     ).catch(() => {});
     // `league` is read through `leagueEnd`, which changes exactly when it matters here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,6 +101,7 @@ export function useNotificationPlanner() {
     steps,
     leagueEnd,
     active,
+    typePrefs,
     language,
     foregrounds,
   ]);

@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { CHANNEL_IDS, ensureChannels, requestPermission, STREAK_CHANNEL_ID } from '../notifications';
+import { CHANNEL_IDS, ensureChannels, loadTypePrefs, requestPermission, saveTypePrefs, STREAK_CHANNEL_ID } from '../notifications';
+import { ALL_TYPES_ON } from '@/lib/notification-plan';
 import { syncNotifications } from '../notification-scheduler';
 
 const streakOnly = (streak: number) => ({ streak: { streak, minedToday: true }, session: null });
@@ -94,5 +95,23 @@ describe('notification channels', () => {
     restoreOS();
     await ensureChannels('en');
     expect(mocked.setNotificationChannelAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('notification kinds', () => {
+  const AsyncStorage = require('@react-native-async-storage/async-storage');
+  beforeEach(() => AsyncStorage.clear());
+
+  it('are all on until switched off, and keep what was saved', async () => {
+    expect(await loadTypePrefs()).toEqual(ALL_TYPES_ON);
+    await saveTypePrefs({ ...ALL_TYPES_ON, boost: false, comeback: false });
+    expect(await loadTypePrefs()).toEqual({ ...ALL_TYPES_ON, boost: false, comeback: false });
+  });
+
+  it('read anything odd or missing as on', async () => {
+    await AsyncStorage.setItem('coinlab_notification_types', JSON.stringify({ league: false, steps: 'no', unknown: false }));
+    expect(await loadTypePrefs()).toEqual({ ...ALL_TYPES_ON, league: false });
+    await AsyncStorage.setItem('coinlab_notification_types', '{broken');
+    expect(await loadTypePrefs()).toEqual(ALL_TYPES_ON);
   });
 });
