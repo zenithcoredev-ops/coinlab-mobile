@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ComponentProps } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ProgressBar } from '@/components/ui';
+import { NeonBar } from '@/components/home/neon-bar';
+import { NeonCard } from '@/components/home/neon-card';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
 import { formatDecimal } from '@/lib/mining-math';
@@ -18,104 +19,101 @@ export const TASK_META: Record<string, { icon: IconName; title: TranslationKey; 
   steps: { icon: 'walk-outline', title: 'tasks.steps.title', hint: 'tasks.steps.hint', lock: 'tasks.lock.steps', lockInfo: 'tasks.lockInfo.steps' },
 };
 
-/** One daily task: what it is, its reward and progress, and claim / done / what opens it. */
+/**
+ * One daily task as a neon card: an icon box, the title, what to do and its gold reward; on the right
+ * "Al" (ready), a quiet "Alındı ✓" (done; not a button) or a lock with what opens it.
+ */
 export function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolean; onClaim: () => void }) {
   const { t, language } = useI18n();
   const meta = TASK_META[task.id];
   if (!meta) return null;
   const state = taskState(task);
   const target = task.target.toLocaleString(language);
+  const showProgress = task.target > 1 && !task.claimed;
 
   return (
-    <View style={[styles.task, state === 'ready' && styles.taskReady, state === 'claimed' && styles.taskClaimed]}>
-      <View style={[styles.taskIcon, state === 'ready' && styles.taskIconReady, state === 'claimed' && styles.taskIconClaimed]}>
-        <Ionicons
-          name={meta.icon}
-          size={20}
-          color={state === 'claimed' ? theme.colors.positive : state === 'ready' ? theme.colors.accent : theme.colors.textMuted}
-        />
-      </View>
-      <View style={styles.taskInfo}>
-        <Text style={styles.taskTitle}>{t(meta.title, { target: task.target.toLocaleString(language) })}</Text>
-        <Text style={styles.taskHint}>{t(meta.hint)}</Text>
-        <Text style={styles.taskReward}>
-          +{formatDecimal(task.reward, 2, language)} {t('unit.clb')}
-          {task.target > 1 && !task.claimed ? `  ·  ${task.progress.toLocaleString(language)} / ${task.target.toLocaleString(language)}` : ''}
-        </Text>
-        {task.target > 1 && !task.claimed ? <ProgressBar progress={task.progress / task.target} style={styles.taskBar} /> : null}
-      </View>
-      {state === 'ready' ? (
-        <Pressable
-          onPress={onClaim}
-          disabled={busy}
-          accessibilityRole="button"
-          style={[styles.action, styles.actionReady, busy && { opacity: 0.6 }]}>
-          {busy ? (
-            <ActivityIndicator color={theme.colors.accentInk} />
-          ) : (
-            <Text style={styles.actionReadyText}>{t('tasks.claim')}</Text>
-          )}
-        </Pressable>
-      ) : state === 'claimed' ? (
-        <View style={[styles.action, styles.actionClaimed]}>
-          <Text style={styles.actionClaimedText}>{t('tasks.done')}</Text>
+    <NeonCard grid style={styles.card} testID={`task-${task.id}`}>
+      <View style={styles.row}>
+        <View style={[styles.icon, state === 'claimed' && styles.iconClaimed]}>
+          <Ionicons name={meta.icon} size={20} color={theme.colors.neon} />
         </View>
-      ) : (
-        // Locked: says what opens it; a tap explains a little more.
-        <Pressable
-          onPress={() => Alert.alert(t(meta.title, { target }), t(meta.lockInfo, { target }))}
-          accessibilityRole="button"
-          accessibilityHint={t(meta.lockInfo, { target })}
-          style={({ pressed }) => [styles.action, styles.actionLocked, pressed && { opacity: 0.7 }]}>
-          <Ionicons name="lock-closed" size={13} color={theme.colors.textMuted} />
-          <Text style={styles.actionLockedText}>{t(meta.lock, { target })}</Text>
-        </Pressable>
-      )}
-    </View>
+        <View style={styles.info}>
+          <Text style={styles.title}>{t(meta.title, { target })}</Text>
+          <Text style={styles.hint}>{t(meta.hint)}</Text>
+          <Text style={styles.reward}>
+            +{formatDecimal(task.reward, 2, language)} {t('unit.clb')}
+            {showProgress ? <Text style={styles.count}>{`  ·  ${task.progress.toLocaleString(language)} / ${target}`}</Text> : null}
+          </Text>
+        </View>
+        {state === 'ready' ? (
+          <Pressable
+            onPress={onClaim}
+            disabled={busy}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.action, styles.actionReady, (busy || pressed) && { opacity: 0.75 }]}>
+            {busy ? <ActivityIndicator color={theme.colors.neonInk} /> : <Text style={styles.actionReadyText}>{t('tasks.claim')}</Text>}
+          </Pressable>
+        ) : state === 'claimed' ? (
+          // Done: a quiet label, not a button.
+          <View style={[styles.action, styles.actionClaimed]} accessibilityRole="text">
+            <Text style={styles.actionClaimedText}>{t('tasks.done')}</Text>
+          </View>
+        ) : (
+          // Locked: says what opens it; a tap explains a little more.
+          <Pressable
+            onPress={() => Alert.alert(t(meta.title, { target }), t(meta.lockInfo, { target }))}
+            accessibilityRole="button"
+            accessibilityHint={t(meta.lockInfo, { target })}
+            style={({ pressed }) => [styles.action, styles.actionLocked, pressed && { opacity: 0.7 }]}>
+            <Ionicons name="lock-closed" size={13} color={theme.colors.tabInactive} />
+            <Text style={styles.actionLockedText}>{t(meta.lock, { target })}</Text>
+          </Pressable>
+        )}
+      </View>
+      {showProgress ? <NeonBar progress={task.progress / task.target} height={8} style={styles.bar} /> : null}
+    </NeonCard>
   );
 }
 
 const styles = StyleSheet.create({
-  task: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.md,
-    backgroundColor: theme.colors.surfaceRaised,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md + 2,
-    padding: theme.spacing.md + 2,
-    marginBottom: theme.spacing.sm + 2,
-  },
-  taskReady: { borderColor: theme.colors.accentBorder },
-  taskClaimed: { opacity: 0.75 },
-  taskIcon: {
-    width: 40,
-    height: 40,
+  card: { marginBottom: theme.spacing.md, paddingVertical: theme.spacing.md + 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+  icon: {
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    backgroundColor: theme.colors.ringTrack,
+    borderWidth: 1.2,
+    borderColor: theme.colors.neon,
+    backgroundColor: theme.colors.neonSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  taskIconReady: { backgroundColor: theme.colors.accentSoft },
-  taskIconClaimed: { backgroundColor: theme.colors.positiveSoft },
-  taskInfo: { flex: 1, minWidth: 0 },
-  taskTitle: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 1 },
-  taskHint: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
-  taskBar: { marginTop: theme.spacing.sm },
-  taskReward: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs + 0.5, marginTop: 3 },
+  iconClaimed: { opacity: 0.6 },
+  info: { flex: 1, minWidth: 0 },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.md },
+  hint: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2, lineHeight: 16 },
+  reward: { color: theme.colors.accent, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.sm, marginTop: 4 },
+  count: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body },
+  bar: { marginTop: theme.spacing.md },
   action: {
-    minWidth: 84,
-    minHeight: 36,
-    borderRadius: theme.radius.sm + 2,
+    minWidth: 76,
+    minHeight: 38,
+    borderRadius: theme.radius.pill,
     paddingHorizontal: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionReady: { backgroundColor: theme.colors.accent },
-  actionReadyText: { color: theme.colors.accentInk, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.sm },
-  actionLocked: { backgroundColor: theme.colors.ringTrack, maxWidth: 124, paddingVertical: 6, gap: 2 },
-  actionLockedText: { color: theme.colors.textMuted, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs, textAlign: 'center' },
-  actionClaimed: { backgroundColor: theme.colors.positiveSoft },
-  actionClaimedText: { color: theme.colors.positive, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm },
+  actionReady: {
+    backgroundColor: theme.colors.neon,
+    shadowColor: theme.colors.neon,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
+  },
+  actionReadyText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
+  actionClaimed: { backgroundColor: theme.colors.neonSoft },
+  actionClaimedText: { color: theme.colors.neon, fontFamily: theme.fonts.rounded, fontSize: theme.fontSizes.sm },
+  actionLocked: { maxWidth: 118, paddingVertical: 6, gap: 2, borderWidth: 1, borderColor: theme.colors.neonSoft },
+  actionLockedText: { color: theme.colors.tabInactive, fontFamily: theme.fonts.rounded, fontSize: theme.fontSizes.xs, textAlign: 'center' },
 });

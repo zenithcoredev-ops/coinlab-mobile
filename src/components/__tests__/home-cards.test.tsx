@@ -4,8 +4,6 @@ import { CollectRing } from '../home/collect-ring';
 import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '../home/home-cards';
 
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
-jest.mock('react-native-reanimated', () => require('react-native-reanimated/mock'));
 jest.mock('@/i18n', () => ({ useI18n: () => ({ language: 'tr', t: (k: string, p?: object) => require('@/i18n/translate').translate('tr', k, p) }) }));
 const mockNavigate = jest.fn();
 jest.mock('expo-router', () => ({

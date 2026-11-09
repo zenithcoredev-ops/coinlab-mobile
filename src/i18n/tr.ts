@@ -165,8 +165,6 @@ const tr: Record<TranslationKey, string> = {
   'league.name.9': 'Elmas Lig',
 
   'tasks.title': 'Günlük görevler',
-  'tasks.subtitle': 'Her gün 00:00 UTC’de sıfırlanır. Tamamladığın her görev için anında Wago ödülü al.',
-  'tasks.subtitleLocal': 'Her gün gece yarısı (yerel saat) sıfırlanır. Tamamladığın her görev için anında Wago ödülü al.',
   'tasks.loadFailed': 'Görevlerin yüklenemedi',
   'tasks.earnedToday': 'Bugün kazanılan',
   'tasks.resetsIn': 'Sıfırlanmaya {time}',
@@ -461,6 +459,9 @@ const tr: Record<TranslationKey, string> = {
   'home.tasks.next': "Kalan: {task} · +{reward} Wago",
   'home.tasks.allDone': "Bugünün görevleri tamam",
   'ads.boost.watchCount': "İzle · {used}/{limit}",
+  'tasks.resetNoteLocal': "Her gün gece yarısı (yerel saat) sıfırlanır.",
+  'tasks.resetNote': "Her gün 00:00 UTC’de sıfırlanır.",
+  'tasks.resetsInLabel': "Sıfırlanmaya",
 };
 
 export default tr;

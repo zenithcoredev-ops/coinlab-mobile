@@ -1,27 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { contourPaths, Point, ringContours } from '@/lib/home-visuals';
 import { theme } from '@/theme';
 
-/** Background looks a tab can pick. Only the Collect tab uses the neon one for now. */
+/** Background looks a tab can pick. */
 export type BackgroundVariant = 'neon' | 'plain';
 
 /**
- * The layer behind a screen's scrolling content: topographic lines drawn in code (faint green) and,
- * around `focus` (the collecting ring), a few turquoise neon lines. Sized to the content, so it
- * scrolls with it and the lines stay around the ring.
+ * The layer behind a screen: topographic lines drawn in code (faint green) and, around `focus` (the
+ * collecting ring), a few turquoise neon lines. With an `image` (see backgrounds.ts), the picture
+ * fills the layer under a ~65 % dark green-black shade and the lines get fainter still; without one
+ * the drawn background stands alone, so a missing picture changes nothing else.
  */
 export function ScreenBackground({
   variant = 'neon',
   focus,
   focusRadius = 100,
+  image,
 }: {
   variant?: BackgroundVariant;
   focus?: Point | null;
   focusRadius?: number;
+  image?: ImageSourcePropType | null;
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const lines = useMemo(() => (variant === 'neon' ? contourPaths(size.width, size.height) : []), [variant, size.width, size.height]);
@@ -32,10 +35,16 @@ export function ScreenBackground({
       pointerEvents="none"
       style={StyleSheet.absoluteFill}
       onLayout={(e) => setSize({ width: Math.round(e.nativeEvent.layout.width), height: Math.round(e.nativeEvent.layout.height) })}>
+      {image ? (
+        <>
+          <Image testID="background-image" source={image} resizeMode="cover" style={StyleSheet.absoluteFill} />
+          <View testID="background-shade" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.imageShade }]} />
+        </>
+      ) : null}
       {size.width > 0 && variant === 'neon' ? (
         <Svg width={size.width} height={size.height}>
           {lines.map((d, i) => (
-            <Path key={`c${i}`} d={d} stroke={theme.colors.contour} strokeWidth={1} fill="none" />
+            <Path key={`c${i}`} d={d} stroke={image ? theme.colors.contourFaint : theme.colors.contour} strokeWidth={1} fill="none" />
           ))}
           {neon.map((d, i) => (
             // A soft wide stroke under a thin bright one: a neon line without blur filters.
