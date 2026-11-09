@@ -30,6 +30,9 @@ import { Badge, BadgeId, earnedCount, getBadges, newlyEarned, vipDaysLeft } from
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
 import { theme } from '@/theme';
 
+// If this screen throws while drawing, the tab shows a retry screen instead of the app closing.
+export { ScreenError as ErrorBoundary } from '@/components/screen-error';
+
 const BADGES_SEEN_KEY = 'coinlab_badges_seen';
 
 export default function ProfileScreen() {

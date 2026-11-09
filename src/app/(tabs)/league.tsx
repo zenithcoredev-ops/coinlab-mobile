@@ -43,6 +43,9 @@ import {
 import { saveLeagueSnapshot } from '@/services/league-cache';
 import { theme } from '@/theme';
 
+// If this screen throws while drawing, the tab shows a retry screen instead of the app closing.
+export { ScreenError as ErrorBoundary } from '@/components/screen-error';
+
 const RESULT_SEEN_KEY = 'coinlab_league_result_seen';
 const TOURNAMENT_SEEN_KEY = 'coinlab_tournament_result_seen';
 const NEXT_STAGE: Record<TournamentStage, TournamentStage | null> = { qf: 'sf', sf: 'final', final: null };

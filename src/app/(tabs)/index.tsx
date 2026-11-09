@@ -30,6 +30,9 @@ import {
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
 
+// If this screen throws while drawing, the tab shows a retry screen instead of the app closing.
+export { ScreenError as ErrorBoundary } from '@/components/screen-error';
+
 const RING_PAD = theme.spacing.xl;
 
 export default function MineScreen() {

@@ -461,6 +461,8 @@ const en = {
   'tasks.resetNote': "Resets every day at 00:00 UTC.",
   'tasks.resetsInLabel': "Resets in",
   'steps.sessionLabel': "Steps this session",
+  'error.screen.title': "Something went wrong",
+  'error.screen.body': "This screen ran into an error. Try again; the rest of the app keeps working.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

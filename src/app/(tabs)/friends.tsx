@@ -32,6 +32,9 @@ import {
 } from '@/services/friends-api';
 import { theme } from '@/theme';
 
+// If this screen throws while drawing, the tab shows a retry screen instead of the app closing.
+export { ScreenError as ErrorBoundary } from '@/components/screen-error';
+
 export default function FriendsScreen() {
   const { t, language } = useI18n();
   const { auth } = useSession();
