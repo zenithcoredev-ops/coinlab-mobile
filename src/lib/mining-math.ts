@@ -113,6 +113,38 @@ export function liveBalanceAt(status: MiningStatus | null, sinceFetchMs: number)
   return settled + session.accruedClb + (accruingMs / 1000) * (statusClbPerHour(status) / 3600);
 }
 
+/** Start of the device's local day that `ms` falls in. */
+export function startOfLocalDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/**
+ * "Collected today", ticking on like the balance: the server's `collectedToday` as of
+ * `collectedTodayAsOf`, plus the running session's speed for the time since then (never past the
+ * session's end). Server and device clocks are lined up the same way as the balance: the gap between
+ * `collectedTodayAsOf` and `serverTime` is server time, the rest is measured on the device since the
+ * status arrived. Once the local day has turned since the server counted, it starts again from zero
+ * at local midnight. Null when the server doesn't send the figure.
+ */
+export function liveCollectedTodayAt(status: MiningStatus | null, fetchedAt: number, now: number): number | null {
+  if (!status || typeof status.collectedToday !== 'number') return null;
+  const serverNow = Date.parse(status.serverTime);
+  const asOfServer = status.collectedTodayAsOf ? Date.parse(status.collectedTodayAsOf) : serverNow;
+  const lagMs = Number.isFinite(serverNow) && Number.isFinite(asOfServer) ? Math.max(0, serverNow - asOfServer) : 0;
+  // Everything on the device clock from here.
+  const asOf = fetchedAt - lagMs;
+  const session = status.session;
+  const sessionEnd = session ? fetchedAt + session.remainingMs : asOf;
+  const perMs = session ? statusClbPerHour(status) / 3_600_000 : 0;
+  const accrued = (from: number) => Math.max(0, Math.min(now, sessionEnd) - from) * perMs;
+
+  const dayStart = startOfLocalDay(now);
+  if (dayStart > asOf) return accrued(dayStart);
+  return status.collectedToday + accrued(asOf);
+}
+
 /** 0..1 share of the session already elapsed. */
 export function sessionProgress(remainingMs: number, durationMs: number): number {
   if (durationMs <= 0) return 0;

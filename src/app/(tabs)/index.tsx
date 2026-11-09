@@ -21,6 +21,7 @@ import {
   formatDuration,
   isStreakAtRisk,
   liveBalanceAt,
+  liveCollectedTodayAt,
   remainingSinceFetch,
   sessionProgress,
   statusClbPerHour,
@@ -46,6 +47,8 @@ export default function MineScreen() {
   const isMining = remainingMs > 0;
   const startMining = useStartMining(!!status && !isMining);
   const balance = liveBalanceAt(status, sinceFetch);
+  // Same tick as the balance.
+  const collectedToday = liveCollectedTodayAt(status, fetchedAt, now);
   const durationMs = session ? Math.max(1, Date.parse(session.endsAt) - Date.parse(session.startedAt)) : MINING_SESSION_MS;
   const progress = isMining ? sessionProgress(remainingMs, durationMs) : 0;
   const rate = formatClbPerHour(statusClbPerHour(status), language);
@@ -108,7 +111,7 @@ export default function MineScreen() {
           {error ? <Text style={styles.error}>{error || t('mine.statusFailed')}</Text> : null}
         </View>
 
-        <TodayStrip collectedToday={status?.collectedToday} />
+        <TodayStrip collectedToday={collectedToday} />
 
         <View style={styles.pair}>
           <StepsMiniCard />

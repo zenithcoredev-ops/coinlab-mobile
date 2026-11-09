@@ -72,6 +72,8 @@ export type MiningStatus = {
    * that don't send it yet; the Collect screen then leaves out its "collected today" strip.
    */
   collectedToday?: number;
+  /** ISO-8601 server time `collectedToday` was counted at; the app runs it on from there. */
+  collectedTodayAsOf?: string;
   /** Rewarded speed boosts; missing from servers without them (then the rewarded ad stays hidden). */
   ads?: {
     usedToday: number;
