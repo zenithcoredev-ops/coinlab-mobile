@@ -12,7 +12,7 @@ import { theme } from '@/theme';
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
 /** `lock`: what opens the task (on its locked button); `lockInfo`: the longer note shown on tap. */
-const TASK_META: Record<string, { icon: IconName; title: TranslationKey; hint: TranslationKey; lock: TranslationKey; lockInfo: TranslationKey }> = {
+export const TASK_META: Record<string, { icon: IconName; title: TranslationKey; hint: TranslationKey; lock: TranslationKey; lockInfo: TranslationKey }> = {
   mine: { icon: 'flash-outline', title: 'tasks.mine.title', hint: 'tasks.mine.hint', lock: 'tasks.lock.mine', lockInfo: 'tasks.lockInfo.mine' },
   friend: { icon: 'people-outline', title: 'tasks.friend.title', hint: 'tasks.friend.hint', lock: 'tasks.lock.friend', lockInfo: 'tasks.lockInfo.friend' },
   steps: { icon: 'walk-outline', title: 'tasks.steps.title', hint: 'tasks.steps.hint', lock: 'tasks.lock.steps', lockInfo: 'tasks.lockInfo.steps' },

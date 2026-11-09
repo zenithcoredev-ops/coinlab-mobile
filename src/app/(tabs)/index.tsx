@@ -1,36 +1,54 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 
 import { AdBoostCard } from '@/components/ad-boost-card';
-import { ProgressRing } from '@/components/progress-ring';
+import { CollectRing, RING_SIZE } from '@/components/home/collect-ring';
+import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '@/components/home/home-cards';
+import { NeonCard } from '@/components/home/neon-card';
+import { ScanLight, ScreenBackground } from '@/components/home/screen-background';
 import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
 import { ScreenHeader } from '@/components/screen-header';
 import { useMining } from '@/context/mining';
+import { useAmbientMotion } from '@/hooks/use-ambient-motion';
 import { useNow } from '@/hooks/use-now';
 import { useStartMining } from '@/hooks/use-start-mining';
 import { useI18n } from '@/i18n';
-import { formatClb, formatClbPerHour, formatDuration, statusClbPerHour, isStreakAtRisk, streakDayIsLocal, liveBalanceAt, remainingSinceFetch, sessionProgress } from '@/lib/mining-math';
+import {
+  formatClb,
+  formatClbPerHour,
+  formatDuration,
+  isStreakAtRisk,
+  liveBalanceAt,
+  remainingSinceFetch,
+  sessionProgress,
+  statusClbPerHour,
+  streakDayIsLocal,
+} from '@/lib/mining-math';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
+
+const RING_PAD = theme.spacing.xl;
 
 export default function MineScreen() {
   const { t, language } = useI18n();
   const { status, fetchedAt, error, starting, refresh } = useMining();
   const now = useNow(1000);
   const [rateOpen, setRateOpen] = useState(false);
+  const animate = useAmbientMotion();
+  const { width } = useWindowDimensions();
+  const [ringTop, setRingTop] = useState<number | null>(null);
 
   const sinceFetch = fetchedAt ? now - fetchedAt : 0;
   const session = status?.session ?? null;
   const remainingMs = remainingSinceFetch(status, sinceFetch);
   const isMining = remainingMs > 0;
   const startMining = useStartMining(!!status && !isMining);
-  const boosted = (status?.thsBreakdown.ads ?? 0) > 0;
   const balance = liveBalanceAt(status, sinceFetch);
   const durationMs = session ? Math.max(1, Date.parse(session.endsAt) - Date.parse(session.startedAt)) : MINING_SESSION_MS;
   const progress = isMining ? sessionProgress(remainingMs, durationMs) : 0;
+  const rate = formatClbPerHour(statusClbPerHour(status), language);
 
   // The session just ran out locally: pull the settled balance from the server.
   const expired = !!session && remainingMs === 0;
@@ -38,145 +56,113 @@ export default function MineScreen() {
     if (expired) refresh();
   }, [expired, refresh]);
 
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value = isMining ? withRepeat(withTiming(0.55, { duration: 800 }), -1, true) : 1;
-  }, [isMining, pulse]);
-  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
-
-  const ringColor = boosted ? theme.colors.accent : theme.colors.positive;
+  // Where the ring's centre is inside the scrolling content, for the turquoise lines around it.
+  const focus = useMemo(() => (ringTop === null ? null : { x: width / 2, y: ringTop + RING_PAD + RING_SIZE / 2 }), [ringTop, width]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScreenBackground variant="neon" focus={focus} focusRadius={RING_SIZE / 2} />
         <ScreenHeader />
 
-        <View style={styles.balanceCard}>
+        <NeonCard grid testID="balance-card">
           <Text style={styles.balanceLabel}>{t('mine.balance')}</Text>
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceValue}>{formatClb(balance, language)}</Text>
+            <Text style={styles.balanceValue} adjustsFontSizeToFit numberOfLines={1}>
+              {formatClb(balance, language)}
+            </Text>
             <Text style={styles.balanceUnit}>{t('mine.clb')}</Text>
           </View>
           <View style={styles.balanceSub}>
-            <Text style={[styles.rateText, isMining && { color: ringColor }]}>
-              {isMining ? t('mine.rateActive', { rate: formatClbPerHour(statusClbPerHour(status), language) }) : t('mine.rateStopped')}
-            </Text>
+            <Text style={[styles.rateText, isMining && styles.rateActive]}>{isMining ? t('mine.rateActive', { rate }) : t('mine.rateStopped')}</Text>
             <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
-              <Ionicons name="information-circle-outline" size={16} color={theme.colors.textMuted} />
+              <Ionicons name="information-circle-outline" size={16} color={theme.colors.tabInactive} />
             </Pressable>
           </View>
-        </View>
+        </NeonCard>
 
-        <View style={styles.mineZone}>
-          <ProgressRing progress={progress} color={ringColor}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              disabled={isMining || starting || !status}
-              onPress={startMining}
-              style={[styles.core, isMining ? styles.coreActive : styles.coreIdle]}
-              accessibilityRole="button"
-              accessibilityLabel={isMining ? t('mine.active') : t('mine.start')}>
-              {starting || (!status && !error) ? (
-                <ActivityIndicator color={isMining ? theme.colors.text : theme.colors.accentInk} />
-              ) : isMining ? (
-                <>
-                  <Animated.View style={pulseStyle}>
-                    <Ionicons name="flash" size={30} color={theme.colors.text} />
-                  </Animated.View>
-                  <Text style={styles.coreActiveLabel}>{t('mine.active')}</Text>
-                  <Text style={[styles.coreRate, { color: ringColor }]}>{formatClbPerHour(statusClbPerHour(status), language)} {t('unit.rate')}</Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="flash" size={34} color={theme.colors.accentInk} />
-                  <Text style={styles.coreIdleLabel}>{t('mine.startLabel')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </ProgressRing>
+        <View style={styles.mineZone} onLayout={(e) => setRingTop(e.nativeEvent.layout.y)}>
+          <CollectRing
+            progress={progress}
+            collecting={isMining}
+            rate={`${rate} ${t('unit.rate')}`}
+            busy={starting || (!status && !error)}
+            disabled={isMining || starting || !status}
+            onStart={startMining}
+            animate={animate}
+          />
 
-          <Text style={styles.status}>
-            {isMining ? t('mine.timeLeftValue', { time: formatDuration(remainingMs) }) : t('mine.tapToStart')}
-          </Text>
+          {isMining ? (
+            <View style={styles.timeLeft}>
+              <Text style={styles.timeLeftLabel}>{t('mine.timeLeft')}</Text>
+              <Text style={styles.timeLeftValue} accessibilityLabel={t('mine.timeLeftValue', { time: formatDuration(remainingMs) })}>
+                {formatDuration(remainingMs)}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.status}>{t('mine.tapToStart')}</Text>
+          )}
           {status && isStreakAtRisk(status) && !isMining ? (
             <Text style={styles.streakWarning}>{t(streakDayIsLocal(status) ? 'streak.atRiskLocal' : 'streak.atRisk', { count: status.streak })}</Text>
           ) : null}
-          {!!error || (!status && !!error) ? (
-            <Text style={styles.error}>{error || t('mine.statusFailed')}</Text>
-          ) : null}
+          {error ? <Text style={styles.error}>{error || t('mine.statusFailed')}</Text> : null}
+        </View>
+
+        <TodayStrip collectedToday={status?.collectedToday} />
+
+        <View style={styles.pair}>
+          <StepsMiniCard />
+          <LeagueMiniCard balance={balance} />
         </View>
 
         <AdBoostCard />
+        <DailyTasksCard />
       </ScrollView>
 
-      <RateBreakdownModal
-        visible={rateOpen}
-        status={status ?? null}
-        onClose={() => setRateOpen(false)}
-      />
+      <ScanLight animate={animate} />
+
+      <RateBreakdownModal visible={rateOpen} status={status ?? null} onClose={() => setRateOpen(false)} />
     </SafeAreaView>
   );
 }
 
-const { size: ringSize, coreSize } = theme.ring;
+// Glow only on titles and big numbers, always behind the text.
+const greenGlow = { textShadowColor: theme.colors.neonGlow, textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: theme.colors.bgDeep },
   scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
-  balanceCard: {
-    backgroundColor: theme.colors.surfaceRaised,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.xl - 2,
-  },
   balanceLabel: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.body,
+    color: theme.colors.tabInactive,
+    fontFamily: theme.fonts.displayMedium,
     fontSize: theme.fontSizes.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.9,
+    letterSpacing: 1.4,
     marginBottom: 6,
   },
   balanceRow: { flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.sm },
   balanceValue: {
-    color: theme.colors.text,
-    fontFamily: theme.fonts.monoMedium,
-    fontSize: theme.fontSizes.xxl,
-    fontVariant: ['tabular-nums'],
-  },
-  balanceUnit: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.md },
-  balanceSub: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: theme.spacing.sm },
-  rateText: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm - 0.5 },
-  mineZone: { alignItems: 'center', justifyContent: 'center', paddingVertical: theme.spacing.xxl + 8 },
-  core: {
-    width: coreSize,
-    height: coreSize,
-    borderRadius: coreSize / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    padding: theme.spacing.sm,
-  },
-  coreIdle: { backgroundColor: theme.colors.coreIdle },
-  coreActive: { backgroundColor: theme.colors.coreActive },
-  coreIdleLabel: {
-    color: theme.colors.accentInk,
-    fontFamily: theme.fonts.display,
-    fontSize: theme.fontSizes.sm,
-    textAlign: 'center',
-  },
-  coreActiveLabel: { color: theme.colors.textMuted, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs },
-  coreRate: { fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.md },
-  status: {
     flexShrink: 1,
-    marginTop: theme.spacing.xl,
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.mono,
+    color: theme.colors.text,
+    fontFamily: theme.fonts.display,
+    fontSize: theme.fontSizes.xxl + 6,
+    fontVariant: ['tabular-nums'],
+    ...greenGlow,
+  },
+  balanceUnit: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.lg },
+  balanceSub: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: theme.spacing.sm },
+  rateText: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
+  rateActive: { color: theme.colors.neon },
+  mineZone: { alignItems: 'center', justifyContent: 'center', paddingVertical: RING_PAD },
+  timeLeft: { alignItems: 'center', marginTop: theme.spacing.lg },
+  timeLeftLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
+  timeLeftValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, fontVariant: ['tabular-nums'], marginTop: 2, ...greenGlow },
+  status: {
+    marginTop: theme.spacing.lg,
+    color: theme.colors.tabInactive,
+    fontFamily: theme.fonts.body,
     fontSize: theme.fontSizes.sm,
     textAlign: 'center',
-    width: ringSize + 60,
   },
   // Long warnings wrap onto a second line instead of running off the screen.
   streakWarning: {
@@ -196,4 +182,5 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.lg,
     textAlign: 'center',
   },
+  pair: { flexDirection: 'row', gap: theme.spacing.md },
 });

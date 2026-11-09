@@ -1,7 +1,7 @@
 import { translate } from '@/i18n/translate';
 import type { Language } from '@/i18n/translate';
 
-import { leagueWeekEndParams, nextLeagueWeekEnd } from '../league-week';
+import { leagueWeekEndParams, leagueWeekEndShort, nextLeagueWeekEnd } from '../league-week';
 
 const params = (language: Language, utcOffsetMinutes: number, now = new Date('2026-03-11T12:00:00Z')) =>
   leagueWeekEndParams((key, p) => translate(language, key, p), language, now, utcOffsetMinutes);
@@ -48,5 +48,21 @@ describe('leagueWeekEndParams', () => {
     const offset = -nextLeagueWeekEnd(now).getTimezoneOffset();
     const t = (key: Parameters<typeof translate>[1], p?: Record<string, string | number>) => translate('en', key, p);
     expect(leagueWeekEndParams(t, 'en', now)).toEqual(params('en', offset, now));
+  });
+});
+
+describe('leagueWeekEndShort', () => {
+  const short = (language: Language, offset: number, end?: Date | null) =>
+    leagueWeekEndShort((key, p) => translate(language, key, p), language, new Date('2026-03-11T12:00:00Z'), end, offset);
+
+  it('is a short day and time for the small league card', () => {
+    expect(short('tr', 180)).toBe('Pzt 03:00');
+    expect(short('en', -240)).toBe('Sun 8:00 PM');
+  });
+
+  it('uses the saved week end while it is ahead, else the next Monday', () => {
+    expect(short('tr', 180, new Date('2026-03-23T00:00:00Z'))).toBe('Pzt 03:00');
+    expect(short('tr', 0, new Date('2026-03-12T18:30:00Z'))).toBe('Per 18:30');
+    expect(short('tr', 0, new Date('2026-03-01T00:00:00Z'))).toBe('Pzt 00:00');
   });
 });

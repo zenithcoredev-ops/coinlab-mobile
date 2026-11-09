@@ -50,3 +50,28 @@ export function leagueWeekEndParams(
   }
   return { day, time: `${hour % 12 || 12}:${pad(minute)} ${hour < 12 ? 'AM' : 'PM'}` };
 }
+
+const WEEKDAY_SHORT_KEYS = [
+  'weekdayShort.sun',
+  'weekdayShort.mon',
+  'weekdayShort.tue',
+  'weekdayShort.wed',
+  'weekdayShort.thu',
+  'weekdayShort.fri',
+  'weekdayShort.sat',
+] as const;
+
+/**
+ * A short "when the week ends" on the user's clock, for small cards: "Pzt 03:00" or "Sun 8:00 PM".
+ * `end` is the saved week end when there is one; otherwise the next Monday 00:00 UTC.
+ */
+export function leagueWeekEndShort(t: Translate, language: Language, now: Date, end?: Date | null, utcOffsetMinutes?: number): string {
+  const at = end && end.getTime() > now.getTime() ? end : nextLeagueWeekEnd(now);
+  const offset = utcOffsetMinutes ?? -at.getTimezoneOffset();
+  const local = new Date(at.getTime() + offset * 60_000);
+  const hour = local.getUTCHours();
+  const minute = local.getUTCMinutes();
+  const day = t(WEEKDAY_SHORT_KEYS[local.getUTCDay()]);
+  const time = language === 'tr' ? `${pad(hour)}:${pad(minute)}` : `${hour % 12 || 12}:${pad(minute)} ${hour < 12 ? 'AM' : 'PM'}`;
+  return `${day} ${time}`;
+}

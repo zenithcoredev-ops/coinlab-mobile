@@ -67,6 +67,11 @@ export type MiningStatus = {
   clbPerHourBreakdown?: ThsBreakdown;
   /** Null when no session is running. */
   session: MiningSession | null;
+  /**
+   * Wago collected on the user's local day so far (sessions, tasks, bonuses). Missing from servers
+   * that don't send it yet; the Collect screen then leaves out its "collected today" strip.
+   */
+  collectedToday?: number;
   /** Rewarded speed boosts; missing from servers without them (then the rewarded ad stays hidden). */
   ads?: {
     usedToday: number;

@@ -17,7 +17,9 @@ export function ScreenHeader({ showStreak = true }: { showStreak?: boolean }) {
   return (
     <View style={styles.row}>
       <View style={styles.brand}>
-        <View style={styles.dot} />
+        <View style={styles.logo}>
+          <Ionicons name="flash" size={16} color={theme.colors.neonInk} />
+        </View>
         <Text style={styles.brandText}>{t('app.name')}</Text>
       </View>
       {showStreak && (
@@ -32,21 +34,39 @@ export function ScreenHeader({ showStreak = true }: { showStreak?: boolean }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.spacing.lg },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.positive },
-  brandText: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg - 2 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  // A green square with a bolt; the name stays white.
+  logo: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: theme.colors.neon,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: theme.colors.neon,
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
+  },
+  brandText: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg },
+  // Gold neon edge: a bright border with a soft gold halo.
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     backgroundColor: theme.colors.accentSoft,
-    borderColor: theme.colors.accentBorder,
-    borderWidth: 1,
+    borderColor: theme.colors.accent,
+    borderWidth: 1.2,
+    shadowColor: theme.colors.accent,
+    shadowOpacity: 0.55,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 0 },
     borderRadius: theme.radius.pill,
     paddingVertical: 5,
     paddingHorizontal: 10,
   },
   pillAtRisk: { backgroundColor: theme.colors.dangerSoft, borderColor: theme.colors.danger },
   pillTextAtRisk: { color: theme.colors.danger },
-  pillText: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs },
+  pillText: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.sm },
 });
