@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBoostCard } from '@/components/ad-boost-card';
 import { CollectRing, RING_SIZE } from '@/components/home/collect-ring';
 import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '@/components/home/home-cards';
-import { NeonCard } from '@/components/home/neon-card';
+import { NeonCard } from '@/components/neon-card';
 import { ScanLight, ScreenBackground } from '@/components/home/screen-background';
 import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
 import { ScreenHeader } from '@/components/screen-header';

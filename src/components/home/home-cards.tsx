@@ -18,7 +18,7 @@ import { DailyTask, getTasks } from '@/services/tasks-api';
 import { STEP_GOAL } from '@/widget/steps';
 import { theme } from '@/theme';
 import { NeonBar } from './neon-bar';
-import { NeonCard } from './neon-card';
+import { NeonCard } from '@/components/neon-card';
 
 /** "+1,84 Wago" collected on the local day. Left out when the server doesn't send the figure (null). */
 export function TodayStrip({ collectedToday }: { collectedToday: number | null | undefined }) {

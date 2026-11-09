@@ -3,7 +3,7 @@ import { ComponentProps } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NeonBar } from '@/components/home/neon-bar';
-import { NeonCard } from '@/components/home/neon-card';
+import { NeonCard } from '@/components/neon-card';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
 import { formatDecimal } from '@/lib/mining-math';
@@ -32,7 +32,7 @@ export function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolea
   const showProgress = task.target > 1 && !task.claimed;
 
   return (
-    <NeonCard grid glow="strong" style={styles.card} testID={`task-${task.id}`}>
+    <NeonCard grid style={styles.card} testID={`task-${task.id}`}>
       <View style={styles.row}>
         {/* Filled green once it can be or has been claimed; a quiet grey box while locked. */}
         <View style={[styles.icon, state === 'locked' ? styles.iconLocked : styles.iconOpen]}>

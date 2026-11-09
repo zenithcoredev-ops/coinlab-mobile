@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ReactNode, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { NeonCard } from '@/components/home/neon-card';
+import { NeonCard } from '@/components/neon-card';
 import { Card } from '@/components/ui';
 import { theme } from '@/theme';
 
@@ -45,8 +45,8 @@ export function CollapsibleCard({
   }, [id]);
 
   const expanded = open === true;
-  // The neon look is the Tasks tab's: brighter edge, bigger title, boxed chevron.
-  const Frame = neon ? StrongNeonCard : Card;
+  // The neon look: the shared neon card, a bigger title and a boxed chevron.
+  const Frame = neon ? NeonCard : Card;
   return (
     <Frame style={style}>
       <Pressable
@@ -66,14 +66,6 @@ export function CollapsibleCard({
       </Pressable>
       {expanded ? <View style={styles.body}>{children}</View> : null}
     </Frame>
-  );
-}
-
-function StrongNeonCard({ style, children }: { style?: object; children: ReactNode }) {
-  return (
-    <NeonCard glow="strong" style={style}>
-      {children}
-    </NeonCard>
   );
 }
 
