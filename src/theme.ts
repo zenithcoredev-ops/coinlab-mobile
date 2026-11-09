@@ -111,7 +111,7 @@ export const theme = {
     bodyMedium: 'Inter_500Medium',
     bodySemiBold: 'Inter_600SemiBold',
   },
-  fontSizes: { xs: 11, sm: 12.5, md: 14, lg: 18, xl: 22, xxl: 32 },
+  fontSizes: { xs: 11, sm: 12.5, md: 14, lg: 18, xl: 22, xxl: 32, hero: 52 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 22, xxl: 32 },
   radius: { sm: 8, md: 14, lg: 20, pill: 999 },
   // Mining screen geometry

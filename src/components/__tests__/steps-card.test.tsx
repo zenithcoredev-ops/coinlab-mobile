@@ -34,7 +34,9 @@ beforeEach(() => {
 describe('StepsCard', () => {
   it('names the session count, shows today’s Health Connect total under it and explains the bonus', () => {
     render(<StepsCard />);
-    expect(screen.getByText('Bu oturumdaki adımlar: 1.240 / 10.000')).toBeTruthy();
+    expect(screen.getByLabelText('Bu oturumdaki adımlar: 1.240 / 10.000')).toBeTruthy();
+    expect(screen.getByText('Bu oturumdaki adımlar')).toBeTruthy();
+    expect(screen.getByText('1.240 / 10.000')).toBeTruthy();
     expect(screen.getByText('Bugün toplam: 16.048 adım')).toBeTruthy();
     expect(screen.getByText('Hız bonusu, toplama oturumu başladıktan sonra atılan adımlardan hesaplanır.')).toBeTruthy();
     expect(screen.getByText(/^Hız bonusu: \+0,01 Wago\/saat/)).toBeTruthy();
@@ -44,7 +46,7 @@ describe('StepsCard', () => {
     mockSteps = steps({ steps: 0 });
     mockStatus = { session: null };
     render(<StepsCard />);
-    expect(screen.getByText('Bu oturumdaki adımlar: 0 / 10.000')).toBeTruthy();
+    expect(screen.getByLabelText('Bu oturumdaki adımlar: 0 / 10.000')).toBeTruthy();
     expect(screen.getByText('Bugün toplam: 16.048 adım')).toBeTruthy();
     expect(screen.getByText('Adım bonusu için önce toplamayı başlat.')).toBeTruthy();
     expect(screen.queryByText(/^Hız bonusu: /)).toBeNull();
@@ -59,7 +61,8 @@ describe('StepsCard', () => {
   it('in English', () => {
     mockLanguage = 'en';
     render(<StepsCard />);
-    expect(screen.getByText('Steps this session: 1,240 / 10,000')).toBeTruthy();
+    expect(screen.getByLabelText('Steps this session: 1,240 / 10,000')).toBeTruthy();
+    expect(screen.getByText('1,240 / 10,000')).toBeTruthy();
     expect(screen.getByText('Today’s total: 16,048 steps')).toBeTruthy();
     expect(screen.getByText('The speed bonus counts the steps you take after your collecting session starts.')).toBeTruthy();
   });

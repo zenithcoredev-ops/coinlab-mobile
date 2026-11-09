@@ -462,6 +462,7 @@ const tr: Record<TranslationKey, string> = {
   'tasks.resetNoteLocal': "Her gün gece yarısı (yerel saat) sıfırlanır.",
   'tasks.resetNote': "Her gün 00:00 UTC’de sıfırlanır.",
   'tasks.resetsInLabel': "Sıfırlanmaya",
+  'steps.sessionLabel': "Bu oturumdaki adımlar",
 };
 
 export default tr;

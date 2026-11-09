@@ -45,7 +45,8 @@ export function CollapsibleCard({
   }, [id]);
 
   const expanded = open === true;
-  const Frame = neon ? NeonCard : Card;
+  // The neon look is the Tasks tab's: brighter edge, bigger title, boxed chevron.
+  const Frame = neon ? StrongNeonCard : Card;
   return (
     <Frame style={style}>
       <Pressable
@@ -54,16 +55,41 @@ export function CollapsibleCard({
         accessibilityState={{ expanded }}
         hitSlop={8}
         style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textMuted} />
+        <Text style={[styles.title, neon && styles.titleNeon]}>{title}</Text>
+        {neon ? (
+          <View style={styles.chevronBox}>
+            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.neon} />
+          </View>
+        ) : (
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textMuted} />
+        )}
       </Pressable>
       {expanded ? <View style={styles.body}>{children}</View> : null}
     </Frame>
   );
 }
 
+function StrongNeonCard({ style, children }: { style?: object; children: ReactNode }) {
+  return (
+    <NeonCard glow="strong" style={style}>
+      {children}
+    </NeonCard>
+  );
+}
+
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.md },
   title: { flex: 1, color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
+  titleNeon: { fontSize: theme.fontSizes.lg - 1 },
+  chevronBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1.2,
+    borderColor: theme.colors.neon,
+    backgroundColor: theme.colors.neonSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   body: { marginTop: theme.spacing.md, gap: theme.spacing.md },
 });

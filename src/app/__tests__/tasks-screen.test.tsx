@@ -48,7 +48,7 @@ describe('Tasks screen', () => {
     expect(screen.getByText(/^05:12:\d\d$/)).toBeTruthy();
     expect(screen.getByText('Bugün kazanılan')).toBeTruthy();
     expect(screen.getByText('0,35')).toBeTruthy();
-    expect(screen.getByText('Bu oturumdaki adımlar: 1.240 / 10.000')).toBeTruthy();
+    expect(screen.getByLabelText('Bu oturumdaki adımlar: 1.240 / 10.000')).toBeTruthy();
     // No picture in the repo yet: the drawn background, no image.
     expect(screen.queryByTestId('background-image')).toBeNull();
   });
