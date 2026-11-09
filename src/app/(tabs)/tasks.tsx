@@ -29,6 +29,9 @@ import {
 } from '@/services/tasks-api';
 import { theme } from '@/theme';
 
+// If this screen throws while drawing, the tab shows a retry screen instead of the app closing.
+export { ScreenError as ErrorBoundary } from '@/components/screen-error';
+
 const CLAIM_ERRORS: Record<TaskErrorCode, TranslationKey> = {
   unknown_task: 'common.unknownError',
   not_complete: 'tasks.err.notComplete',

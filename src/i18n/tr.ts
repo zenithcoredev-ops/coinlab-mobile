@@ -463,6 +463,8 @@ const tr: Record<TranslationKey, string> = {
   'tasks.resetNote': "Her gün 00:00 UTC’de sıfırlanır.",
   'tasks.resetsInLabel': "Sıfırlanmaya",
   'steps.sessionLabel': "Bu oturumdaki adımlar",
+  'error.screen.title': "Bir sorun oluştu",
+  'error.screen.body': "Bu ekran açılırken bir hata oldu. Tekrar dene; uygulamanın geri kalanı çalışmaya devam ediyor.",
 };
 
 export default tr;
