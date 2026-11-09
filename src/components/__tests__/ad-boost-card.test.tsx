@@ -31,9 +31,9 @@ beforeEach(() => {
 describe('AdBoostCard', () => {
   it('shows today’s use and active boosts while mining', () => {
     render(<AdBoostCard />);
-    expect(screen.getByText('Bugün: 1 / 3')).toBeTruthy();
+    expect(screen.getByText('Hızını artır')).toBeTruthy();
     expect(screen.getByText('1 takviye aktif')).toBeTruthy();
-    expect(screen.getByText('Reklam izle')).toBeTruthy();
+    expect(screen.getByText('İzle · 1/3')).toBeTruthy();
   });
 
   it('is hidden without the server’s rewarded data, without a session, or without ad consent', () => {
@@ -54,7 +54,7 @@ describe('AdBoostCard', () => {
     mockStatus = { session, ads: ads({ usedToday: 3 }) };
     render(<AdBoostCard />);
     expect(screen.getByText('Bugünkü takviyelerini kullandın.')).toBeTruthy();
-    fireEvent.press(screen.getByText('Reklam izle'));
+    fireEvent.press(screen.getByText('İzle · 3/3'));
     expect(run).not.toHaveBeenCalled();
 
     mockStatus = { session, ads: ads({ nextAllowedAt: new Date(Date.now() + 5 * 60_000).toISOString() }) };
@@ -70,7 +70,7 @@ describe('AdBoostCard', () => {
     });
     render(<AdBoostCard />);
     await act(async () => {
-      fireEvent.press(screen.getByText('Reklam izle'));
+      fireEvent.press(screen.getByText('İzle · 1/3'));
     });
     expect(screen.getByText('Ödül doğrulanıyor…')).toBeTruthy();
     expect(screen.queryByText('Hız takviyen eklendi.')).toBeNull();
@@ -82,11 +82,11 @@ describe('AdBoostCard', () => {
   it('tells the user when it is still being confirmed, and says nothing when the ad was closed', async () => {
     run.mockResolvedValue('pending');
     render(<AdBoostCard />);
-    await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
+    await act(async () => fireEvent.press(screen.getByText('İzle · 1/3')));
     expect(screen.getByText('Takviyen birkaç dakika içinde eklenecek.')).toBeTruthy();
 
     run.mockResolvedValue('dismissed');
-    await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
+    await act(async () => fireEvent.press(screen.getByText('İzle · 1/3')));
     expect(screen.queryByText('Takviyen birkaç dakika içinde eklenecek.')).toBeNull();
   });
 
@@ -104,7 +104,7 @@ describe('AdBoostCard', () => {
       return 'granted';
     });
     render(<AdBoostCard />);
-    await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
+    await act(async () => fireEvent.press(screen.getByText('İzle · 1/3')));
     expect(screen.getByText('Hız takviyen eklendi: +0,05 Wago/saat.')).toBeTruthy();
   });
 
@@ -116,7 +116,7 @@ describe('AdBoostCard', () => {
   it('hides itself for good when the server has no rewarded endpoints or ad units (404/503)', async () => {
     run.mockResolvedValue('unavailable');
     const view = render(<AdBoostCard />);
-    await act(async () => fireEvent.press(screen.getByText('Reklam izle')));
+    await act(async () => fireEvent.press(screen.getByText('İzle · 1/3')));
     expect(view.toJSON()).toBeNull();
   });
 });

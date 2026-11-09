@@ -11,6 +11,7 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
+import { Lexend_500Medium, Lexend_600SemiBold, Lexend_700Bold } from '@expo-google-fonts/lexend';
 import {
   SpaceGrotesk_500Medium,
   SpaceGrotesk_600SemiBold,
@@ -33,6 +34,13 @@ const palette = {
   goldInk: '#3A2A05',
   silver: '#C0C6D4',
   bronze: '#CD8B5A',
+  // Neon look of the Collect screen.
+  bgDeep: '#050B08',
+  neon: '#34E37F',
+  neonDeep: '#0F7A3F',
+  neonInk: '#04170C',
+  turquoise: '#3FE0C5',
+  softWhite: '#C3CBD3',
 } as const;
 
 // `#RRGGBB` + alpha (0-1) -> `#RRGGBBAA`.
@@ -75,11 +83,25 @@ export const theme = {
     coreActive: '#1B2439',
     coreDone: '#1A2A1C',
     tabBar: palette.surface,
+    // Neon (Collect screen): green is the main colour, gold only for rewards, turquoise only in the background.
+    bgDeep: palette.bgDeep,
+    neon: palette.neon,
+    neonDeep: palette.neonDeep,
+    neonInk: palette.neonInk,
+    neonSoft: alpha(palette.neon, 0.12),
+    neonGlow: alpha(palette.neon, 0.55),
+    goldGlow: alpha(palette.gold, 0.55),
+    turquoise: palette.turquoise,
+    contour: alpha(palette.teal, 0.1),
+    glass: alpha('#08130D', 0.72),
+    tabInactive: palette.softWhite,
   },
   fonts: {
-    // Family names registered by useFonts in the root layout (see `fontAssets`).
-    display: 'SpaceGrotesk_700Bold',
-    displayMedium: 'SpaceGrotesk_600SemiBold',
+    // Family names registered by useFonts in the root layout (see `fontAssets`). Lexend: round and
+    // geometric, with every Turkish letter (ş ğ ı İ ö ü ç).
+    display: 'Lexend_700Bold',
+    displayMedium: 'Lexend_600SemiBold',
+    rounded: 'Lexend_500Medium',
     mono: 'DMMono_400Regular',
     monoMedium: 'DMMono_500Medium',
     body: 'Inter_400Regular',
@@ -99,6 +121,9 @@ export const fontAssets = {
   Inter_400Regular,
   Inter_500Medium,
   Inter_600SemiBold,
+  Lexend_500Medium,
+  Lexend_600SemiBold,
+  Lexend_700Bold,
   SpaceGrotesk_500Medium,
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,

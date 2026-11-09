@@ -1,6 +1,7 @@
-import { StyleSheet, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card } from '@/components/ui';
+import { NeonCard } from '@/components/home/neon-card';
 import { useRewardedBoost } from '@/hooks/use-rewarded-boost';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
@@ -15,7 +16,7 @@ const MESSAGES: Record<NonNullable<ReturnType<typeof useRewardedBoost>['message'
   error: 'ads.boost.error',
 };
 
-/** Mine screen: the optional "watch an ad for a speed boost" card. The reward is a speed boost only. */
+/** Collect screen: the optional "watch an ad for a speed boost" card. The reward is a speed boost only. */
 export function AdBoostCard() {
   const { t, language } = useI18n();
   const { visible, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, watch } = useRewardedBoost();
@@ -26,18 +27,23 @@ export function AdBoostCard() {
   const activeCount = activeBoostCount(ads);
   const activeRate = activeBoostsClbPerHour(ads);
 
-  const hint = limitReached
-    ? t('ads.boost.limit')
-    : waitMs > 0
-      ? t('ads.boost.wait', { time: formatDuration(waitMs) })
-      : t('ads.boost.today', { used: ads.usedToday, limit: ads.dailyLimit });
+  // Today's count sits on the button; only the limit or the wait gets its own line.
+  const hint = limitReached ? t('ads.boost.limit') : waitMs > 0 ? t('ads.boost.wait', { time: formatDuration(waitMs) }) : null;
+  const label = phase === 'verifying' ? t('ads.boost.verifying') : t('ads.boost.watchCount', { used: ads.usedToday, limit: ads.dailyLimit });
 
   return (
-    <Card style={styles.card}>
-      <Text style={styles.title}>{t('ads.boost.title')}</Text>
-      <Text style={styles.body}>{t('ads.boost.body')}</Text>
+    <NeonCard style={styles.card} testID="ad-boost-card">
+      <View style={styles.row}>
+        <View style={styles.play}>
+          <Ionicons name="play" size={18} color={theme.colors.neonInk} />
+        </View>
+        <View style={styles.texts}>
+          <Text style={styles.title}>{t('home.boost.title')}</Text>
+          <Text style={styles.body}>{t('ads.boost.body')}</Text>
+        </View>
+      </View>
       {perAd !== null && <Text style={styles.hint}>{t('ads.boost.perAd', { rate: rate(perAd) })}</Text>}
-      <Text style={styles.hint}>{hint}</Text>
+      {hint && <Text style={styles.hint}>{hint}</Text>}
       {activeCount > 0 && (
         <Text style={styles.hint}>
           {activeRate !== null && activeRate > 0
@@ -45,16 +51,16 @@ export function AdBoostCard() {
             : t('ads.boost.active', { count: activeCount })}
         </Text>
       )}
-      <Button
-        label={phase === 'verifying' ? t('ads.boost.verifying') : t('ads.boost.watch')}
+      <Pressable
         onPress={watch}
         disabled={!canWatch}
-        // The spinner hides the label, so it only covers loading the ad; while the server confirms the
-        // reward the (disabled) button says so.
-        loading={phase === 'watching'}
-        variant="ghost"
-        style={styles.button}
-      />
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: !canWatch, busy: phase === 'watching' }}
+        style={({ pressed }) => [styles.button, !canWatch && styles.buttonDisabled, pressed && { opacity: 0.85 }]}>
+        {/* The spinner only covers loading the ad; while the server confirms the reward the (disabled) button says so. */}
+        {phase === 'watching' ? <ActivityIndicator color={theme.colors.neonInk} /> : <Text style={styles.buttonText}>{label}</Text>}
+      </Pressable>
       {message && (
         <Text style={message === 'granted' ? styles.ok : styles.note}>
           {message === 'granted' && grantedClbPerHour !== null
@@ -62,16 +68,29 @@ export function AdBoostCard() {
             : t(MESSAGES[message])}
         </Text>
       )}
-    </Card>
+    </NeonCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: { marginTop: theme.spacing.md },
-  title: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 1 },
-  body: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: theme.spacing.sm },
-  hint: { color: theme.colors.accent, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
-  button: { marginTop: theme.spacing.md },
-  ok: { color: theme.colors.positive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
-  note: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+  play: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.neon, alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
+  texts: { flex: 1 },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md + 1 },
+  body: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4, lineHeight: 17 },
+  hint: { color: theme.colors.neon, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
+  button: {
+    marginTop: theme.spacing.md,
+    minHeight: 46,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neon,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: theme.spacing.lg,
+  },
+  buttonDisabled: { opacity: 0.45 },
+  buttonText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
+  ok: { color: theme.colors.neon, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
+  note: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
 });

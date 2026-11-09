@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 import { ComponentProps } from 'react';
-import { ColorValue } from 'react-native';
+import { ColorValue, StyleSheet, View } from 'react-native';
 
 import { MiningProvider } from '@/context/mining';
 import { StepsProvider } from '@/context/steps';
@@ -33,9 +33,14 @@ export default function TabsLayout() {
   if (onboarding === 'unknown') return null;
   if (onboarding === 'pending') return <Redirect href="/onboarding" />;
 
+  // The active tab sits on a glowing green pill; the others are a soft grey-white.
   const icon = (name: IconName, focusedName: IconName) =>
     function TabIcon({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) {
-      return <Ionicons name={focused ? focusedName : name} size={size} color={color} />;
+      return (
+        <View style={[styles.iconBox, focused && styles.iconBoxActive]}>
+          <Ionicons name={focused ? focusedName : name} size={size - 2} color={focused ? theme.colors.neonInk : color} />
+        </View>
+      );
     };
 
   return (
@@ -45,10 +50,10 @@ export default function TabsLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: theme.colors.accent,
-            tabBarInactiveTintColor: theme.colors.textMuted,
-            tabBarStyle: { backgroundColor: theme.colors.tabBar, borderTopColor: theme.colors.border },
-            tabBarLabelStyle: { fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.xs },
+            tabBarActiveTintColor: theme.colors.neon,
+            tabBarInactiveTintColor: theme.colors.tabInactive,
+            tabBarStyle: { backgroundColor: theme.colors.bgDeep, borderTopColor: theme.colors.neonSoft, paddingTop: 4 },
+            tabBarLabelStyle: { fontFamily: theme.fonts.rounded, fontSize: theme.fontSizes.xs, marginTop: 2 },
             sceneStyle: { backgroundColor: theme.colors.background },
           }}>
           <Tabs.Screen name="index" options={{ title: t('tabs.mine'), tabBarIcon: icon('flash-outline', 'flash') }} />
@@ -61,3 +66,15 @@ export default function TabsLayout() {
     </MiningProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  iconBox: { width: 46, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  iconBoxActive: {
+    backgroundColor: theme.colors.neon,
+    shadowColor: theme.colors.neon,
+    shadowOpacity: 0.7,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
+  },
+});
