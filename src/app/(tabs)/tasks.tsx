@@ -115,7 +115,7 @@ export default function TasksScreen() {
           </View>
           {progress ? (
             <View style={styles.resetBox} accessible accessibilityLabel={t('tasks.resetsIn', { time: formatDuration(resetIn) })}>
-              <Ionicons name="time-outline" size={18} color={theme.colors.neon} />
+              <Ionicons name="time-outline" size={24} color={theme.colors.accent} />
               <View>
                 <Text style={styles.resetLabel}>{t('tasks.resetsInLabel')}</Text>
                 <Text style={styles.resetTime}>{formatDuration(resetIn)}</Text>
@@ -135,9 +135,11 @@ export default function TasksScreen() {
           )
         ) : (
           <>
-            <NeonCard tone="gold" grid style={styles.summary} testID="earned-today">
+            <NeonCard tone="gold" glow="strong" style={styles.summary} testID="earned-today">
               <View>
-                <Text style={styles.summaryLabel}>{t('tasks.earnedToday')}</Text>
+                <View style={styles.summaryChip}>
+                  <Text style={styles.summaryLabel}>{t('tasks.earnedToday')}</Text>
+                </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryValue}>{formatDecimal(progress.earnedToday, 2, language)}</Text>
                   <Text style={styles.summaryUnit}>{t('unit.clb')}</Text>
@@ -148,16 +150,6 @@ export default function TasksScreen() {
 
             <StepsCard />
 
-            <CollapsibleCard neon id="tasks" title={t('tasks.how.title')} style={styles.how}>
-              {(['tasks.how.step1', 'tasks.how.step2', 'tasks.how.step3'] as const).map((key, i) => (
-                <View key={key} style={styles.howRow}>
-                  <View style={styles.howNum}>
-                    <Text style={styles.howNumText}>{i + 1}</Text>
-                  </View>
-                  <Text style={styles.howText}>{t(key)}</Text>
-                </View>
-              ))}
-            </CollapsibleCard>
 
             {message && (
               <Text style={[styles.message, { color: message.ok ? theme.colors.neon : theme.colors.danger }]}>
@@ -175,6 +167,18 @@ export default function TasksScreen() {
                 onClaim={() => onClaim(task)}
               />
             ))}
+
+            {/* Below the tasks, as in the design. */}
+            <CollapsibleCard neon id="tasks" title={t('tasks.how.title')} style={styles.how}>
+              {(['tasks.how.step1', 'tasks.how.step2', 'tasks.how.step3'] as const).map((key, i) => (
+                <View key={key} style={styles.howRow}>
+                  <View style={styles.howNum}>
+                    <Text style={styles.howNumText}>{i + 1}</Text>
+                  </View>
+                  <Text style={styles.howText}>{t(key)}</Text>
+                </View>
+              ))}
+            </CollapsibleCard>
           </>
         )}
       </ScrollView>
@@ -187,42 +191,58 @@ const glow = (color: string) => ({ textShadowColor: color, textShadowRadius: 14,
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgDeep },
-  scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl + 16 },
+  scroll: { paddingHorizontal: theme.spacing.lg + 2, paddingTop: theme.spacing.xl, paddingBottom: theme.spacing.xxl + 16 },
   centerBlock: { paddingVertical: theme.spacing.xxl, alignItems: 'center' },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, textAlign: 'center' },
   retry: { marginTop: theme.spacing.lg, alignSelf: 'center' },
 
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginBottom: theme.spacing.lg },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginTop: theme.spacing.md, marginBottom: theme.spacing.xl },
   titleText: { flex: 1 },
-  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, ...glow(theme.colors.neonGlow) },
-  subtitle: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19, marginTop: 4 },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl + 6, lineHeight: 34, ...glow(theme.colors.neonGlow) },
+  subtitle: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm + 0.5, lineHeight: 19, marginTop: 6 },
   resetBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    borderWidth: 1.2,
-    borderColor: theme.colors.neon,
+    borderWidth: 1,
+    borderColor: theme.colors.ringTrack,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   resetLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs },
-  resetTime: { color: theme.colors.text, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.md, fontVariant: ['tabular-nums'] },
+  resetTime: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md, fontVariant: ['tabular-nums'] },
 
-  summary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
+  summary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 112,
+    paddingHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
+  },
+  summaryChip: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: theme.colors.accentBorder,
+    backgroundColor: theme.colors.glass,
+    borderRadius: theme.radius.sm,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    marginBottom: 2,
+  },
   summaryLabel: {
-    color: theme.colors.tabInactive,
+    color: theme.colors.text,
     fontFamily: theme.fonts.displayMedium,
     fontSize: theme.fontSizes.xs,
     textTransform: 'uppercase',
-    letterSpacing: 1.4,
-    marginBottom: 4,
+    letterSpacing: 0.8,
   },
   summaryRow: { flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.sm },
-  summaryValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xxl, fontVariant: ['tabular-nums'], ...glow(theme.colors.goldGlow) },
-  summaryUnit: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.lg },
-  how: { marginBottom: theme.spacing.md },
+  summaryValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.hero, lineHeight: theme.fontSizes.hero + 10, fontVariant: ['tabular-nums'], ...glow(theme.colors.goldGlow) },
+  summaryUnit: { color: theme.colors.accent, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, ...glow(theme.colors.goldGlow) },
+  how: { marginBottom: theme.spacing.lg, paddingVertical: theme.spacing.lg + 2 },
   howRow: { flexDirection: 'row', gap: theme.spacing.md, alignItems: 'flex-start' },
   howNum: {
     width: 22,

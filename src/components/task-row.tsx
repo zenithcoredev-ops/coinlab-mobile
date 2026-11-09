@@ -32,10 +32,11 @@ export function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolea
   const showProgress = task.target > 1 && !task.claimed;
 
   return (
-    <NeonCard grid style={styles.card} testID={`task-${task.id}`}>
+    <NeonCard grid glow="strong" style={styles.card} testID={`task-${task.id}`}>
       <View style={styles.row}>
-        <View style={[styles.icon, state === 'claimed' && styles.iconClaimed]}>
-          <Ionicons name={meta.icon} size={20} color={theme.colors.neon} />
+        {/* Filled green once it can be or has been claimed; a quiet grey box while locked. */}
+        <View style={[styles.icon, state === 'locked' ? styles.iconLocked : styles.iconOpen]}>
+          <Ionicons name={meta.icon} size={22} color={state === 'locked' ? theme.colors.tabInactive : theme.colors.neonInk} />
         </View>
         <View style={styles.info}>
           <Text style={styles.title}>{t(meta.title, { target })}</Text>
@@ -76,29 +77,21 @@ export function TaskRow({ task, busy, onClaim }: { task: DailyTask; busy: boolea
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: theme.spacing.md, paddingVertical: theme.spacing.md + 4 },
+  card: { marginBottom: theme.spacing.lg, paddingVertical: theme.spacing.lg + 2, paddingHorizontal: theme.spacing.lg },
   row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
-  icon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1.2,
-    borderColor: theme.colors.neon,
-    backgroundColor: theme.colors.neonSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconClaimed: { opacity: 0.6 },
+  icon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' },
+  iconOpen: { backgroundColor: theme.colors.neon },
+  iconLocked: { backgroundColor: theme.colors.ringTrack },
   info: { flex: 1, minWidth: 0 },
-  title: { color: theme.colors.text, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.md },
-  hint: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2, lineHeight: 16 },
-  reward: { color: theme.colors.accent, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.sm, marginTop: 4 },
-  count: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md + 2 },
+  hint: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4, lineHeight: 16 },
+  reward: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.sm, marginTop: 8 },
+  count: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium },
   bar: { marginTop: theme.spacing.md },
   action: {
-    minWidth: 76,
-    minHeight: 38,
-    borderRadius: theme.radius.pill,
+    minWidth: 92,
+    minHeight: 40,
+    borderRadius: theme.radius.sm + 2,
     paddingHorizontal: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -106,14 +99,23 @@ const styles = StyleSheet.create({
   actionReady: {
     backgroundColor: theme.colors.neon,
     shadowColor: theme.colors.neon,
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
+    shadowOpacity: 0.7,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
-    elevation: 4,
+    elevation: 6,
   },
-  actionReadyText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
+  actionReadyText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md + 1 },
+  // Done: soft green, flat, no glow - it isn't something to press.
   actionClaimed: { backgroundColor: theme.colors.neonSoft },
   actionClaimedText: { color: theme.colors.neon, fontFamily: theme.fonts.rounded, fontSize: theme.fontSizes.sm },
-  actionLocked: { maxWidth: 118, paddingVertical: 6, gap: 2, borderWidth: 1, borderColor: theme.colors.neonSoft },
-  actionLockedText: { color: theme.colors.tabInactive, fontFamily: theme.fonts.rounded, fontSize: theme.fontSizes.xs, textAlign: 'center' },
+  actionLocked: {
+    flexDirection: 'row',
+    maxWidth: 136,
+    paddingVertical: 8,
+    gap: 6,
+    backgroundColor: theme.colors.glass,
+    borderWidth: 1,
+    borderColor: theme.colors.ringTrack,
+  },
+  actionLockedText: { flexShrink: 1, color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5 },
 });

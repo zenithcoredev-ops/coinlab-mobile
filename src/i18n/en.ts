@@ -460,6 +460,7 @@ const en = {
   'tasks.resetNoteLocal': "Resets every day at midnight (your time).",
   'tasks.resetNote': "Resets every day at 00:00 UTC.",
   'tasks.resetsInLabel': "Resets in",
+  'steps.sessionLabel': "Steps this session",
 } as const;
 
 export type TranslationKey = keyof typeof en;
