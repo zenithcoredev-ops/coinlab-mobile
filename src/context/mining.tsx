@@ -3,11 +3,14 @@ import { AppState } from 'react-native';
 
 import { useSession } from '@/context/session';
 import { ApiError } from '@/services/api';
+import { startOfLocalDay } from '@/lib/mining-math';
 import { getMiningStatus, MiningStatus, startMining } from '@/services/mining-api';
 
 // Re-poll while mining so accrued CLB and boosts stay current; the countdown and
 // balance animate locally between polls (see lib/mining-math).
 const POLL_MS = 30_000;
+/** After local midnight, wait this long so the server's day has turned too, then refresh once. */
+export const MIDNIGHT_REFRESH_DELAY_MS = 5_000;
 
 type MiningState = {
   status: MiningStatus | null;
@@ -74,6 +77,17 @@ export function MiningProvider({ children }: { children: ReactNode }) {
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [hasSession, refresh]);
+
+  // "Collected today" starts again at local midnight (see liveCollectedTodayAt); fetch the server's
+  // new day once then. Each refresh moves `fetchedAt`, so this runs once per midnight.
+  const tracksToday = typeof status?.collectedToday === 'number';
+  useEffect(() => {
+    if (!tracksToday || !fetchedAt) return;
+    // 30 h after today's start is always inside tomorrow, whatever daylight saving does to day length.
+    const midnight = startOfLocalDay(startOfLocalDay(fetchedAt) + 30 * 60 * 60_000);
+    const id = setTimeout(refresh, Math.max(0, midnight - Date.now()) + MIDNIGHT_REFRESH_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [tracksToday, fetchedAt, refresh]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {

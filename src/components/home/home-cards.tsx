@@ -19,8 +19,8 @@ import { STEP_GOAL } from '@/widget/steps';
 import { theme } from '@/theme';
 import { NeonCard } from './neon-card';
 
-/** "+1,84 Wago" collected on the local day. Left out when the server doesn't send the figure. */
-export function TodayStrip({ collectedToday }: { collectedToday: number | undefined }) {
+/** "+1,84 Wago" collected on the local day. Left out when the server doesn't send the figure (null). */
+export function TodayStrip({ collectedToday }: { collectedToday: number | null | undefined }) {
   const { t, language } = useI18n();
   if (typeof collectedToday !== 'number') return null;
   return (

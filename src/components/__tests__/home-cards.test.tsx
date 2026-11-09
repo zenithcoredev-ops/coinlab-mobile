@@ -32,6 +32,10 @@ describe('TodayStrip', () => {
     expect(screen.getByText('Bugün toplanan')).toBeTruthy();
     expect(screen.getByText('+1,84 Wago')).toBeTruthy();
     expect(render(<TodayStrip collectedToday={undefined} />).toJSON()).toBeNull();
+    expect(render(<TodayStrip collectedToday={null} />).toJSON()).toBeNull();
+    // A new day starts from zero and still shows.
+    render(<TodayStrip collectedToday={0} />);
+    expect(screen.getByText('+0,00 Wago')).toBeTruthy();
   });
 });
 
