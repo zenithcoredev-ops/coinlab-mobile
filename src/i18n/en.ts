@@ -163,8 +163,6 @@ const en = {
   'league.name.9': 'Diamond League',
 
   'tasks.title': 'Daily tasks',
-  'tasks.subtitle': 'Resets every day at 00:00 UTC. Collect an instant Wago reward for each one you complete.',
-  'tasks.subtitleLocal': 'Resets every day at midnight (local time). Collect an instant Wago reward for each one you complete.',
   'tasks.loadFailed': 'Could not load your tasks',
   'tasks.earnedToday': 'Earned today',
   'tasks.resetsIn': 'Resets in {time}',
@@ -459,6 +457,9 @@ const en = {
   'home.tasks.next': "Next: {task} · +{reward} Wago",
   'home.tasks.allDone': "Today's tasks are done",
   'ads.boost.watchCount': "Watch · {used}/{limit}",
+  'tasks.resetNoteLocal': "Resets every day at midnight (your time).",
+  'tasks.resetNote': "Resets every day at 00:00 UTC.",
+  'tasks.resetsInLabel': "Resets in",
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -93,6 +93,9 @@ export const theme = {
     goldGlow: alpha(palette.gold, 0.55),
     turquoise: palette.turquoise,
     contour: alpha(palette.teal, 0.1),
+    // Over a background picture: the dark layer, and topographic lines fainter still.
+    imageShade: alpha(palette.bgDeep, 0.65),
+    contourFaint: alpha(palette.teal, 0.06),
     glass: alpha('#08130D', 0.72),
     tabInactive: palette.softWhite,
   },

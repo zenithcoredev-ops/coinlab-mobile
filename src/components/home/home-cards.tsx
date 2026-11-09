@@ -17,6 +17,7 @@ import { useLeagueSnapshot } from '@/services/league-cache';
 import { DailyTask, getTasks } from '@/services/tasks-api';
 import { STEP_GOAL } from '@/widget/steps';
 import { theme } from '@/theme';
+import { NeonBar } from './neon-bar';
 import { NeonCard } from './neon-card';
 
 /** "+1,84 Wago" collected on the local day. Left out when the server doesn't send the figure (null). */
@@ -147,10 +148,7 @@ export function DailyTasksCard() {
   return (
     <NeonCard style={styles.tasks} onPress={() => router.navigate('/(tabs)/tasks')} accessibilityLabel={t('home.tasks.title', { done: summary.done, total: summary.total })}>
       <Text style={styles.tasksTitle}>{t('home.tasks.title', { done: summary.done, total: summary.total })}</Text>
-      <View style={styles.tasksTrack}>
-        <View style={[styles.tasksFill, { width: `${summary.progress * 100}%` }]} />
-        {summary.progress > 0 ? <View style={[styles.glint, { left: `${summary.progress * 100}%` }]} /> : null}
-      </View>
+      <NeonBar progress={summary.progress} style={styles.tasksBar} />
       <Text style={styles.tasksNext}>
         {next && meta
           ? t('home.tasks.next', {
@@ -186,19 +184,6 @@ const styles = StyleSheet.create({
 
   tasks: { marginTop: theme.spacing.md },
   tasksTitle: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg - 1 },
-  tasksTrack: { height: 12, borderRadius: 6, backgroundColor: theme.colors.neonSoft, marginTop: theme.spacing.md, overflow: 'visible', justifyContent: 'center' },
-  tasksFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 6, backgroundColor: theme.colors.neon },
-  glint: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    marginLeft: -7,
-    borderRadius: 5,
-    backgroundColor: theme.colors.accentLight,
-    shadowColor: theme.colors.accentLight,
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 0 },
-  },
+  tasksBar: { marginTop: theme.spacing.md },
   tasksNext: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.md },
 });

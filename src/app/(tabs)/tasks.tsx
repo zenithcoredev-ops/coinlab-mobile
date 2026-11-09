@@ -8,7 +8,10 @@ import { CollapsibleCard } from '@/components/collapsible-card';
 import { ScreenHeader } from '@/components/screen-header';
 import { StepsCard } from '@/components/steps-card';
 import { TaskRow } from '@/components/task-row';
-import { Button, Card, EmptyState, ScreenTitle } from '@/components/ui';
+import { BACKGROUND_IMAGES } from '@/components/home/backgrounds';
+import { NeonCard } from '@/components/home/neon-card';
+import { ScreenBackground } from '@/components/home/screen-background';
+import { Button, EmptyState } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
@@ -96,12 +99,30 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Fixed behind the list: the tab's picture when there is one, else the drawn topographic lines. */}
+      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.tasks} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.text} />}>
         <ScreenHeader />
-        <ScreenTitle title={t('tasks.title')} subtitle={t(streakDayIsLocal(miningStatus) ? 'tasks.subtitleLocal' : 'tasks.subtitle')} />
+        <View style={styles.titleRow}>
+          <View style={styles.titleText}>
+            <Text style={styles.title} accessibilityRole="header">
+              {t('tasks.title')}
+            </Text>
+            <Text style={styles.subtitle}>{t(streakDayIsLocal(miningStatus) ? 'tasks.resetNoteLocal' : 'tasks.resetNote')}</Text>
+          </View>
+          {progress ? (
+            <View style={styles.resetBox} accessible accessibilityLabel={t('tasks.resetsIn', { time: formatDuration(resetIn) })}>
+              <Ionicons name="time-outline" size={18} color={theme.colors.neon} />
+              <View>
+                <Text style={styles.resetLabel}>{t('tasks.resetsInLabel')}</Text>
+                <Text style={styles.resetTime}>{formatDuration(resetIn)}</Text>
+              </View>
+            </View>
+          ) : null}
+        </View>
 
         {!progress ? (
           loadError ? (
@@ -114,24 +135,20 @@ export default function TasksScreen() {
           )
         ) : (
           <>
-            <Card style={styles.summary}>
+            <NeonCard tone="gold" grid style={styles.summary} testID="earned-today">
               <View>
                 <Text style={styles.summaryLabel}>{t('tasks.earnedToday')}</Text>
-                <Text style={styles.summaryValue}>{formatDecimal(progress.earnedToday, 2, language)} {t('unit.clb')}</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryValue}>{formatDecimal(progress.earnedToday, 2, language)}</Text>
+                  <Text style={styles.summaryUnit}>{t('unit.clb')}</Text>
+                </View>
               </View>
-              <View style={styles.summaryRight}>
-                <Ionicons
-                  name={allClaimed ? 'checkmark-circle' : 'time-outline'}
-                  size={24}
-                  color={allClaimed ? theme.colors.positive : theme.colors.textMuted}
-                />
-                <Text style={styles.resetText}>{t('tasks.resetsIn', { time: formatDuration(resetIn) })}</Text>
-              </View>
-            </Card>
+              {allClaimed ? <Ionicons name="checkmark-circle" size={26} color={theme.colors.neon} /> : null}
+            </NeonCard>
 
             <StepsCard />
 
-            <CollapsibleCard id="tasks" title={t('tasks.how.title')} style={styles.how}>
+            <CollapsibleCard neon id="tasks" title={t('tasks.how.title')} style={styles.how}>
               {(['tasks.how.step1', 'tasks.how.step2', 'tasks.how.step3'] as const).map((key, i) => (
                 <View key={key} style={styles.howRow}>
                   <View style={styles.howNum}>
@@ -143,7 +160,7 @@ export default function TasksScreen() {
             </CollapsibleCard>
 
             {message && (
-              <Text style={[styles.message, { color: message.ok ? theme.colors.positive : theme.colors.danger }]}>
+              <Text style={[styles.message, { color: message.ok ? theme.colors.neon : theme.colors.danger }]}>
                 {message.text}
               </Text>
             )}
@@ -165,44 +182,59 @@ export default function TasksScreen() {
   );
 }
 
+// Glow only on titles and big numbers, always behind the text.
+const glow = (color: string) => ({ textShadowColor: color, textShadowRadius: 14, textShadowOffset: { width: 0, height: 0 } });
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: theme.colors.bgDeep },
   scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl + 16 },
   centerBlock: { paddingVertical: theme.spacing.xxl, alignItems: 'center' },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, textAlign: 'center' },
   retry: { marginTop: theme.spacing.lg, alignSelf: 'center' },
 
-  summary: {
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginBottom: theme.spacing.lg },
+  titleText: { flex: 1 },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, ...glow(theme.colors.neonGlow) },
+  subtitle: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19, marginTop: 4 },
+  resetBox: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    gap: 8,
+    borderWidth: 1.2,
+    borderColor: theme.colors.neon,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.glass,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
+  resetLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs },
+  resetTime: { color: theme.colors.text, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.md, fontVariant: ['tabular-nums'] },
+
+  summary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
   summaryLabel: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.body,
+    color: theme.colors.tabInactive,
+    fontFamily: theme.fonts.displayMedium,
     fontSize: theme.fontSizes.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.9,
+    letterSpacing: 1.4,
     marginBottom: 4,
   },
-  summaryValue: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.xl },
-  summaryRight: { alignItems: 'flex-end', gap: 4 },
-  resetText: { color: theme.colors.textMuted, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs },
+  summaryRow: { flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.sm },
+  summaryValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xxl, fontVariant: ['tabular-nums'], ...glow(theme.colors.goldGlow) },
+  summaryUnit: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.lg },
   how: { marginBottom: theme.spacing.md },
   howRow: { flexDirection: 'row', gap: theme.spacing.md, alignItems: 'flex-start' },
   howNum: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.neonSoft,
     borderWidth: 1,
-    borderColor: theme.colors.accentBorder,
+    borderColor: theme.colors.neon,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  howNumText: { color: theme.colors.accent, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.xs },
-  howText: { flex: 1, color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19 },
+  howNumText: { color: theme.colors.neon, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.xs },
+  howText: { flex: 1, color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19 },
   message: { fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, marginBottom: theme.spacing.md },
-
 });

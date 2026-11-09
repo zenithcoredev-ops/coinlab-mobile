@@ -76,6 +76,9 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/docs/"
+    ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
     ]
   }
 }
