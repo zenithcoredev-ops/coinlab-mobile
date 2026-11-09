@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NeonBar } from '@/components/home/neon-bar';
-import { NeonCard } from '@/components/home/neon-card';
+import { NeonCard } from '@/components/neon-card';
 import { Button } from '@/components/ui';
 import { useSteps } from '@/context/steps';
 import { useMining } from '@/context/mining';
@@ -24,7 +24,7 @@ export function StepsCard() {
   if (availability === 'not_installed' || availability === 'update_required') {
     const update = availability === 'update_required';
     return (
-      <NeonCard glow="strong" style={styles.card}>
+      <NeonCard style={styles.card}>
         <Text style={styles.title}>{t('steps.title')}</Text>
         <Text style={styles.body}>{t(update ? 'steps.update.body' : 'steps.install.body', params)}</Text>
         <Button label={t(update ? 'steps.update.button' : 'steps.install.button')} onPress={openStore} style={styles.button} />
@@ -34,7 +34,7 @@ export function StepsCard() {
 
   if (availability === 'needs_permission') {
     return (
-      <NeonCard glow="strong" style={styles.card}>
+      <NeonCard style={styles.card}>
         <Text style={styles.title}>{t('steps.title')}</Text>
         <Text style={styles.body}>{t('steps.connect.body', params)}</Text>
         <Button label={t('steps.connect.button')} onPress={connect} style={styles.button} />
@@ -48,7 +48,7 @@ export function StepsCard() {
   const toNext = STEPS_PER_BONUS_UNIT - (steps % STEPS_PER_BONUS_UNIT);
 
   return (
-    <NeonCard glow="strong" style={styles.card}>
+    <NeonCard style={styles.card}>
       {/* "Bu oturumdaki adımlar" over "2.100 / 10.000"; read out as one line. */}
       <View accessible accessibilityLabel={t('steps.sessionProgress', { steps: steps.toLocaleString(language), cap: STEP_BONUS_CAP_STEPS.toLocaleString(language) })}>
         <Text style={styles.title}>{t('steps.sessionLabel')}</Text>

@@ -9,7 +9,7 @@ import { ScreenHeader } from '@/components/screen-header';
 import { StepsCard } from '@/components/steps-card';
 import { TaskRow } from '@/components/task-row';
 import { BACKGROUND_IMAGES } from '@/components/home/backgrounds';
-import { NeonCard } from '@/components/home/neon-card';
+import { NeonCard } from '@/components/neon-card';
 import { ScreenBackground } from '@/components/home/screen-background';
 import { Button, EmptyState } from '@/components/ui';
 import { useMining } from '@/context/mining';
@@ -135,7 +135,7 @@ export default function TasksScreen() {
           )
         ) : (
           <>
-            <NeonCard tone="gold" glow="strong" style={styles.summary} testID="earned-today">
+            <NeonCard tone="gold" style={styles.summary} testID="earned-today">
               <View>
                 <View style={styles.summaryChip}>
                   <Text style={styles.summaryLabel}>{t('tasks.earnedToday')}</Text>

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { NeonCard } from '@/components/home/neon-card';
+import { NeonCard } from '@/components/neon-card';
 import { useRewardedBoost } from '@/hooks/use-rewarded-boost';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
