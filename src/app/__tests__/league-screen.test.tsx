@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import LeagueScreen from '../(tabs)/league';
 
@@ -112,5 +112,49 @@ describe('League screen with production data', () => {
     mockGetLeague.mockResolvedValue({ ...base, state: 'locked' });
     render(<LeagueScreen />);
     await waitFor(() => expect(screen.getByText(require('@/i18n/translate').translate('tr', 'league.locked.title'))).toBeTruthy());
+  });
+
+  it('shows the title, the league card, your rank and a short standings list in the neon layout', async () => {
+    // 30 players, you 12th, 3 promote: top rows, ⋯, you with your neighbours.
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      rank: i + 1,
+      name: i === 11 ? 'Waligo' : `P${i + 1}`,
+      frame: null,
+      points: 30 - i,
+      isYou: i === 11,
+      zone: i < 3 ? 'promote' : null,
+    }));
+    mockGetLeague.mockResolvedValue({ ...active, groupSize: 30, yourRank: 12, yourPoints: 4.82, standings: rows });
+    render(<LeagueScreen />);
+    await waitFor(() => expect(screen.getByText('Senin sıran')).toBeTruthy());
+
+    expect(screen.getByText('Haftalık lig')).toBeTruthy();
+    expect(screen.getByText(/^Her pazartesi \d\d:\d\d'(te|de|da|ta) yeni hafta başlar\.$/)).toBeTruthy();
+    expect(screen.getByText(/^Hafta bitişine \d+g \d+s$/)).toBeTruthy();
+    expect(screen.getByText('12.')).toBeTruthy();
+    expect(screen.getByText('/ 30')).toBeTruthy();
+    expect(screen.getByText('Bu hafta: 4,82 Wago')).toBeTruthy();
+    expect(screen.getByText('Terfi bölgesine 9 sıra')).toBeTruthy();
+    expect(screen.getByText('30 katılımcı')).toBeTruthy();
+
+    // The boundary is a labelled divider, not just colour.
+    expect(screen.getByText('Terfi bölgesi ↑')).toBeTruthy();
+    // Short list: rows 1-5, 11-13 and the user marked "Sen".
+    expect(screen.getByLabelText('4. sıra: P4, 27,00 Wago')).toBeTruthy();
+    expect(screen.queryByLabelText('8. sıra: P8, 23,00 Wago')).toBeNull();
+    expect(screen.getByLabelText('11. sıra: P11, 20,00 Wago')).toBeTruthy();
+    expect(screen.getByTestId('standing-you')).toBeTruthy();
+    expect(screen.getAllByText('⋯').length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.press(screen.getByText('Tümünü gör'));
+    expect(screen.getByLabelText('8. sıra: P8, 23,00 Wago')).toBeTruthy();
+    expect(screen.getByLabelText('30. sıra: P30, 1,00 Wago')).toBeTruthy();
+    expect(screen.getByText('Daha az göster')).toBeTruthy();
+  });
+
+  it('says when you are in the promotion zone', async () => {
+    mockGetLeague.mockResolvedValue({ ...active, yourRank: 2, standings: standings.map((s) => ({ ...s, isYou: s.rank === 2 })) });
+    render(<LeagueScreen />);
+    await waitFor(() => expect(screen.getByText('Terfi bölgesindesin')).toBeTruthy());
   });
 });

@@ -61,6 +61,7 @@ export const theme = {
     accentInk: palette.goldInk, // text on top of an accent-filled surface
     positive: palette.teal, // active mining, success
     danger: palette.danger,
+    medalGold: palette.gold,
     medalSilver: palette.silver,
     medalBronze: palette.bronze,
     frameChampion: palette.gold,

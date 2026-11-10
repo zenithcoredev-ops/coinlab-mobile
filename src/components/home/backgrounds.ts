@@ -8,8 +8,12 @@ import type { ImageSourcePropType } from 'react-native';
  * the repo, replace `null` with `require('../../../assets/backgrounds/tasks-bg.webp')`. A test fails
  * if the file is there but not wired up here, or is too large.
  */
-export const BACKGROUND_IMAGES: { tasks: ImageSourcePropType | null } = {
+export const BACKGROUND_IMAGES: { tasks: ImageSourcePropType | null; league: ImageSourcePropType | null } = {
   tasks: null,
+  // League: when `assets/backgrounds/league-bg.webp` is in the repo, replace `null` with
+  // `require('../../../assets/backgrounds/league-bg.webp')`. It gets a graded shade (darker at the
+  // top and bottom).
+  league: null,
 };
 
 /** Largest a background picture may be, in bytes. */

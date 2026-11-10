@@ -20,11 +20,14 @@ export function ScreenBackground({
   focus,
   focusRadius = 100,
   image,
+  shade = 'flat',
 }: {
   variant?: BackgroundVariant;
   focus?: Point | null;
   focusRadius?: number;
   image?: ImageSourcePropType | null;
+  /** Over a picture: an even ~65 % shade, or one that is darker at the top and bottom. */
+  shade?: 'flat' | 'graded';
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const lines = useMemo(() => (variant === 'neon' ? contourPaths(size.width, size.height) : []), [variant, size.width, size.height]);
@@ -38,7 +41,21 @@ export function ScreenBackground({
       {image ? (
         <>
           <Image testID="background-image" source={image} resizeMode="cover" style={StyleSheet.absoluteFill} />
-          <View testID="background-shade" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.imageShade }]} />
+          {shade === 'graded' ? (
+            <Svg testID="background-shade" width="100%" height="100%" style={StyleSheet.absoluteFill}>
+              <Defs>
+                <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={theme.colors.bgDeep} stopOpacity={0.88} />
+                  <Stop offset="0.3" stopColor={theme.colors.bgDeep} stopOpacity={0.6} />
+                  <Stop offset="0.7" stopColor={theme.colors.bgDeep} stopOpacity={0.6} />
+                  <Stop offset="1" stopColor={theme.colors.bgDeep} stopOpacity={0.9} />
+                </LinearGradient>
+              </Defs>
+              <Rect x={0} y={0} width="100%" height="100%" fill="url(#shade)" />
+            </Svg>
+          ) : (
+            <View testID="background-shade" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.imageShade }]} />
+          )}
         </>
       ) : null}
       {size.width > 0 && variant === 'neon' ? (

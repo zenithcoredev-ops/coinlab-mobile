@@ -24,7 +24,6 @@ export const RESULT_KEYS: Record<ResultType, TranslationKey> = {
   stay: 'league.result.stay',
 };
 
-export const MEDALS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export const STAGE_NAME_KEYS: Record<TournamentStage, TranslationKey> = {
   qf: 'tournament.stage.qf',

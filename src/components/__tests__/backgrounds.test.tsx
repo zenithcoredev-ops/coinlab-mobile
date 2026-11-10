@@ -11,6 +11,7 @@ const fs = require('fs') as {
   readFileSync(file: string, encoding: 'utf8'): string;
 };
 const TASKS_BG = 'assets/backgrounds/tasks-bg.webp';
+const LEAGUE_BG = 'assets/backgrounds/league-bg.webp';
 const registry = fs.readFileSync('src/components/home/backgrounds.ts', 'utf8');
 
 describe('tab backgrounds', () => {
@@ -22,6 +23,20 @@ describe('tab backgrounds', () => {
     }
     expect(fs.statSync(TASKS_BG).size).toBeLessThanOrEqual(BACKGROUND_MAX_BYTES);
     expect(registry).toMatch(/require\('\.\.\/\.\.\/\.\.\/assets\/backgrounds\/tasks-bg\.webp'\)/);
+  });
+
+  it('the League picture, once in the repo, is wired up in backgrounds.ts and at most 400 KB', () => {
+    if (!fs.existsSync(LEAGUE_BG)) {
+      expect(BACKGROUND_IMAGES.league).toBeNull();
+      return;
+    }
+    expect(fs.statSync(LEAGUE_BG).size).toBeLessThanOrEqual(BACKGROUND_MAX_BYTES);
+    expect(registry).toMatch(/require\('\.\.\/\.\.\/\.\.\/assets\/backgrounds\/league-bg\.webp'\)/);
+  });
+
+  it('can shade a picture darker at the top and bottom', () => {
+    render(<ScreenBackground variant="neon" image={{ uri: 'file:///bg.webp' }} shade="graded" />);
+    expect(screen.getByTestId('background-shade')).toBeTruthy();
   });
 
   it('draws only the topographic lines without a picture, and the picture under a dark shade with one', () => {
