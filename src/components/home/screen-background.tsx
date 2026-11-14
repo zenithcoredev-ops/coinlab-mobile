@@ -26,8 +26,11 @@ export function ScreenBackground({
   focus?: Point | null;
   focusRadius?: number;
   image?: ImageSourcePropType | null;
-  /** Over a picture: an even ~65 % shade, or one that is darker at the top and bottom. */
-  shade?: 'flat' | 'graded';
+  /**
+   * Over a picture: an even ~65 % shade; 'graded', darker at the top and bottom; or 'topReveal',
+   * lighter in the top third (the picture shows faintly there) and darker below.
+   */
+  shade?: 'flat' | 'graded' | 'topReveal';
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const lines = useMemo(() => (variant === 'neon' ? contourPaths(size.width, size.height) : []), [variant, size.width, size.height]);
@@ -41,14 +44,13 @@ export function ScreenBackground({
       {image ? (
         <>
           <Image testID="background-image" source={image} resizeMode="cover" style={StyleSheet.absoluteFill} />
-          {shade === 'graded' ? (
+          {shade !== 'flat' ? (
             <Svg testID="background-shade" width="100%" height="100%" style={StyleSheet.absoluteFill}>
               <Defs>
                 <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={theme.colors.bgDeep} stopOpacity={0.88} />
-                  <Stop offset="0.3" stopColor={theme.colors.bgDeep} stopOpacity={0.6} />
-                  <Stop offset="0.7" stopColor={theme.colors.bgDeep} stopOpacity={0.6} />
-                  <Stop offset="1" stopColor={theme.colors.bgDeep} stopOpacity={0.9} />
+                  {(shade === 'graded' ? GRADED_STOPS : TOP_REVEAL_STOPS).map(([offset, opacity]) => (
+                    <Stop key={offset} offset={offset} stopColor={theme.colors.bgDeep} stopOpacity={opacity} />
+                  ))}
                 </LinearGradient>
               </Defs>
               <Rect x={0} y={0} width="100%" height="100%" fill="url(#shade)" />
@@ -75,6 +77,20 @@ export function ScreenBackground({
     </View>
   );
 }
+
+/** [offset, opacity] of the dark layer over a picture, top to bottom. */
+const GRADED_STOPS: [number, number][] = [
+  [0, 0.88],
+  [0.3, 0.6],
+  [0.7, 0.6],
+  [1, 0.9],
+];
+const TOP_REVEAL_STOPS: [number, number][] = [
+  [0, 0.45],
+  [0.3, 0.55],
+  [0.5, 0.82],
+  [1, 0.9],
+];
 
 const SCAN_TRAVEL_MS = 6000;
 const SCAN_PAUSE_MS = 3000; // a pass every 9 s
