@@ -1,4 +1,4 @@
-import { contourPaths, leagueCardInfo, ringContours, ringGeometry, SPARK_COUNT, sparkFrame, tasksSummary, wobblyLoop } from '../home-visuals';
+import { contourPaths, framedImageRect, leagueCardInfo, ringContours, ringGeometry, SPARK_COUNT, sparkFrame, tasksSummary, wobblyLoop } from '../home-visuals';
 
 describe('ringGeometry', () => {
   it('starts at the top and goes clockwise', () => {
@@ -105,5 +105,28 @@ describe('tasksSummary', () => {
   it('handles no tasks and all done', () => {
     expect(tasksSummary([])).toEqual({ done: 0, total: 0, progress: 0, next: null });
     expect(tasksSummary([task('mine', true, true)]).next).toBeNull();
+  });
+});
+
+describe('framedImageRect', () => {
+  it('puts the focal point (the peak) on the ring centre, zoomed and centred', () => {
+    const r = framedImageRect(390, 250, 1.6, { scale: 1.12, anchorY: 0.4 });
+    expect(r.width).toBeCloseTo(390 * 1.12);
+    expect(r.left).toBeCloseTo((390 - r.width) / 2);
+    expect(r.top + 0.4 * r.height).toBeCloseTo(250);
+    expect(r.top).toBeLessThanOrEqual(0);
+  });
+
+  it('zooms in further rather than leave a gap above the picture', () => {
+    const r = framedImageRect(390, 340, 1.6, { scale: 1.12, anchorY: 0.15 });
+    expect(r.top).toBeCloseTo(0);
+    expect(r.top + 0.15 * r.height).toBeCloseTo(340);
+    expect(r.width).toBeGreaterThan(390 * 1.12);
+  });
+
+  it('moves the peak with the one setting', () => {
+    const high = framedImageRect(390, 200, 1.6, { scale: 1.12, anchorY: 0.3 });
+    const low = framedImageRect(390, 200, 1.6, { scale: 1.12, anchorY: 0.5 });
+    expect(high.top).toBeGreaterThan(low.top);
   });
 });

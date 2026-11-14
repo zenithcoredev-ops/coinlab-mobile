@@ -130,3 +130,31 @@ export function tasksSummary<T extends { claimed: boolean; isComplete: boolean }
   const next = tasks.find((t) => !t.claimed && !t.isComplete) ?? tasks.find((t) => !t.claimed) ?? null;
   return { done, total: tasks.length, progress: tasks.length ? done / tasks.length : 0, next };
 }
+
+/** How a framed background picture is placed: zoom, and where its focal point (e.g. a peak) sits in it. */
+export type ImageFraming = {
+  /** Width of the picture relative to the screen; above 1 zooms in a little. */
+  scale: number;
+  /** Height of the focal point within the picture, 0 (top) to 1 (bottom). */
+  anchorY: number;
+};
+
+/**
+ * Where to draw a picture of aspect `aspect` (height / width) in a layer `layerWidth` wide so that
+ * its focal point lands on `focusY`, centred horizontally and `scale` times the layer's width. If
+ * that would leave a gap above the picture, it is zoomed in further (still centred on the point) so
+ * it always reaches the top of the screen.
+ */
+export function framedImageRect(layerWidth: number, focusY: number, aspect: number, framing: ImageFraming) {
+  const a = aspect > 0 && Number.isFinite(aspect) ? aspect : 1;
+  const anchor = Math.min(1, Math.max(0.01, framing.anchorY));
+  const widthToReachTop = Math.max(0, focusY) / (anchor * a);
+  const width = Math.max(layerWidth * Math.max(1, framing.scale), widthToReachTop);
+  const height = width * a;
+  return {
+    left: (layerWidth - width) / 2,
+    top: focusY - anchor * height,
+    width,
+    height,
+  };
+}
