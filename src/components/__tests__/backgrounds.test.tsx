@@ -34,6 +34,21 @@ describe('tab backgrounds', () => {
     expect(registry).toMatch(/require\('\.\.\/\.\.\/\.\.\/assets\/backgrounds\/league-bg\.webp'\)/);
   });
 
+  it('the Profile picture, once in the repo, is wired up in backgrounds.ts and at most 400 KB', () => {
+    const file = 'assets/backgrounds/profile-bg.webp';
+    if (!fs.existsSync(file)) {
+      expect(BACKGROUND_IMAGES.profile).toBeNull();
+      return;
+    }
+    expect(fs.statSync(file).size).toBeLessThanOrEqual(BACKGROUND_MAX_BYTES);
+    expect(registry).toMatch(/require\('\.\.\/\.\.\/\.\.\/assets\/backgrounds\/profile-bg\.webp'\)/);
+  });
+
+  it('can let the top of a picture show through (Profile)', () => {
+    render(<ScreenBackground variant="neon" image={{ uri: 'file:///bg.webp' }} shade="topReveal" />);
+    expect(screen.getByTestId('background-shade')).toBeTruthy();
+  });
+
   it('can shade a picture darker at the top and bottom', () => {
     render(<ScreenBackground variant="neon" image={{ uri: 'file:///bg.webp' }} shade="graded" />);
     expect(screen.getByTestId('background-shade')).toBeTruthy();

@@ -17,12 +17,16 @@ const LABELS: Record<NotificationType, { title: TranslationKey; hint: Translatio
   comeback: { title: 'profile.notif.type.comeback', hint: 'profile.notif.type.comebackHint' },
 };
 
-/** Profile → Notifications: one switch per kind, under the main switch (dimmed while that is off). */
-export function NotificationTypeSettings() {
+/**
+ * Profile → Notifications: one switch per kind, under the main switch (dimmed while that is off).
+ * `embedded` draws just the rows, for a card that already holds the main switch.
+ */
+export function NotificationTypeSettings({ embedded = false }: { embedded?: boolean }) {
   const { t } = useI18n();
   const { active, typePrefs, setTypeEnabled } = useNotifications();
+  const Frame = embedded ? View : Card;
   return (
-    <Card style={active ? styles.card : { ...styles.card, ...styles.off }}>
+    <Frame testID="notif-types" style={StyleSheet.flatten([embedded ? styles.embedded : styles.card, !active && styles.off])}>
       {PRIORITY.map((type, i) => (
         <View key={type} style={[styles.row, i > 0 && styles.divided]}>
           <View style={styles.text}>
@@ -34,22 +38,23 @@ export function NotificationTypeSettings() {
             value={typePrefs[type]}
             disabled={!active}
             onValueChange={(on) => setTypeEnabled(type, on)}
-            trackColor={{ true: theme.colors.accent, false: theme.colors.ringTrack }}
+            trackColor={{ true: theme.colors.neon, false: theme.colors.ringTrack }}
             thumbColor={theme.colors.text}
             accessibilityLabel={t(LABELS[type].title)}
           />
         </View>
       ))}
-    </Card>
+    </Frame>
   );
 }
 
 const styles = StyleSheet.create({
   card: { marginTop: theme.spacing.sm, paddingVertical: theme.spacing.xs },
+  embedded: { marginTop: theme.spacing.sm },
   off: { opacity: 0.5 },
   row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, paddingVertical: theme.spacing.sm },
   divided: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border },
   text: { flex: 1 },
   title: { color: theme.colors.text, fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm },
-  hint: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: 2 },
+  hint: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: 2 },
 });

@@ -24,6 +24,11 @@ export type Account = {
   adFree?: boolean;
   equippedFrame: string | null;
   ownedFrames: string[];
+  /**
+   * Local days on which the user started a collecting session, all time. Not sent by the server yet;
+   * the Profile tab shows the current speed in its place until it is.
+   */
+  totalCollectDays?: number;
 };
 
 export type DeleteErrorCode = 'confirm_required';

@@ -3,17 +3,20 @@ import Constants from 'expo-constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { ComponentProps, useCallback, useState } from 'react';
+import { ComponentProps, ReactNode, useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BadgeDetailModal } from '@/components/badge-detail-modal';
 import { BadgeGrid } from '@/components/badge-grid';
+import { BACKGROUND_IMAGES } from '@/components/home/backgrounds';
+import { ScreenBackground } from '@/components/home/screen-background';
+import { NeonCard } from '@/components/neon-card';
 import { NotificationTypeSettings } from '@/components/notification-type-settings';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { SupportModal } from '@/components/support-modal';
 import { ScreenHeader } from '@/components/screen-header';
-import { Button, Card, ScreenTitle, SectionLabel, Segmented } from '@/components/ui';
+import { Segmented } from '@/components/ui';
 import { WidgetDiagnostics } from '@/components/widget-diagnostics';
 import { WidgetWeatherSetting } from '@/components/widget-weather-setting';
 import { PRIVACY_POLICY_URL, TERMS_URL } from '@/constants/config';
@@ -23,8 +26,9 @@ import { useNotifications } from '@/context/notifications';
 import { useSession } from '@/context/session';
 import { useI18n } from '@/i18n';
 import type { LanguagePreference } from '@/i18n';
-import { FRAME_NAME_KEYS } from '@/lib/league';
-import { clbPerHourOf, formatClbPerHour, formatDecimal, statusClbPerHour } from '@/lib/mining-math';
+import { formatMonthYear } from '@/lib/dates';
+import { FRAME_NAME_KEYS, LEAGUE_NAME_KEYS } from '@/lib/league';
+import { clbPerHourOf, formatClbPerHour, statusClbPerHour } from '@/lib/mining-math';
 import { badgeCard, ShareCard } from '@/lib/share';
 import { Badge, BadgeId, earnedCount, getBadges, newlyEarned, vipDaysLeft } from '@/services/badges-api';
 import { Account, deleteAccount, getAccount } from '@/services/me-api';
@@ -118,11 +122,15 @@ export default function ProfileScreen() {
 
   const name = account?.name ?? auth?.name ?? '';
   const version = Constants.expoConfig?.version ?? '';
-  const memberSince = account ? new Date(account.createdAt).toLocaleDateString(language) : null;
-  const balance = status ? parseFloat(status.balance) : account ? parseFloat(account.balance) : 0;
+  const memberSince = formatMonthYear(account?.createdAt, language);
 
   const vipDays = vipDaysLeft(account?.vipUntil ?? null, Date.now());
   const frameKey = account?.equippedFrame ? FRAME_NAME_KEYS[account.equippedFrame] : undefined;
+  const streak = status?.streak ?? account?.streak ?? 0;
+  const league = account ? t(LEAGUE_NAME_KEYS[account.league]) : '–';
+  // "Toplam gün" once the server sends it; until then the current speed, another stat it does send.
+  const totalDays = typeof account?.totalCollectDays === 'number' ? account.totalCollectDays : null;
+  const speed = formatClbPerHour(status ? statusClbPerHour(status) : clbPerHourOf(account?.clbPerHour, account?.currentThs ?? 0), language);
 
   const languageOptions: { value: LanguagePreference; label: string }[] = [
     { value: 'auto', label: t('profile.language.auto') },
@@ -132,112 +140,103 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Fixed behind the list: the tab's picture when there is one, else the drawn topographic lines. */}
+      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.profile} shade="topReveal" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <ScreenHeader />
-        <ScreenTitle title={t('tabs.profile')} />
 
-        <View style={styles.identity}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{name.charAt(0).toUpperCase() || 'C'}</Text>
+        <NeonCard grid style={styles.block} testID="profile-card">
+          <View style={styles.identity}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{name.charAt(0).toUpperCase() || 'W'}</Text>
+            </View>
+            <View style={styles.identityText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {name}
+              </Text>
+              {account?.email ? (
+                <Text style={styles.email} numberOfLines={1}>
+                  {account.email}
+                </Text>
+              ) : null}
+              {memberSince ? <Text style={styles.since}>{t('profile.memberSinceMonth', { date: memberSince })}</Text> : null}
+            </View>
           </View>
-          <Text style={styles.name}>{name}</Text>
-          {memberSince && <Text style={styles.since}>{t('profile.memberSince', { date: memberSince })}</Text>}
+          {vipDays > 0 || frameKey ? (
+            <View style={styles.chips}>
+              {vipDays > 0 ? <Chip text={`${t('profile.vip')}: ${t('profile.vipDays', { count: vipDays })}`} /> : null}
+              {frameKey ? <Chip text={t(frameKey)} /> : null}
+            </View>
+          ) : null}
+        </NeonCard>
+
+        <View style={styles.stats}>
+          <StatCard testID="stat-streak" value={t('streak.days', { count: streak })} label={t('profile.stat.streak')} gold />
+          <StatCard testID="stat-league" value={league} label={t('profile.stat.league')} />
+          {totalDays !== null ? (
+            <StatCard testID="stat-days" value={String(totalDays)} label={t('profile.stat.totalDays')} />
+          ) : (
+            <StatCard testID="stat-speed" value={speed} label={t('profile.stat.speed')} />
+          )}
         </View>
 
-        <Card style={styles.accountCard}>
-          <View style={styles.accountIcon}>
-            <Ionicons name="logo-google" size={18} color={theme.colors.text} />
+        <NeonCard tone="gold" style={styles.block} testID="badges-card">
+          <View style={styles.cardHead}>
+            <Text style={styles.cardTitle}>{t('profile.badges')}</Text>
+            {badges ? <Text style={styles.cardMeta}>{t('profile.badgesCount', { earned: earnedCount(badges), total: badges.length })}</Text> : null}
           </View>
-          <View style={styles.accountInfo}>
-            <Text style={styles.accountProvider}>{t('profile.signedInWith', { provider: 'Google' })}</Text>
-            <Text style={styles.accountEmail} numberOfLines={1}>
-              {account?.email ?? ''}
-            </Text>
-          </View>
-        </Card>
-
-        <Card style={styles.infoList}>
-          <InfoRow label={t('profile.balance')} value={`${formatDecimal(balance, 3, language)} ${t('unit.clb')}`} valueColor={theme.colors.accent} />
-          <InfoRow
-            label={t('profile.speed')}
-            value={`${formatClbPerHour(status ? statusClbPerHour(status) : clbPerHourOf(account?.clbPerHour, account?.currentThs ?? 0), language)} ${t('unit.rate')}`}
-            valueColor={theme.colors.positive}
-          />
-          <InfoRow label={t('profile.streak')} value={t('streak.days', { count: status?.streak ?? account?.streak ?? 0 })} last />
-        </Card>
-
-        <SectionLabel>{t('profile.badges')}</SectionLabel>
-        {badges ? (
-          <>
-            <Text style={styles.badgeCount}>{t('profile.badgesCount', { earned: earnedCount(badges), total: badges.length })}</Text>
+          {badges ? (
             <BadgeGrid
               badges={badges}
               newIds={newBadgeIds}
               onPressBadge={(id) => setBadgeOpen({ id, earnedAt: badges.find((b) => b.id === id)?.earnedAt ?? null })}
             />
-          </>
-        ) : (
-          badgesFailed && <Text style={styles.error}>{t('profile.badgeLoadFailed')}</Text>
-        )}
+          ) : badgesFailed ? (
+            <Text style={styles.error}>{t('profile.badgeLoadFailed')}</Text>
+          ) : (
+            <ActivityIndicator color={theme.colors.accent} />
+          )}
+        </NeonCard>
 
-        <SectionLabel>{t('profile.rewards')}</SectionLabel>
-        <Card style={styles.infoList}>
-          <InfoRow
-            label={t('profile.vip')}
-            value={vipDays > 0 ? t('profile.vipDays', { count: vipDays }) : t('profile.vipNone')}
-            valueColor={vipDays > 0 ? theme.colors.accent : undefined}
-          />
-          <InfoRow
-            label={t('profile.frame')}
-            value={frameKey ? t(frameKey) : t('profile.frameNone')}
-            valueColor={frameKey ? theme.colors.accent : undefined}
-            last
-          />
-        </Card>
-
-        <SectionLabel>{t('profile.language')}</SectionLabel>
-        <Segmented value={preference} options={languageOptions} onChange={setPreference} />
-
-        <SectionLabel>{t('profile.notifications')}</SectionLabel>
-        <Card style={styles.switchRow}>
-          <View style={styles.switchText}>
-            <Text style={styles.rowTitle}>{t('profile.notif.reminders')}</Text>
-            <Text style={styles.rowHint}>
-              {permission === 'denied' ? t('profile.notif.blocked') : t('profile.notif.remindersHint')}
-            </Text>
+        <NeonCard style={styles.block} testID="notifications-card">
+          <Text style={styles.cardTitle}>{t('profile.notif.title')}</Text>
+          <View style={styles.switchRow}>
+            <View style={styles.flex}>
+              <Text style={styles.rowTitle}>{t('profile.notif.reminders')}</Text>
+              <Text style={styles.rowHint}>{permission === 'denied' ? t('profile.notif.blocked') : t('profile.notif.remindersHint')}</Text>
+            </View>
+            <Switch
+              testID="notif-main"
+              value={notifOn}
+              onValueChange={onToggleNotifications}
+              trackColor={{ true: theme.colors.neon, false: theme.colors.ringTrack }}
+              thumbColor={theme.colors.text}
+              accessibilityLabel={t('profile.notif.reminders')}
+            />
           </View>
-          <Switch
-            value={notifOn}
-            onValueChange={onToggleNotifications}
-            trackColor={{ true: theme.colors.accent, false: theme.colors.ringTrack }}
-            thumbColor={theme.colors.text}
-          />
-        </Card>
-        <NotificationTypeSettings />
+          <View style={styles.separator} />
+          <NotificationTypeSettings embedded />
+        </NeonCard>
 
         <WidgetWeatherSetting />
 
-        <SectionLabel>{t('profile.help')}</SectionLabel>
-        <LinkRow label={t('profile.support')} onPress={() => setSupportOpen(true)} />
+        <NeonCard style={styles.block} testID="settings-card">
+          <Text style={styles.cardTitle}>{t('profile.settings')}</Text>
+          <Text style={styles.rowTitle}>{t('profile.language')}</Text>
+          <View style={styles.language}>
+            <Segmented value={preference} options={languageOptions} onChange={setPreference} />
+          </View>
+          <SettingsRow icon="help-buoy-outline" label={t('profile.support')} onPress={() => setSupportOpen(true)} />
+          <SettingsRow icon="shield-checkmark-outline" label={t('profile.privacy')} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL(language))} />
+          <SettingsRow icon="document-text-outline" label={t('profile.terms')} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL(language))} />
+          {privacyOptionsRequired && <SettingsRow icon="options-outline" label={t('profile.privacyOptions')} onPress={openPrivacyOptions} />}
+          <SettingsRow icon="trash-outline" label={t('profile.delete.title')} onPress={onDelete} danger busy={deleting} />
+          <SettingsRow icon="log-out-outline" label={t('profile.signOut')} onPress={onSignOut} last />
+          {deleteError && <Text style={styles.error}>{deleteError}</Text>}
+        </NeonCard>
 
-        <SectionLabel>{t('profile.legal')}</SectionLabel>
-        <LinkRow label={t('profile.privacy')} onPress={() => WebBrowser.openBrowserAsync(PRIVACY_POLICY_URL(language))} />
-        <LinkRow label={t('profile.terms')} onPress={() => WebBrowser.openBrowserAsync(TERMS_URL(language))} />
-        {privacyOptionsRequired && <LinkRow label={t('profile.privacyOptions')} onPress={openPrivacyOptions} />}
-
-        <SectionLabel>{t('profile.account')}</SectionLabel>
-        <Button label={t('profile.signOut')} onPress={onSignOut} variant="ghost" style={styles.accountButton} />
-        <Button
-          label={t('profile.delete.title')}
-          onPress={onDelete}
-          variant="danger"
-          loading={deleting}
-          style={styles.accountButton}
-        />
-        {deleteError && <Text style={styles.error}>{deleteError}</Text>}
-        {deleting && <ActivityIndicator color={theme.colors.text} />}
-
-        {!!version && <Text style={styles.version}>{t('profile.version', { version })}</Text>}
+        <Text style={styles.footer}>{t('profile.weather.attribution')}</Text>
+        {!!version && <Text style={styles.footer}>{t('profile.version', { version })}</Text>}
 
         <WidgetDiagnostics />
       </ScrollView>
@@ -255,106 +254,106 @@ export default function ProfileScreen() {
   );
 }
 
-function InfoRow({ label, value, valueColor, last }: { label: string; value: string; valueColor?: string; last?: boolean }) {
+function Chip({ text }: { text: string }) {
   return (
-    <View style={[styles.infoRow, last && { borderBottomWidth: 0 }]}>
-      <Text style={styles.infoKey}>{label}</Text>
-      <Text style={[styles.infoValue, valueColor ? { color: valueColor } : null]}>{value}</Text>
+    <View style={styles.chip}>
+      <Text style={styles.chipText}>{text}</Text>
     </View>
   );
 }
 
-function LinkRow({
-  label,
-  detail,
-  onPress,
-}: {
-  label: string;
-  detail?: string;
-  onPress: () => void;
-}) {
-  const icon: ComponentProps<typeof Ionicons>['name'] = 'chevron-forward';
+/** A small stat card: the value big, its label under it (gold for rewards like the streak). */
+function StatCard({ value, label, gold, testID }: { value: string; label: string; gold?: boolean; testID?: string }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="link" style={({ pressed }) => [styles.link, pressed && { opacity: 0.8 }]}>
-      <Text style={styles.linkLabel}>{label}</Text>
-      <View style={styles.linkRight}>
-        {detail ? <Text style={styles.linkDetail}>{detail}</Text> : null}
-        <Ionicons name={icon} size={18} color={theme.colors.textMuted} />
-      </View>
+    <NeonCard tone={gold ? 'gold' : 'green'} grid style={styles.stat} testID={testID}>
+      <Text style={[styles.statValue, gold && styles.statValueGold]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+        {value}
+      </Text>
+      <Text style={styles.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </NeonCard>
+  );
+}
+
+function SettingsRow({
+  icon,
+  label,
+  onPress,
+  danger,
+  busy,
+  last,
+}: {
+  icon: ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+  busy?: boolean;
+  last?: boolean;
+}): ReactNode {
+  const color = danger ? theme.colors.danger : theme.colors.text;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={busy}
+      accessibilityRole={danger || last ? 'button' : 'link'}
+      style={({ pressed }) => [styles.settingsRow, !last && styles.settingsDivider, pressed && { opacity: 0.75 }]}>
+      <Ionicons name={icon} size={20} color={danger ? theme.colors.danger : theme.colors.neon} />
+      <Text style={[styles.settingsLabel, { color }, danger && styles.settingsDanger]}>{label}</Text>
+      {busy ? <ActivityIndicator color={theme.colors.text} /> : <Ionicons name="chevron-forward" size={18} color={theme.colors.tabInactive} />}
     </Pressable>
   );
 }
 
+// Glow only on titles and big numbers, always behind the text.
+const glow = (color: string) => ({ textShadowColor: color, textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 } });
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl + 16 },
-  identity: { alignItems: 'center', marginBottom: theme.spacing.lg },
+  container: { flex: 1, backgroundColor: theme.colors.bgDeep },
+  scroll: { paddingHorizontal: theme.spacing.lg + 2, paddingTop: theme.spacing.xl, paddingBottom: theme.spacing.xxl + 16 },
+  block: { marginBottom: theme.spacing.lg },
+  flex: { flex: 1 },
+
+  identity: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.lg },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: theme.colors.positive,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.sm,
-  },
-  avatarText: { color: theme.colors.background, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xxl },
-  name: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg },
-  since: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
-
-  accountCard: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, marginBottom: theme.spacing.md },
-  accountIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.ringTrack,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: theme.colors.neon,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  accountInfo: { flex: 1 },
-  accountProvider: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.sm },
-  accountEmail: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
+  avatarText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xxl - 4 },
+  identityText: { flex: 1, minWidth: 0 },
+  name: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, ...glow(theme.colors.neonGlow) },
+  email: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: 2 },
+  since: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, marginTop: theme.spacing.md },
+  chip: { borderWidth: 1, borderColor: theme.colors.accent, backgroundColor: theme.colors.accentSoft, borderRadius: theme.radius.pill, paddingHorizontal: 10, paddingVertical: 3 },
+  chipText: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.xs },
 
-  infoList: { paddingVertical: theme.spacing.xs, marginBottom: theme.spacing.sm },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.divider,
-  },
-  infoKey: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
-  infoValue: { color: theme.colors.text, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.sm },
+  stats: { flexDirection: 'row', gap: theme.spacing.md, marginBottom: theme.spacing.lg },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: theme.spacing.lg, paddingHorizontal: theme.spacing.sm },
+  statValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg, ...glow(theme.colors.neonGlow) },
+  statValueGold: { color: theme.colors.accent, ...glow(theme.colors.goldGlow) },
+  statLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4 },
+
+  cardHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: theme.spacing.md, marginBottom: theme.spacing.md },
+  cardTitle: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg - 1, marginBottom: theme.spacing.sm },
+  cardMeta: { flexShrink: 1, color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, textAlign: 'right' },
 
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
-  switchText: { flex: 1 },
-  rowTitle: { color: theme.colors.text, fontFamily: theme.fonts.bodySemiBold, fontSize: theme.fontSizes.md - 0.5 },
-  rowHint: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
+  rowTitle: { color: theme.colors.text, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.md - 0.5 },
+  rowHint: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 2 },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.ringTrack, marginTop: theme.spacing.md },
 
-  link: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.surfaceRaised,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    paddingVertical: theme.spacing.lg - 2,
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
-  },
-  linkLabel: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.md - 0.5 },
-  linkRight: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 },
-  linkDetail: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, flexShrink: 1 },
+  language: { marginTop: theme.spacing.sm, marginBottom: theme.spacing.sm },
+  settingsRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, paddingVertical: theme.spacing.md + 2 },
+  settingsDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.ringTrack },
+  settingsLabel: { flex: 1, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.md - 0.5 },
+  // The theme's soft red (AA on the card): clearly different, not shouting.
+  settingsDanger: { fontFamily: theme.fonts.bodyMedium },
 
-  accountButton: { marginBottom: theme.spacing.sm },
-  badgeCount: { color: theme.colors.textMuted, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs, marginBottom: theme.spacing.sm },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.sm },
-  version: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.fonts.mono,
-    fontSize: theme.fontSizes.xs,
-    textAlign: 'center',
-    marginTop: theme.spacing.xl,
-  },
+  footer: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, textAlign: 'center', marginTop: theme.spacing.sm },
 });
