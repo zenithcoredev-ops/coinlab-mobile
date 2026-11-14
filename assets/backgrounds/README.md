@@ -1,16 +1,29 @@
 # Tab backgrounds
 
 Background pictures for the tabs, wired up in `src/components/home/backgrounds.ts` (the only place to
-change them). Without a picture a tab falls back to the drawn topographic background.
+change them, together with each tab's shade). Without a picture a tab falls back to the drawn
+topographic background.
 
-- `home-bg.webp`: the Collect tab (a night camp, a peak with a gold flag far off). It scrolls with the screen; `HOME_BACKGROUND_FRAMING` in backgrounds.ts places it: `anchorY` is the peak's height in the picture (0 top, 1 bottom) and is the one setting to move it, the picture being shifted so that point sits on the ring's centre; `scale` zooms in slightly. A light graded shade (~45 % in the middle, darker at the top and bottom) goes over it, and the topographic lines, turquoise contours and scan light stay on top, fainter. Same 400 KB limit.
-- `profile-bg.webp`: the Profile tab (a silhouette on a summit in front of the sun, top third). Its shade is lighter at the top so the picture shows faintly behind the profile card. Same 400 KB limit.
-- `league-bg.webp`: the League tab, under a graded shade (darker at the top and bottom). Same 400 KB limit.
-- `tasks-bg.webp`: the Tasks tab. Keep it at most 400 KB (a test checks), e.g.:
+| File | Tab | Treatment |
+| --- | --- | --- |
+| `home-bg.webp` | Collect | Scrolls with the screen; `HOME_BACKGROUND_FRAMING.anchorY` (the flag's height in the picture, 0.23) puts the peak on the ring's centre. Light graded shade (~45 % in the middle); faint topographic lines, turquoise contours and scan light on top. |
+| `tasks-bg.webp` | Tasks | Darker graded shade (~75 % top, ~60-65 % middle), green tint, less saturation (Android). |
+| `league-bg.webp` | League | Light graded shade (~50 % in the middle) so the aurora and the neon path show. |
+| `friends-bg.webp` | Friends | Dark at the top, almost none at the bottom; slides slowly with the list (parallax), with room at the end so the friends show. |
+| `profile-bg.webp` | Profile | Lighter in the top third (the figure on the summit shows behind the profile card), dark below. |
 
-  ```bash
-  cwebp -q 70 -resize 1080 0 tasks-bg.png -o tasks-bg.webp
-  ```
+Each file must be at most 400 KB (a test checks), e.g.:
 
-  The app lays a ~65 % dark green-black layer and faint topographic lines over it, so a fairly low
-  quality setting is fine.
+```bash
+cwebp -q 70 -resize 1080 0 picture.png -o tasks-bg.webp
+```
+
+After changing a picture, refresh `brightness.json` (the brightest colours of each picture, used by
+the WCAG contrast test) with:
+
+```bash
+python3 scripts/background-brightness.py
+```
+
+Text outside the cards sits on a dark scrim (`TextScrim`), and the cards are dark glass, so text stays
+at WCAG AA whatever the picture shows; the contrast test checks the rest against `brightness.json`.

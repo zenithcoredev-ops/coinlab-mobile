@@ -49,8 +49,9 @@ describe('Tasks screen', () => {
     expect(screen.getByText('Bugün kazanılan')).toBeTruthy();
     expect(screen.getByText('0,35')).toBeTruthy();
     expect(screen.getByLabelText('Bu oturumdaki adımlar: 1.240 / 10.000')).toBeTruthy();
-    // No picture in the repo yet: the drawn background, no image.
-    expect(screen.queryByTestId('background-image')).toBeNull();
+    // The tab's picture, tinted green under its shade.
+    expect(screen.getByTestId('background-image')).toBeTruthy();
+    expect(screen.getByTestId('background-tint')).toBeTruthy();
   });
 
   it('shows done, ready and locked tasks, and claims the ready one', async () => {

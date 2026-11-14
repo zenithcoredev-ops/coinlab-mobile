@@ -9,13 +9,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BadgeDetailModal } from '@/components/badge-detail-modal';
 import { BadgeGrid } from '@/components/badge-grid';
-import { BACKGROUND_IMAGES } from '@/components/home/backgrounds';
+import { BACKGROUND_IMAGES, BACKGROUND_SHADES } from '@/components/home/backgrounds';
 import { ScreenBackground } from '@/components/home/screen-background';
 import { NeonCard } from '@/components/neon-card';
 import { NotificationTypeSettings } from '@/components/notification-type-settings';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { SupportModal } from '@/components/support-modal';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextScrim } from '@/components/text-scrim';
 import { Segmented } from '@/components/ui';
 import { WidgetDiagnostics } from '@/components/widget-diagnostics';
 import { WidgetWeatherSetting } from '@/components/widget-weather-setting';
@@ -141,7 +142,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Fixed behind the list: the tab's picture when there is one, else the drawn topographic lines. */}
-      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.profile} shade="topReveal" />
+      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.profile} shade={BACKGROUND_SHADES.profile} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <ScreenHeader />
 
@@ -235,8 +236,10 @@ export default function ProfileScreen() {
           {deleteError && <Text style={styles.error}>{deleteError}</Text>}
         </NeonCard>
 
-        <Text style={styles.footer}>{t('profile.weather.attribution')}</Text>
-        {!!version && <Text style={styles.footer}>{t('profile.version', { version })}</Text>}
+        <TextScrim style={styles.footerScrim}>
+          <Text style={styles.footer}>{t('profile.weather.attribution')}</Text>
+          {!!version && <Text style={styles.footer}>{t('profile.version', { version })}</Text>}
+        </TextScrim>
 
         <WidgetDiagnostics />
       </ScrollView>
@@ -355,5 +358,6 @@ const styles = StyleSheet.create({
   settingsDanger: { fontFamily: theme.fonts.bodyMedium },
 
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.sm },
+  footerScrim: { marginTop: theme.spacing.sm },
   footer: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, textAlign: 'center', marginTop: theme.spacing.sm },
 });
