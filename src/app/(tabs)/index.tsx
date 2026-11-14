@@ -7,6 +7,7 @@ import { AdBoostCard } from '@/components/ad-boost-card';
 import { CollectRing, RING_SIZE } from '@/components/home/collect-ring';
 import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '@/components/home/home-cards';
 import { NeonCard } from '@/components/neon-card';
+import { BACKGROUND_IMAGES, HOME_BACKGROUND_FRAMING } from '@/components/home/backgrounds';
 import { ScanLight, ScreenBackground } from '@/components/home/screen-background';
 import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
 import { ScreenHeader } from '@/components/screen-header';
@@ -68,7 +69,15 @@ export default function MineScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScreenBackground variant="neon" focus={focus} focusRadius={RING_SIZE / 2} />
+        {/* Scrolls with the content: with a picture, its peak sits on the ring's centre. */}
+        <ScreenBackground
+          variant="neon"
+          focus={focus}
+          focusRadius={RING_SIZE / 2}
+          image={BACKGROUND_IMAGES.home}
+          shade="centerLight"
+          framing={HOME_BACKGROUND_FRAMING}
+        />
         <ScreenHeader />
 
         <NeonCard grid testID="balance-card">
@@ -125,7 +134,7 @@ export default function MineScreen() {
         <DailyTasksCard />
       </ScrollView>
 
-      <ScanLight animate={animate} />
+      <ScanLight animate={animate} faint={!!BACKGROUND_IMAGES.home} />
 
       <RateBreakdownModal visible={rateOpen} status={status ?? null} onClose={() => setRateOpen(false)} />
     </SafeAreaView>
