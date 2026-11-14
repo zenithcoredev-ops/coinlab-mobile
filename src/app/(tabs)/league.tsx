@@ -6,11 +6,12 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollapsibleCard } from '@/components/collapsible-card';
-import { BACKGROUND_IMAGES } from '@/components/home/backgrounds';
+import { BACKGROUND_IMAGES, BACKGROUND_SHADES } from '@/components/home/backgrounds';
 import { NeonBar } from '@/components/home/neon-bar';
 import { ScreenBackground } from '@/components/home/screen-background';
 import { NeonCard } from '@/components/neon-card';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextScrim } from '@/components/text-scrim';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { Button } from '@/components/ui';
 import { useMining } from '@/context/mining';
@@ -121,7 +122,7 @@ export default function LeagueScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Fixed behind the list: the tab's picture when there is one, else the drawn topographic lines. */}
-      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.league} shade="graded" />
+      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.league} shade={BACKGROUND_SHADES.league} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -132,7 +133,9 @@ export default function LeagueScreen() {
         {!view ? (
           loadError ? (
             <View style={styles.centerBlock}>
-              <Text style={styles.error}>{t('league.loadFailed')}</Text>
+              <TextScrim>
+                <Text style={styles.error}>{t('league.loadFailed')}</Text>
+              </TextScrim>
               <Button label={t('common.retry')} onPress={load} variant="ghost" style={styles.retry} />
             </View>
           ) : (

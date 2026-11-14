@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, ImageSourcePropType, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { Image, ImageSourcePropType, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { contourPaths, framedImageRect, ImageFraming, Point, ringContours } from '@/lib/home-visuals';
@@ -9,34 +19,48 @@ import { theme } from '@/theme';
 /** Background looks a tab can pick. */
 export type BackgroundVariant = 'neon' | 'plain';
 
+/** [offset 0-1 down the layer, opacity] of the dark layer over a picture. */
+export type ShadeStops = readonly (readonly [number, number])[];
+
+/** An even ~65 % layer, for a picture without its own stops. */
+const FLAT_SHADE: ShadeStops = [
+  [0, 0.65],
+  [1, 0.65],
+];
+
+/** How far the picture is taller than the layer when it slides with the list (parallax). */
+const PARALLAX_EXTRA = 0.22;
+
 /**
  * The layer behind a screen: topographic lines drawn in code (faint green) and, around `focus` (the
- * collecting ring), a few turquoise neon lines. With an `image` (see backgrounds.ts), the picture
- * fills the layer under a ~65 % dark green-black shade and the lines get fainter still; without one
- * the drawn background stands alone, so a missing picture changes nothing else.
+ * collecting ring), a few turquoise neon lines. With an `image` (see backgrounds.ts) the picture goes
+ * underneath, under a dark layer graded by `shade`, and the lines stay on top, much fainter. Without
+ * one the drawn background stands alone, so a missing picture changes nothing else.
+ *
+ * - `framing` (Collect): the picture scrolls with the content and is placed by its focal point on
+ *   `focus`; where it starts below the top, it fades in from the background.
+ * - `tint`: a faint green wash and less colour (the saturation filter is Android-only).
+ * - `parallax`: 0-1 scroll progress; the picture, a little taller than the screen, slides up slowly
+ *   so its bottom shows at the end of the list.
  */
 export function ScreenBackground({
   variant = 'neon',
   focus,
   focusRadius = 100,
   image,
-  shade = 'flat',
+  shade = FLAT_SHADE,
   framing,
+  tint,
+  parallax,
 }: {
   variant?: BackgroundVariant;
   focus?: Point | null;
   focusRadius?: number;
   image?: ImageSourcePropType | null;
-  /**
-   * Over a picture: an even ~65 % shade; 'graded', darker at the top and bottom; or 'topReveal',
-   * lighter in the top third (the picture shows faintly there) and darker below.
-   */
-  shade?: 'flat' | 'graded' | 'topReveal' | 'centerLight';
-  /**
-   * Place the picture by its focal point instead of covering: zoomed by `scale` and shifted so the
-   * point at `anchorY` lands on `focus` (the Collect screen's peak on the ring). Needs `focus`.
-   */
+  shade?: ShadeStops;
   framing?: ImageFraming;
+  tint?: { opacity: number; saturation: number };
+  parallax?: SharedValue<number>;
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const lines = useMemo(() => (variant === 'neon' ? contourPaths(size.width, size.height) : []), [variant, size.width, size.height]);
@@ -46,9 +70,21 @@ export function ScreenBackground({
   const framed = useMemo(() => {
     if (!image || !framing || !focus || size.width <= 0) return null;
     const asset = Image.resolveAssetSource?.(image as Parameters<typeof Image.resolveAssetSource>[0]);
-    const aspect = asset?.width && asset?.height ? asset.height / asset.width : 1.6;
+    const aspect = asset?.width && asset?.height ? asset.height / asset.width : 2;
     return framedImageRect(size.width, focus.y, aspect, framing);
   }, [image, framing, focus, size.width]);
+
+  const slide = useAnimatedStyle(() => ({
+    transform: [{ translateY: parallax ? -Math.min(1, Math.max(0, parallax.value)) * PARALLAX_EXTRA * size.height : 0 }],
+  }));
+
+  const imageStyle = framed
+    ? { position: 'absolute' as const, left: framed.left, top: framed.top, width: framed.width, height: framed.height }
+    : parallax
+      ? { position: 'absolute' as const, left: 0, top: 0, width: size.width, height: size.height * (1 + PARALLAX_EXTRA) }
+      : StyleSheet.absoluteFill;
+  // Less colour: a view filter, which Android draws (iOS ignores saturate; the tint still applies there).
+  const filter = tint && Platform.OS === 'android' ? ([{ saturate: tint.saturation }] as const) : undefined;
 
   return (
     <View
@@ -57,42 +93,28 @@ export function ScreenBackground({
       onLayout={(e) => setSize({ width: Math.round(e.nativeEvent.layout.width), height: Math.round(e.nativeEvent.layout.height) })}>
       {image ? (
         <>
-          <Image
-            testID="background-image"
-            source={image}
-            resizeMode="cover"
-            style={framed ? { position: 'absolute', left: framed.left, top: framed.top, width: framed.width, height: framed.height } : StyleSheet.absoluteFill}
-          />
-          {framed ? (
-            // The picture ends somewhere down the scrolling content: fade its lower edge into the background.
-            <Svg
-              testID="background-fade"
-              width={size.width}
-              height={framed.height * 0.3}
-              style={{ position: 'absolute', left: 0, top: framed.top + framed.height * 0.7 }}>
-              <Defs>
-                <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={theme.colors.bgDeep} stopOpacity={0} />
-                  <Stop offset="1" stopColor={theme.colors.bgDeep} stopOpacity={1} />
-                </LinearGradient>
-              </Defs>
-              <Rect x={0} y={0} width={size.width} height={framed.height * 0.3 + 1} fill="url(#fade)" />
-            </Svg>
+          <Animated.View testID="background-picture" style={[StyleSheet.absoluteFill, filter ? { filter } : null, slide]}>
+            <Image testID="background-image" source={image} resizeMode="cover" style={imageStyle} />
+          </Animated.View>
+          {framed && framed.top > 0 ? (
+            // The picture starts below the top: fade it in from the background.
+            <EdgeFade testID="background-fade-top" top={framed.top} height={90} width={size.width} from={1} to={0} />
           ) : null}
-          {shade !== 'flat' ? (
-            <Svg testID="background-shade" width="100%" height="100%" style={StyleSheet.absoluteFill}>
-              <Defs>
-                <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-                  {SHADE_STOPS[shade].map(([offset, opacity]) => (
-                    <Stop key={offset} offset={offset} stopColor={theme.colors.bgDeep} stopOpacity={opacity} />
-                  ))}
-                </LinearGradient>
-              </Defs>
-              <Rect x={0} y={0} width="100%" height="100%" fill="url(#shade)" />
-            </Svg>
-          ) : (
-            <View testID="background-shade" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.imageShade }]} />
-          )}
+          {framed ? (
+            // It ends somewhere down the scrolling content: fade its lower edge out.
+            <EdgeFade testID="background-fade" top={framed.top + framed.height * 0.7} height={framed.height * 0.3} width={size.width} from={0} to={1} />
+          ) : null}
+          {tint ? <View testID="background-tint" style={[StyleSheet.absoluteFill, { backgroundColor: theme.colors.neonDeep, opacity: tint.opacity }]} /> : null}
+          <Svg testID="background-shade" width="100%" height="100%" style={StyleSheet.absoluteFill}>
+            <Defs>
+              <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+                {shade.map(([offset, opacity]) => (
+                  <Stop key={offset} offset={offset} stopColor={theme.colors.bgDeep} stopOpacity={opacity} />
+                ))}
+              </LinearGradient>
+            </Defs>
+            <Rect x={0} y={0} width="100%" height="100%" fill="url(#shade)" />
+          </Svg>
         </>
       ) : null}
       {size.width > 0 && variant === 'neon' ? (
@@ -113,31 +135,22 @@ export function ScreenBackground({
   );
 }
 
-/** [offset, opacity] of the dark layer over a picture, top to bottom. */
-const GRADED_STOPS: [number, number][] = [
-  [0, 0.88],
-  [0.3, 0.6],
-  [0.7, 0.6],
-  [1, 0.9],
-];
-const TOP_REVEAL_STOPS: [number, number][] = [
-  [0, 0.45],
-  [0.3, 0.55],
-  [0.5, 0.82],
-  [1, 0.9],
-];
-/** Collect: light (~45 %) through the middle, a little darker at the top and bottom. */
-const CENTER_LIGHT_STOPS: [number, number][] = [
-  [0, 0.62],
-  [0.3, 0.45],
-  [0.7, 0.45],
-  [1, 0.65],
-];
-const SHADE_STOPS: Record<'graded' | 'topReveal' | 'centerLight', [number, number][]> = {
-  graded: GRADED_STOPS,
-  topReveal: TOP_REVEAL_STOPS,
-  centerLight: CENTER_LIGHT_STOPS,
-};
+/** A band that fades the background colour in or out (`from`/`to`: its opacity at the top and bottom). */
+function EdgeFade({ top, height, width, from, to, testID }: { top: number; height: number; width: number; from: number; to: number; testID: string }) {
+  if (width <= 0 || height <= 0) return null;
+  const id = `fade-${testID}`;
+  return (
+    <Svg testID={testID} width={width} height={height} style={{ position: 'absolute', left: 0, top }}>
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={theme.colors.bgDeep} stopOpacity={from} />
+          <Stop offset="1" stopColor={theme.colors.bgDeep} stopOpacity={to} />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width={width} height={height + 1} fill={`url(#${id})`} />
+    </Svg>
+  );
+}
 
 const SCAN_TRAVEL_MS = 6000;
 const SCAN_PAUSE_MS = 3000; // a pass every 9 s

@@ -55,7 +55,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: theme.colors.accentSoft,
+    // Dark backing: the gold (or red, at risk) text stays readable over a background picture.
+    backgroundColor: theme.colors.scrim,
     borderColor: theme.colors.accent,
     borderWidth: 1.2,
     shadowColor: theme.colors.accent,
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
   },
-  pillAtRisk: { backgroundColor: theme.colors.dangerSoft, borderColor: theme.colors.danger },
+  pillAtRisk: { borderColor: theme.colors.danger },
   pillTextAtRisk: { color: theme.colors.danger },
   pillText: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.sm },
 });

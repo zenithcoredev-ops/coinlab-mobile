@@ -6,9 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollapsibleCard } from '@/components/collapsible-card';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextScrim } from '@/components/text-scrim';
 import { StepsCard } from '@/components/steps-card';
 import { TaskRow } from '@/components/task-row';
-import { BACKGROUND_IMAGES } from '@/components/home/backgrounds';
+import { BACKGROUND_IMAGES, BACKGROUND_SHADES, TASKS_TINT } from '@/components/home/backgrounds';
 import { NeonCard } from '@/components/neon-card';
 import { ScreenBackground } from '@/components/home/screen-background';
 import { Button, EmptyState } from '@/components/ui';
@@ -103,7 +104,7 @@ export default function TasksScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Fixed behind the list: the tab's picture when there is one, else the drawn topographic lines. */}
-      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.tasks} />
+      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.tasks} shade={BACKGROUND_SHADES.tasks} tint={TASKS_TINT} />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -130,7 +131,9 @@ export default function TasksScreen() {
         {!progress ? (
           loadError ? (
             <View style={styles.centerBlock}>
-              <Text style={styles.error}>{t('tasks.loadFailed')}</Text>
+              <TextScrim>
+                <Text style={styles.error}>{t('tasks.loadFailed')}</Text>
+              </TextScrim>
               <Button label={t('common.retry')} onPress={load} variant="ghost" style={styles.retry} />
             </View>
           ) : (
@@ -155,12 +158,16 @@ export default function TasksScreen() {
 
 
             {message && (
-              <Text style={[styles.message, { color: message.ok ? theme.colors.neon : theme.colors.danger }]}>
-                {message.text}
-              </Text>
+              <TextScrim style={styles.messageScrim}>
+                <Text style={[styles.message, { color: message.ok ? theme.colors.neon : theme.colors.danger }]}>{message.text}</Text>
+              </TextScrim>
             )}
 
-            {progress.tasks.length === 0 && <EmptyState icon="sparkles-outline" title={t('tasks.emptyTitle')} body={t('tasks.emptyBody')} />}
+            {progress.tasks.length === 0 && (
+              <TextScrim style={styles.emptyScrim}>
+                <EmptyState icon="sparkles-outline" title={t('tasks.emptyTitle')} body={t('tasks.emptyBody')} />
+              </TextScrim>
+            )}
 
             {progress.tasks.map((task) => (
               <TaskRow
@@ -259,5 +266,7 @@ const styles = StyleSheet.create({
   },
   howNumText: { color: theme.colors.neon, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.xs },
   howText: { flex: 1, color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, lineHeight: 19 },
-  message: { fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, marginBottom: theme.spacing.md },
+  messageScrim: { alignSelf: 'stretch', marginBottom: theme.spacing.md },
+  emptyScrim: { alignSelf: 'stretch', marginBottom: theme.spacing.md },
+  message: { fontFamily: theme.fonts.bodyMedium, fontSize: theme.fontSizes.sm, textAlign: 'center' },
 });

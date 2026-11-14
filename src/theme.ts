@@ -98,6 +98,9 @@ export const theme = {
     imageShade: alpha(palette.bgDeep, 0.65),
     contourFaint: alpha(palette.teal, 0.06),
     glass: alpha('#08130D', 0.72),
+    // Behind text that sits outside the cards, over a background picture: dark enough that every
+    // text colour stays at WCAG AA even over the brightest part of a picture.
+    scrim: alpha(palette.bgDeep, 0.85),
     tabInactive: palette.softWhite,
   },
   fonts: {

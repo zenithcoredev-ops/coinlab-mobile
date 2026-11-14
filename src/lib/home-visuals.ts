@@ -137,19 +137,23 @@ export type ImageFraming = {
   scale: number;
   /** Height of the focal point within the picture, 0 (top) to 1 (bottom). */
   anchorY: number;
+  /** Most the picture may be zoomed to reach the top of the screen; beyond it a gap is left above. */
+  maxScale?: number;
 };
 
 /**
  * Where to draw a picture of aspect `aspect` (height / width) in a layer `layerWidth` wide so that
  * its focal point lands on `focusY`, centred horizontally and `scale` times the layer's width. If
- * that would leave a gap above the picture, it is zoomed in further (still centred on the point) so
- * it always reaches the top of the screen.
+ * that would leave a gap above the picture, it is zoomed in further (still centred on the point), up
+ * to `maxScale`; past that the gap stays (the caller fades the picture in there).
  */
 export function framedImageRect(layerWidth: number, focusY: number, aspect: number, framing: ImageFraming) {
   const a = aspect > 0 && Number.isFinite(aspect) ? aspect : 1;
   const anchor = Math.min(1, Math.max(0.01, framing.anchorY));
   const widthToReachTop = Math.max(0, focusY) / (anchor * a);
-  const width = Math.max(layerWidth * Math.max(1, framing.scale), widthToReachTop);
+  const base = layerWidth * Math.max(1, framing.scale);
+  const cap = framing.maxScale ? layerWidth * Math.max(framing.scale, framing.maxScale) : Infinity;
+  const width = Math.max(base, Math.min(widthToReachTop, cap));
   const height = width * a;
   return {
     left: (layerWidth - width) / 2,

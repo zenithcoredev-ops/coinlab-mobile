@@ -1,20 +1,15 @@
 import { useFocusEffect } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, RefreshControl, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CollapsibleCard } from '@/components/collapsible-card';
+import { BACKGROUND_IMAGES, BACKGROUND_SHADES } from '@/components/home/backgrounds';
+import { ScreenBackground } from '@/components/home/screen-background';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextScrim } from '@/components/text-scrim';
 import { Button, Card, EmptyState, ScreenTitle, SectionLabel } from '@/components/ui';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
@@ -37,6 +32,13 @@ export { ScreenError as ErrorBoundary } from '@/components/screen-error';
 
 export default function FriendsScreen() {
   const { t, language } = useI18n();
+  const { height: windowHeight } = useWindowDimensions();
+  // 0 at the top of the list, 1 at its end: drives the background's slow slide.
+  const scrollProgress = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    const room = e.contentSize.height - e.layoutMeasurement.height;
+    scrollProgress.value = room > 0 ? e.contentOffset.y / room : 0;
+  });
   const { auth } = useSession();
   const { refresh: refreshMining } = useMining();
   const token = auth?.token ?? null;
@@ -114,23 +116,32 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      {/* The picture slides up slowly as the list scrolls; the friends at its bottom show at the end. */}
+      <ScreenBackground variant="neon" image={BACKGROUND_IMAGES.friends} shade={BACKGROUND_SHADES.friends} parallax={scrollProgress} />
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        // Room at the end of the list, so the bottom of the picture shows there.
+        contentContainerStyle={[styles.scroll, { paddingBottom: theme.spacing.xxl + 16 + Math.round(windowHeight * 0.35) }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.text} />
         }>
         <ScreenHeader />
-        <ScreenTitle
-          title={t('friends.title')}
-          subtitle={t('friends.subtitle', { rate: overview ? formatClbPerHour(clbPerHourOf(overview.bonusPerFriendClbPerHour, overview.bonusPerFriendThs), language) : formatRate(0.2, language) })}
-        />
+        <TextScrim style={styles.titleScrim}>
+          <ScreenTitle
+            title={t('friends.title')}
+            subtitle={t('friends.subtitle', { rate: overview ? formatClbPerHour(clbPerHourOf(overview.bonusPerFriendClbPerHour, overview.bonusPerFriendThs), language) : formatRate(0.2, language) })}
+          />
+        </TextScrim>
 
         {!overview ? (
           loadError ? (
             <View style={styles.centerBlock}>
-              <Text style={styles.error}>{t('friends.loadFailed')}</Text>
+              <TextScrim>
+                <Text style={styles.error}>{t('friends.loadFailed')}</Text>
+              </TextScrim>
               <Button label={t('common.retry')} onPress={load} variant="ghost" style={styles.retry} />
             </View>
           ) : (
@@ -208,15 +219,19 @@ export default function FriendsScreen() {
               </Card>
             )}
 
-            <SectionLabel>{t('friends.team')}</SectionLabel>
+            <TextScrim style={styles.labelScrim}>
+              <SectionLabel>{t('friends.team')}</SectionLabel>
+            </TextScrim>
             {overview.friends.length === 0 ? (
-              <EmptyState icon="people-outline" title={t('friends.emptyTitle')} body={t('friends.empty')} />
+              <TextScrim style={styles.emptyScrim}>
+                <EmptyState icon="people-outline" title={t('friends.emptyTitle')} body={t('friends.empty')} />
+              </TextScrim>
             ) : (
               overview.friends.map((f) => <FriendRow key={f.id} friend={f} />)
             )}
           </>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -264,14 +279,18 @@ function FriendRow({ friend }: { friend: Friend }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: theme.colors.bgDeep },
+  titleScrim: { alignSelf: 'stretch', alignItems: 'flex-start', marginBottom: theme.spacing.md },
+  labelScrim: { alignSelf: 'flex-start', marginBottom: theme.spacing.sm },
+  emptyScrim: { alignSelf: 'stretch' },
   scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl + 16 },
   centerBlock: { paddingVertical: theme.spacing.xxl, alignItems: 'center' },
   error: { color: theme.colors.danger, fontFamily: theme.fonts.body, textAlign: 'center' },
   retry: { marginTop: theme.spacing.lg, alignSelf: 'center' },
 
   inviteCard: {
-    backgroundColor: theme.colors.positiveSoft,
+    // Glass rather than a see-through green, so its text stays readable over the picture.
+    backgroundColor: theme.colors.glass,
     borderWidth: 1,
     borderColor: theme.colors.positiveBorder,
     borderRadius: theme.radius.lg,
@@ -279,7 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   inviteLabel: {
-    color: theme.colors.textMuted,
+    color: theme.colors.tabInactive,
     fontFamily: theme.fonts.body,
     fontSize: theme.fontSizes.xs,
     textTransform: 'uppercase',
@@ -299,7 +318,7 @@ const styles = StyleSheet.create({
   },
   code: { color: theme.colors.text, fontFamily: theme.fonts.monoMedium, fontSize: theme.fontSizes.lg, letterSpacing: 1 },
   copyButton: { minHeight: 36, paddingVertical: 6, paddingHorizontal: theme.spacing.md },
-  benefit: { color: theme.colors.textMuted, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm - 0.5, lineHeight: 18 },
+  benefit: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm - 0.5, lineHeight: 18 },
   shareButton: { marginBottom: theme.spacing.lg },
 
   statRow: { flexDirection: 'row', gap: theme.spacing.sm + 2, marginBottom: theme.spacing.lg },
@@ -365,7 +384,8 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md + 2,
     marginBottom: theme.spacing.sm,
   },
-  friendInactive: { opacity: 0.6 },
+  // Not see-through (the picture would show behind the text): a quieter border instead.
+  friendInactive: { borderColor: theme.colors.divider },
   avatar: {
     width: 36,
     height: 36,

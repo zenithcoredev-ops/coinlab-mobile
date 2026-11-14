@@ -7,10 +7,11 @@ import { AdBoostCard } from '@/components/ad-boost-card';
 import { CollectRing, RING_SIZE } from '@/components/home/collect-ring';
 import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '@/components/home/home-cards';
 import { NeonCard } from '@/components/neon-card';
-import { BACKGROUND_IMAGES, HOME_BACKGROUND_FRAMING } from '@/components/home/backgrounds';
+import { BACKGROUND_IMAGES, BACKGROUND_SHADES, HOME_BACKGROUND_FRAMING } from '@/components/home/backgrounds';
 import { ScanLight, ScreenBackground } from '@/components/home/screen-background';
 import { RateBreakdownModal } from '@/components/rate-breakdown-modal';
 import { ScreenHeader } from '@/components/screen-header';
+import { TextScrim } from '@/components/text-scrim';
 import { useMining } from '@/context/mining';
 import { useAmbientMotion } from '@/hooks/use-ambient-motion';
 import { useNow } from '@/hooks/use-now';
@@ -75,7 +76,7 @@ export default function MineScreen() {
           focus={focus}
           focusRadius={RING_SIZE / 2}
           image={BACKGROUND_IMAGES.home}
-          shade="centerLight"
+          shade={BACKGROUND_SHADES.home}
           framing={HOME_BACKGROUND_FRAMING}
         />
         <ScreenHeader />
@@ -107,20 +108,23 @@ export default function MineScreen() {
             animate={animate}
           />
 
-          {isMining ? (
-            <View style={styles.timeLeft}>
-              <Text style={styles.timeLeftLabel}>{t('mine.timeLeft')}</Text>
-              <Text style={styles.timeLeftValue} accessibilityLabel={t('mine.timeLeftValue', { time: formatDuration(remainingMs) })}>
-                {formatDuration(remainingMs)}
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.status}>{t('mine.tapToStart')}</Text>
-          )}
-          {status && isStreakAtRisk(status) && !isMining ? (
-            <Text style={styles.streakWarning}>{t(streakDayIsLocal(status) ? 'streak.atRiskLocal' : 'streak.atRisk', { count: status.streak })}</Text>
-          ) : null}
-          {error ? <Text style={styles.error}>{error || t('mine.statusFailed')}</Text> : null}
+          {/* Over the picture: on a dark backing so these lines stay readable whatever is behind them. */}
+          <TextScrim style={styles.statusScrim} testID="ring-status">
+            {isMining ? (
+              <View style={styles.timeLeft}>
+                <Text style={styles.timeLeftLabel}>{t('mine.timeLeft')}</Text>
+                <Text style={styles.timeLeftValue} accessibilityLabel={t('mine.timeLeftValue', { time: formatDuration(remainingMs) })}>
+                  {formatDuration(remainingMs)}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.status}>{t('mine.tapToStart')}</Text>
+            )}
+            {status && isStreakAtRisk(status) && !isMining ? (
+              <Text style={styles.streakWarning}>{t(streakDayIsLocal(status) ? 'streak.atRiskLocal' : 'streak.atRisk', { count: status.streak })}</Text>
+            ) : null}
+            {error ? <Text style={styles.error}>{error || t('mine.statusFailed')}</Text> : null}
+          </TextScrim>
         </View>
 
         <TodayStrip collectedToday={collectedToday} />
@@ -169,11 +173,11 @@ const styles = StyleSheet.create({
   rateText: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
   rateActive: { color: theme.colors.neon },
   mineZone: { alignItems: 'center', justifyContent: 'center', paddingVertical: RING_PAD },
-  timeLeft: { alignItems: 'center', marginTop: theme.spacing.lg },
+  statusScrim: { marginTop: theme.spacing.lg, maxWidth: '100%' },
+  timeLeft: { alignItems: 'center' },
   timeLeftLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
   timeLeftValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, fontVariant: ['tabular-nums'], marginTop: 2, ...greenGlow },
   status: {
-    marginTop: theme.spacing.lg,
     color: theme.colors.tabInactive,
     fontFamily: theme.fonts.body,
     fontSize: theme.fontSizes.sm,
@@ -188,13 +192,13 @@ const styles = StyleSheet.create({
     color: theme.colors.danger,
     fontFamily: theme.fonts.bodyMedium,
     fontSize: theme.fontSizes.sm,
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
     textAlign: 'center',
   },
   error: {
     color: theme.colors.danger,
     fontFamily: theme.fonts.body,
-    marginTop: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
     textAlign: 'center',
   },
   pair: { flexDirection: 'row', gap: theme.spacing.md },
