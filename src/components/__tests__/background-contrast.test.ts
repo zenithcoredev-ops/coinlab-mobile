@@ -98,8 +98,8 @@ describe('background pictures and text contrast', () => {
     expect([tab, r.min >= 4.5, r.at]).toEqual([tab, true, r.at]);
   });
 
-  it('friends: text on its glass invite card stays at AA as the picture slides', () => {
-    const r = worst('friends', ['text', 'soft', 'neon'], 0, 1, { glass: true, ...FRIENDS_SLIDE });
+  it('friends: text on its glass cards stays at AA as the picture slides (errors sit on a scrim)', () => {
+    const r = worst('friends', ['text', 'soft', 'neon', 'gold'], 0, 1, { glass: true, ...FRIENDS_SLIDE });
     expect([r.min >= 4.5, r.at]).toEqual([true, r.at]);
   });
 
@@ -123,8 +123,8 @@ describe('background pictures and text contrast', () => {
     expect([tab, r.min >= 4.5, r.at]).toEqual([tab, true, r.at]);
   });
 
-  it('friends: the header stays at AA as the picture slides', () => {
-    const r = worst('friends', ['text'], 0, 0.1, FRIENDS_SLIDE);
+  it('friends: the header and the title above the cards stay at AA as the picture slides', () => {
+    const r = worst('friends', ['text'], 0, 0.22, FRIENDS_SLIDE);
     expect([r.min >= 4.5, r.at]).toEqual([true, r.at]);
   });
 });

@@ -80,6 +80,11 @@ describe('Profile screen', () => {
     expect(within(screen.getByTestId('stat-streak')).getByText('Seri')).toBeTruthy();
     expect(within(screen.getByTestId('stat-league')).getByText('Bronz Lig')).toBeTruthy();
     expect(within(screen.getByTestId('stat-league')).getByText('Lig')).toBeTruthy();
+    // Long values shrink to fit between the corner brackets instead of touching them or being cut.
+    const leagueValue = within(screen.getByTestId('stat-league')).getByText('Bronz Lig');
+    expect(leagueValue.props.adjustsFontSizeToFit).toBe(true);
+    expect(leagueValue.props.numberOfLines).toBe(1);
+    expect(screen.getByTestId('stat-league')).toHaveStyle({ paddingHorizontal: 14 });
     // No "Toplam gün" from the server yet: the current speed stands in.
     expect(screen.getByTestId('stat-speed')).toBeTruthy();
     expect(screen.getByText('0,13')).toBeTruthy();

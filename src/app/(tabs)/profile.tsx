@@ -12,6 +12,7 @@ import { BadgeGrid } from '@/components/badge-grid';
 import { BACKGROUND_IMAGES, BACKGROUND_SHADES } from '@/components/home/backgrounds';
 import { ScreenBackground } from '@/components/home/screen-background';
 import { NeonCard } from '@/components/neon-card';
+import { NEON_CARD } from '@/lib/neon-frame';
 import { NotificationTypeSettings } from '@/components/notification-type-settings';
 import { ShareCardModal } from '@/components/share-card-modal';
 import { SupportModal } from '@/components/support-modal';
@@ -269,10 +270,11 @@ function Chip({ text }: { text: string }) {
 function StatCard({ value, label, gold, testID }: { value: string; label: string; gold?: boolean; testID?: string }) {
   return (
     <NeonCard tone={gold ? 'gold' : 'green'} grid style={styles.stat} testID={testID}>
-      <Text style={[styles.statValue, gold && styles.statValueGold]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+      {/* Long values ("Obsidyen Lig") shrink to fit between the corner brackets rather than touch or get cut. */}
+      <Text style={[styles.statValue, gold && styles.statValueGold]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}>
         {value}
       </Text>
-      <Text style={styles.statLabel} numberOfLines={1}>
+      <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
         {label}
       </Text>
     </NeonCard>
@@ -308,6 +310,9 @@ function SettingsRow({
   );
 }
 
+/** Inside a stat card: past the corner brackets' inset, so values sit between them. */
+const STAT_SIDE_PADDING = NEON_CARD.bracket.inset + 5;
+
 // Glow only on titles and big numbers, always behind the text.
 const glow = (color: string) => ({ textShadowColor: color, textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 } });
 
@@ -336,10 +341,11 @@ const styles = StyleSheet.create({
   chipText: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.xs },
 
   stats: { flexDirection: 'row', gap: theme.spacing.md, marginBottom: theme.spacing.lg },
-  stat: { flex: 1, alignItems: 'center', paddingVertical: theme.spacing.lg, paddingHorizontal: theme.spacing.sm },
-  statValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg, ...glow(theme.colors.neonGlow) },
+  // Side padding clears the corner brackets (inset 9 + arm 16 from neon-frame), so text never touches them.
+  stat: { flex: 1, alignItems: 'stretch', paddingVertical: theme.spacing.lg + 2, paddingHorizontal: STAT_SIDE_PADDING },
+  statValue: { textAlign: 'center', color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg, ...glow(theme.colors.neonGlow) },
   statValueGold: { color: theme.colors.accent, ...glow(theme.colors.goldGlow) },
-  statLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4 },
+  statLabel: { textAlign: 'center', color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4 },
 
   cardHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: theme.spacing.md, marginBottom: theme.spacing.md },
   cardTitle: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.lg - 1, marginBottom: theme.spacing.sm },

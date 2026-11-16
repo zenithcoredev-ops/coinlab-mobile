@@ -287,10 +287,10 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
   const size = view.groupSize ?? standings.length;
   const endsIn = useEndsIn(msLeft, 'league');
 
-  let requirement: string;
+  // "No promotion this week" is said once, on the "Senin sıran" card, so it isn't repeated here.
+  let requirement: string | null = null;
   if (isDiamond) requirement = t('league.diamondTop', { count: Math.max(bands.tournamentCount, 1) });
   else if (bands.promoteCount > 0) requirement = t('league.promoteReq', { count: bands.promoteCount, size });
-  else requirement = t('league.promoteReqNone');
 
   const you = standings.find((s) => s.isYou);
   const status = rankStatus(you ?? (view.yourRank !== undefined ? { rank: view.yourRank, zone: null } : null), bands, isDiamond);
@@ -314,7 +314,7 @@ function ActiveLeague({ view, msLeft }: { view: LeagueView; msLeft: number }) {
             {t('league.nextBonus', { rate: formatClbPerHour(clbPerHourOf(view.nextSpeedBonusClbPerHour, view.nextSpeedBonus ?? 0), language) })}
           </Text>
         )}
-        <Text style={styles.meta}>{requirement}</Text>
+        {requirement ? <Text style={styles.meta}>{requirement}</Text> : null}
       </NeonCard>
 
       {view.yourRank !== undefined && (
