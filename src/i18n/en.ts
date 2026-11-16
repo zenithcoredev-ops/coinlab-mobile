@@ -298,7 +298,7 @@ const en = {
   'ads.boost.granted': 'Your speed boost is on.',
   'ads.boost.pending': 'Your boost will be added in a few minutes.',
   'ads.boost.rejected': 'The reward couldn’t be confirmed.',
-  'ads.boost.noAd': 'No ad available right now. Try again later.',
+  'ads.boost.noAd': "No ad to show right now, try again in a bit.",
   'ads.boost.error': 'Something went wrong. Try again.',
   'profile.signOut': 'Sign out',
   'profile.signOutConfirm': 'You can sign back in at any time.',
@@ -478,6 +478,7 @@ const en = {
   'profile.stat.speed': "Hourly speed",
   'profile.settings': "Settings",
   'profile.notif.title': "Notifications",
+  'ads.boost.unavailable': "Boosting with a video isn’t available right now.",
 } as const;
 
 export type TranslationKey = keyof typeof en;

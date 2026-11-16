@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { NeonCard } from '@/components/neon-card';
+import { showErrorDetails } from '@/components/screen-error';
 import { useRewardedBoost } from '@/hooks/use-rewarded-boost';
 import { useI18n } from '@/i18n';
 import type { TranslationKey } from '@/i18n';
@@ -19,7 +20,18 @@ const MESSAGES: Record<NonNullable<ReturnType<typeof useRewardedBoost>['message'
 /** Collect screen: the optional "watch an ad for a speed boost" card. The reward is a speed boost only. */
 export function AdBoostCard() {
   const { t, language } = useI18n();
-  const { visible, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, watch } = useRewardedBoost();
+  const { visible, closed, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, failureCode, watch } = useRewardedBoost();
+  const code = failureCode && showErrorDetails() ? <Text style={styles.code}>{failureCode}</Text> : null;
+  if (closed) {
+    // Turned out to be off on the server: say so instead of vanishing; hidden from the next visit on.
+    return (
+      <NeonCard style={styles.card} testID="ad-boost-closed">
+        <Text style={styles.title}>{t('home.boost.title')}</Text>
+        <Text style={styles.body}>{t('ads.boost.unavailable')}</Text>
+        {code}
+      </NeonCard>
+    );
+  }
   if (!visible || !ads) return null;
 
   const rate = (perHour: number) => formatClbPerHour(perHour, language);
@@ -68,6 +80,7 @@ export function AdBoostCard() {
             : t(MESSAGES[message])}
         </Text>
       )}
+      {message && message !== 'granted' ? code : null}
     </NeonCard>
   );
 }
@@ -92,5 +105,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.45 },
   buttonText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
   ok: { color: theme.colors.neon, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
+  code: { color: theme.colors.tabInactive, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs, marginTop: 4 },
   note: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
 });

@@ -18,6 +18,7 @@ export type BoostOutcome =
   | 'noAd'
   /** The server has no rewarded endpoints (404) or no rewarded ad units configured (503 on intent): hide the feature. */
   | 'unavailable'
+  /** Anything else on the way (network, 409 no session, 429 limits, 5xx): worth trying again. */
   | 'error';
 
 type ShowResult = 'earned' | 'dismissed' | 'failed';
@@ -28,7 +29,7 @@ const LOAD_TIMEOUT_MS = 15_000;
  * Loads and shows one rewarded ad. The SSV user id and custom data are passed exactly as the server
  * gave them, so AdMob's callback to the server carries them back unchanged.
  */
-export function showRewardedAd(unitId: string, ssv: RewardedIntent['ssv']): Promise<ShowResult> {
+export function showRewardedAd(unitId: string, ssv: RewardedIntent['ssv'], onError?: (code: string) => void): Promise<ShowResult> {
   return new Promise((resolve) => {
     const ad = RewardedAd.createForAdRequest(unitId, {
       serverSideVerificationOptions: { userId: ssv.userId, customData: ssv.customData },
@@ -41,21 +42,31 @@ export function showRewardedAd(unitId: string, ssv: RewardedIntent['ssv']): Prom
       clearTimeout(timer);
       resolve(result);
     };
-    const timer = setTimeout(() => finish('failed'), LOAD_TIMEOUT_MS);
+    const fail = (code: string) => {
+      if (!settled) onError?.(code);
+      finish('failed');
+    };
+    const timer = setTimeout(() => fail('ad:timeout'), LOAD_TIMEOUT_MS);
     ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
       clearTimeout(timer);
-      ad.show().catch(() => finish('failed'));
+      ad.show().catch((e: unknown) => fail(`ad:show:${errorCode(e)}`));
     });
     ad.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
       earned = true;
     });
     ad.addAdEventListener(AdEventType.CLOSED, () => finish(earned ? 'earned' : 'dismissed'));
-    ad.addAdEventListener(AdEventType.ERROR, () => finish(earned ? 'earned' : 'failed'));
+    ad.addAdEventListener(AdEventType.ERROR, (e?: unknown) => (earned ? finish('earned') : fail(`ad:${errorCode(e)}`)));
     ad.addAdEventListener(AdEventType.PAID, (event) => {
       recordImpression(impressionFromPaidEvent(event, unitId, 'rewarded')).catch(() => {});
     });
     ad.load();
   });
+}
+
+/** A short code for an AdMob or API error, for test builds ("googleMobileAds/no-fill", "intent:503:ads_not_configured"). */
+function errorCode(e: unknown): string {
+  if (e && typeof e === 'object' && 'code' in e && typeof (e as { code: unknown }).code === 'string') return (e as { code: string }).code;
+  return e instanceof Error ? e.message.slice(0, 60) : 'unknown';
 }
 
 const notFound = (e: unknown) => e instanceof ApiError && e.status === 404;
@@ -78,6 +89,7 @@ export async function runRewardedBoost(
     show = showRewardedAd,
     onVerifying,
     onGranted,
+    onFailure,
   }: {
     pollMs?: number;
     waitMs?: number;
@@ -86,17 +98,24 @@ export async function runRewardedBoost(
     onVerifying?: () => void;
     /** Called once the server confirmed the reward, with the boost in CLB/h when the server says. */
     onGranted?: (clbPerHourBonus: number | null) => void;
+    /** Why it didn't work, as a short code (shown in test builds): "intent:503:ads_not_configured", "ad:googleMobileAds/no-fill". */
+    onFailure?: (code: string) => void;
   } = {}
 ): Promise<BoostOutcome> {
   let intent: RewardedIntent;
   try {
     intent = await createRewardedIntent(token);
   } catch (e) {
+    onFailure?.(e instanceof ApiError ? `intent:${e.status ?? 'network'}${e.code ? `:${e.code}` : ''}` : `intent:network`);
     return intentUnavailable(e) ? 'unavailable' : 'error';
   }
 
-  const shown = await show(unitId, intent.ssv);
-  if (shown === 'failed') return 'noAd';
+  let adError = 'ad:failed';
+  const shown = await show(unitId, intent.ssv, (code) => (adError = code));
+  if (shown === 'failed') {
+    onFailure?.(adError);
+    return 'noAd';
+  }
   if (shown === 'dismissed') return 'dismissed';
   onVerifying?.();
 
@@ -106,7 +125,10 @@ export async function runRewardedBoost(
       if (status === 'granted') onGranted?.(typeof clbPerHourBonus === 'number' ? clbPerHourBonus : null);
       if (status === 'granted' || status === 'rejected') return status;
     } catch (e) {
-      if (notFound(e)) return 'unavailable';
+      if (notFound(e)) {
+        onFailure?.('status:404');
+        return 'unavailable';
+      }
     }
     if (waited >= waitMs) return 'pending';
     await wait(pollMs);

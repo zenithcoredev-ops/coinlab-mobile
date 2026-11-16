@@ -4,7 +4,7 @@ import { getWidgetInfo } from 'react-native-android-widget';
 
 import { Button, Card, SectionLabel } from '@/components/ui';
 import { theme } from '@/theme';
-import { WIDGET_NAMES } from '@/widget/widget-task-handler';
+import { loadWidgetError, WIDGET_NAMES } from '@/widget/widget-task-handler';
 
 /** Set in eas.json for the preview profile only (inlined at build time), so store builds never show this. */
 const diagnosticsOn = () => process.env.EXPO_PUBLIC_WIDGET_DIAGNOSTICS === '1';
@@ -22,17 +22,25 @@ export function WidgetDiagnostics() {
 
   const load = useCallback(async () => {
     try {
-      const all = await Promise.all(
+      const all: Report[] = await Promise.all(
         WIDGET_NAMES.map(async (name) => {
-          const widgets = (await getWidgetInfo(name)) as ({ sizeReport?: string; width: number; height: number } & object)[];
+          const widgets = (await getWidgetInfo(name)) as ({ sizeReport?: string; drawError?: string; width: number; height: number } & object)[];
           return {
             name,
             lines: widgets.length
-              ? widgets.map((w) => w.sizeReport ?? `drawn=${w.width}x${w.height} (no report: old build)`)
+              ? widgets.flatMap((w) => [
+                  w.sizeReport ?? `drawn=${w.width}x${w.height} (no report: old build)`,
+                  // Set by the patched library when the last native draw failed (cleared on success).
+                  ...(w.drawError ? [`DRAW ERROR: ${w.drawError}`] : []),
+                ])
               : ['not on the home screen'],
           };
         })
       );
+      const last = await loadWidgetError();
+      if (last) {
+        all.push({ name: 'Last widget error', lines: [`${last.widget} (${last.where}) ${new Date(last.at).toISOString()}`, last.message] });
+      }
       setReports(all);
       setError(null);
     } catch (e) {

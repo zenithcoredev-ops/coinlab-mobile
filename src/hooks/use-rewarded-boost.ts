@@ -27,6 +27,10 @@ export function useRewardedBoost() {
   const [message, setMessage] = useState<BoostMessage>(null);
   /** What the last granted view added in CLB/h, when the server said. */
   const [grantedClbPerHour, setGrantedClbPerHour] = useState<number | null>(null);
+  /** Why the last try failed, as a short code (shown in test builds). */
+  const [failureCode, setFailureCode] = useState<string | null>(null);
+  /** Rewarded boosts turned out to be off (404 / 503) while this card was on screen: say so once, then hide. */
+  const [closedHere, setClosedHere] = useState(false);
 
   const unit = adUnitId('rewardedBoost');
   // No ads field, or a daily limit of 0, means rewarded boosts are off on the server.
@@ -41,15 +45,26 @@ export function useRewardedBoost() {
     setPhase('watching');
     setMessage(null);
     setGrantedClbPerHour(null);
+    setFailureCode(null);
     const outcome = await runRewardedBoost(token, unit, {
       onVerifying: () => setPhase('verifying'),
       onGranted: (bonus) => setGrantedClbPerHour(bonus ?? (ads ? adBoostClbPerHour(ads) : null)),
+      onFailure: setFailureCode,
     });
     setPhase(null);
-    if (outcome === 'unavailable') markRewardedUnavailable();
+    if (outcome === 'unavailable') {
+      // Off on the server (no ad units, no endpoints): not something a retry fixes. The card says so
+      // here and is hidden from then on.
+      setClosedHere(true);
+      markRewardedUnavailable();
+    }
     setMessage(outcome === 'dismissed' || outcome === 'unavailable' ? null : outcome);
-    if (outcome === 'granted' || outcome === 'pending' || outcome === 'rejected') refresh();
+    // Granted, pending, refused, or an error (a 429 limit, a 409 without a session): the status says
+    // what the card should show next.
+    if (outcome !== 'dismissed' && outcome !== 'unavailable' && outcome !== 'noAd') refresh();
   }, [token, unit, phase, refresh, ads, markRewardedUnavailable]);
 
-  return { visible, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, watch };
+  /** The card's closing note, while rewarded boosts were found off during this visit. */
+  const closed = closedHere && unavailable;
+  return { visible, closed, ads, limitReached, waitMs, canWatch, phase, message, grantedClbPerHour, failureCode, watch };
 }

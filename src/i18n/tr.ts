@@ -300,7 +300,7 @@ const tr: Record<TranslationKey, string> = {
   'ads.boost.granted': 'Hız takviyen eklendi.',
   'ads.boost.pending': 'Takviyen birkaç dakika içinde eklenecek.',
   'ads.boost.rejected': 'Ödül doğrulanamadı.',
-  'ads.boost.noAd': 'Şu an reklam yok. Biraz sonra tekrar dene.',
+  'ads.boost.noAd': "Şu an gösterilecek reklam yok, biraz sonra tekrar dene.",
   'ads.boost.error': 'Bir sorun oldu. Tekrar dene.',
   'profile.signOut': 'Çıkış yap',
   'profile.signOutConfirm': 'İstediğin zaman tekrar giriş yapabilirsin.',
@@ -480,6 +480,7 @@ const tr: Record<TranslationKey, string> = {
   'profile.stat.speed': "Saatlik hız",
   'profile.settings': "Ayarlar",
   'profile.notif.title': "Bildirimler",
+  'ads.boost.unavailable': "Video ile hız artırma şu an kullanılamıyor.",
 };
 
 export default tr;

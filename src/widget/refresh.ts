@@ -2,7 +2,7 @@ import { requestWidgetUpdate } from 'react-native-android-widget';
 
 import { drawnKey, markDrawn } from './draw-cache';
 import { widgetDrawKey } from './model';
-import { loadWidgetModel, renderMiningWidget, WIDGET_NAMES } from './widget-task-handler';
+import { loadWidgetModel, redrawFailedWidgets, renderMiningWidget, WIDGET_NAMES } from './widget-task-handler';
 
 /**
  * Redraws every placed mining widget from what's saved, unless it would draw exactly what it shows
@@ -19,4 +19,5 @@ export async function refreshWidgets(): Promise<void> {
       requestWidgetUpdate({ widgetName, renderWidget: (widgetInfo) => renderMiningWidget(widgetName, widgetInfo, model) }).catch(() => {})
     )
   );
+  await redrawFailedWidgets(model);
 }

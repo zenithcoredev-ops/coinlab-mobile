@@ -1,3 +1,23 @@
+diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/AndroidWidgetModule.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/AndroidWidgetModule.java
+index b99a11f..cdcc423 100644
+--- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/AndroidWidgetModule.java
++++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/AndroidWidgetModule.java
+@@ -37,10 +37,14 @@ public class AndroidWidgetModule extends com.reactnativeandroidwidget.AndroidWid
+ 
+     @ReactMethod
+     public void drawWidgetById(ReadableMap config, String widgetName, double widgetId) {
++        // A failed draw used to vanish (the widget just stayed blank). Keep why, so getWidgetInfo can
++        // report it and the app can draw a simpler layout instead.
+         try {
+             new RNWidget(getReactApplicationContext(), config, widgetName).drawWidget((int) widgetId);
+-        } catch (Exception e) {
++            RNWidgetUtil.clearDrawError(getReactApplicationContext(), (int) widgetId);
++        } catch (Throwable e) {
+             e.printStackTrace();
++            RNWidgetUtil.saveDrawError(getReactApplicationContext(), (int) widgetId, e);
+         }
+     }
+ 
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
 index 5650d1e..c763f63 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidget.java
@@ -70,7 +90,7 @@ index 5650d1e..c763f63 100644
      private void addClickableAreas(int widgetId, RemoteViews remoteWidgetView, WidgetWithViews widgetWithViews) {
          remoteWidgetView.removeAllViews(R.id.rn_widget_clickable_container);
 diff --git a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
-index a057c09..6b3c041 100644
+index a057c09..ba4979c 100644
 --- a/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 +++ b/node_modules/react-native-android-widget/android/src/main/java/com/reactnativeandroidwidget/RNWidgetUtil.java
 @@ -6,7 +6,10 @@ import android.appwidget.AppWidgetManager;
@@ -115,10 +135,30 @@ index a057c09..6b3c041 100644
          } else {
              return getWidgetSizeInDp(context, widgetId, AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH);
          }
-@@ -44,6 +63,32 @@ public class RNWidgetUtil {
+@@ -44,6 +63,52 @@ public class RNWidgetUtil {
          return pxValue / displayMetrics.density;
      }
  
++    private static final String DRAW_ERRORS = "rn_widget_draw_errors";
++
++    /** Why the last draw of this widget failed (exception and where), kept until a draw succeeds. */
++    public static void saveDrawError(Context context, int widgetId, Throwable error) {
++        StackTraceElement[] trace = error.getStackTrace();
++        String where = trace.length > 0 ? " at " + trace[0].getClassName() + "." + trace[0].getMethodName() + ":" + trace[0].getLineNumber() : "";
++        context.getSharedPreferences(DRAW_ERRORS, Context.MODE_PRIVATE)
++            .edit()
++            .putString(String.valueOf(widgetId), error.toString() + where)
++            .apply();
++    }
++
++    public static void clearDrawError(Context context, int widgetId) {
++        context.getSharedPreferences(DRAW_ERRORS, Context.MODE_PRIVATE).edit().remove(String.valueOf(widgetId)).apply();
++    }
++
++    public static String getDrawError(Context context, int widgetId) {
++        return context.getSharedPreferences(DRAW_ERRORS, Context.MODE_PRIVATE).getString(String.valueOf(widgetId), null);
++    }
++
 +    /** The sizes the host may show the widget at (Android 12+); empty elsewhere. */
 +    public static List<SizeF> getWidgetSizes(Context context, int widgetId) {
 +        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -148,11 +188,15 @@ index a057c09..6b3c041 100644
      private static int getWidgetSizeInDp(Context context, int widgetId, String key) {
          return AppWidgetManager.getInstance(context).getAppWidgetOptions(widgetId).getInt(key, 0);
      }
-@@ -60,6 +105,7 @@ public class RNWidgetUtil {
+@@ -60,6 +125,11 @@ public class RNWidgetUtil {
              widgetMap.putInt("height", getWidgetHeight(context, id));
              widgetMap.putInt("width", getWidgetWidth(context, id));
              widgetMap.putMap("screenInfo", getScreenInfo(context));
 +            widgetMap.putString("sizeReport", describeWidgetSize(context, id));
++            String drawError = getDrawError(context, id);
++            if (drawError != null) {
++                widgetMap.putString("drawError", drawError);
++            }
  
              writableArray.pushMap(widgetMap);
          }
