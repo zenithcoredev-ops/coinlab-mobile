@@ -31,7 +31,7 @@ describe('runRewardedBoost', () => {
     getStatus.mockResolvedValueOnce({ status: 'pending' }).mockResolvedValueOnce({ status: 'pending' }).mockResolvedValueOnce({ status: 'granted', clbPerHourBonus: 0.05 });
     expect(await runRewardedBoost('tok', 'unit-rw', { show, wait: noWait, onVerifying, onGranted })).toBe('granted');
     expect(onGranted).toHaveBeenCalledWith(0.05);
-    expect(show).toHaveBeenCalledWith('unit-rw', { userId: 'user-42', customData: 'nonce-abc' });
+    expect(show).toHaveBeenCalledWith('unit-rw', { userId: 'user-42', customData: 'nonce-abc' }, expect.any(Function));
     expect(onVerifying).toHaveBeenCalledTimes(1);
     expect(getStatus).toHaveBeenCalledTimes(3);
     expect(getStatus).toHaveBeenCalledWith('tok', 'int-1');
@@ -73,6 +73,25 @@ describe('runRewardedBoost', () => {
     expect(await runRewardedBoost('tok', 'u', { show, wait: noWait })).toBe('unavailable');
     expect(show).not.toHaveBeenCalled();
   });
+
+  it('says why it failed, as a short code for test builds', async () => {
+    const onFailure = jest.fn();
+    createIntent.mockRejectedValue(new ApiError('Rewarded ads are not available', 503, undefined, 'ads_not_configured'));
+    await runRewardedBoost('tok', 'u', { show: jest.fn(), wait: noWait, onFailure });
+    expect(onFailure).toHaveBeenLastCalledWith('intent:503:ads_not_configured');
+
+    createIntent.mockRejectedValue(new ApiError('Too soon', 429, 60, 'too_soon'));
+    expect(await runRewardedBoost('tok', 'u', { show: jest.fn(), wait: noWait, onFailure })).toBe('error');
+    expect(onFailure).toHaveBeenLastCalledWith('intent:429:too_soon');
+
+    createIntent.mockResolvedValue(intent);
+    const show = jest.fn(async (_u: string, _s: unknown, onError?: (c: string) => void) => {
+      onError?.('ad:googleMobileAds/no-fill');
+      return 'failed' as const;
+    });
+    expect(await runRewardedBoost('tok', 'u', { show, wait: noWait, onFailure })).toBe('noAd');
+    expect(onFailure).toHaveBeenLastCalledWith('ad:googleMobileAds/no-fill');
+  });
 });
 
 describe('showRewardedAd', () => {
@@ -113,9 +132,11 @@ describe('showRewardedAd', () => {
     expect(await result).toBe('dismissed');
 
     ({ mod, fake } = setup());
-    result = mod.showRewardedAd('u', intent.ssv);
-    fake().listeners.error(new Error('no fill'));
+    const onError = jest.fn();
+    result = mod.showRewardedAd('u', intent.ssv, onError);
+    fake().listeners.error(Object.assign(new Error('no fill'), { code: 'googleMobileAds/no-fill' }));
     expect(await result).toBe('failed');
+    expect(onError).toHaveBeenCalledWith('ad:googleMobileAds/no-fill');
   });
 
   it('gives up when no ad loads in time', async () => {

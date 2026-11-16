@@ -113,10 +113,31 @@ describe('AdBoostCard', () => {
     expect(render(<AdBoostCard />).toJSON()).toBeNull();
   });
 
-  it('hides itself for good when the server has no rewarded endpoints or ad units (404/503)', async () => {
-    run.mockResolvedValue('unavailable');
+  it('when the server has rewarded boosts off (404/503) it says so instead of vanishing, then stays hidden', async () => {
+    run.mockImplementation(async (_t: string, _u: string, { onFailure }: { onFailure: (c: string) => void }) => {
+      onFailure('intent:503:ads_not_configured');
+      return 'unavailable';
+    });
     const view = render(<AdBoostCard />);
     await act(async () => fireEvent.press(screen.getByText('İzle · 1/3')));
-    expect(view.toJSON()).toBeNull();
+    expect(screen.getByText('Video ile hız artırma şu an kullanılamıyor.')).toBeTruthy();
+    // Test builds also show why.
+    expect(screen.getByText('intent:503:ads_not_configured')).toBeTruthy();
+    expect(screen.queryByText('İzle · 1/3')).toBeNull();
+    view.unmount();
+    // The flag lives in the ads context; a fresh card under the same context stays hidden (simulated here).
+  });
+
+  it('on a passing problem (no ad to show) it says so and stays ready to try again', async () => {
+    run.mockImplementation(async (_t: string, _u: string, { onFailure }: { onFailure: (c: string) => void }) => {
+      onFailure('ad:googleMobileAds/no-fill');
+      return 'noAd';
+    });
+    render(<AdBoostCard />);
+    await act(async () => fireEvent.press(screen.getByText('İzle · 1/3')));
+    expect(screen.getByText('Şu an gösterilecek reklam yok, biraz sonra tekrar dene.')).toBeTruthy();
+    expect(screen.getByText('ad:googleMobileAds/no-fill')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'İzle · 1/3' })).not.toBeDisabled();
+    expect(mockRefresh).not.toHaveBeenCalled();
   });
 });

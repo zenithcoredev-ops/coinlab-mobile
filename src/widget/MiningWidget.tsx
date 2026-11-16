@@ -321,7 +321,7 @@ function large(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   // The session line sits under the bar, as wide as it. Too narrow for the full line, the bonus goes;
   // too narrow (or too short) for even that, the whole line goes. Never cut. Short on height, the bar
   // goes before the line.
-  const lineW = rightW - 16;
+  const lineW = Math.max(1, rightW - 16);
   const sessionH = clamp(bottomH * 0.15, 9, 12);
   const sessionText = x.session.find((text) => readable(text, lineW, 8, 0.5)) ?? null;
   const withSession = sessionText !== null && bottomH >= pillH + sessionH + 4;
@@ -367,7 +367,7 @@ function large(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
         <FlexWidget style={{ width: rightW, height: bottomH, justifyContent: 'center', alignItems: 'flex-end' }}>
           <Pill text={x.label} active={x.active} width={rightW} height={pillH} />
           {withBar ? (
-            <SvgWidget svg={progressBarSvg(rightW - 16, barH, x.progress!)} style={{ width: rightW - 16, height: barH, marginTop: 6, marginRight: 8 }} />
+            <SvgWidget svg={progressBarSvg(lineW, barH, x.progress!)} style={{ width: lineW, height: barH, marginTop: 6, marginRight: 8 }} />
           ) : null}
           {withSession ? (
             <FlexWidget style={{ width: lineW, height: sessionH, marginTop: 4, marginRight: 8 }}>
@@ -378,5 +378,33 @@ function large(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
         </FlexWidget>
       </FlexWidget>
     </Card>
+  );
+}
+
+/**
+ * What the widget draws when its full layout fails (in JS, or natively, where the library would
+ * otherwise leave it blank): the live clock and the collecting line on a plain rounded panel. Uses
+ * none of the full layout's riskier parts (SVG art, overlapping layers, text glow).
+ */
+export function MiningWidgetFallback({ name, model, size }: { name: MiningWidgetName; model: WidgetModel; size?: WidgetSize }) {
+  const reported = size && size.width > 0 && size.height > 0 ? size : DEFAULT_SIZE[name];
+  const w = Math.max(80, reported.width - SAFE_INSET[name].x);
+  const h = Math.max(36, reported.height - SAFE_INSET[name].y);
+  const pad = 10;
+  const innerW = w - 2 * pad;
+  const innerH = h - 2 * pad;
+  const x = textsFor(model);
+  const clockH = Math.max(14, Math.round(innerH * 0.55));
+  const lineH = Math.max(10, Math.min(18, innerH - clockH - 4));
+  const label = readable(x.label, innerW, 8, 0.5) ? x.label : x.labelShort;
+  return (
+    <FlexWidget clickAction="OPEN_APP" style={{ width: 'match_parent', height: 'match_parent', alignItems: 'center', justifyContent: 'center' }}>
+      <FlexWidget
+        style={{ width: w, height: h, padding: pad, borderRadius: 22, backgroundColor: '#E00D1A13', justifyContent: 'center' }}>
+        <Line text={timeClock()} width={innerW} height={clockH} color={c.text} bold />
+        <FlexWidget style={{ width: 1, height: 4 }} />
+        <Line text={label} width={innerW} height={lineH} color={x.active ? c.green : c.gold} bold />
+      </FlexWidget>
+    </FlexWidget>
   );
 }
