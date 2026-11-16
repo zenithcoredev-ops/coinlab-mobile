@@ -108,6 +108,15 @@ describe('AdBoostCard', () => {
     expect(screen.getByText('Hız takviyen eklendi: +0,05 Wago/saat.')).toBeTruthy();
   });
 
+  it('is left out entirely, without a word, when the server says rewarded ads are off (available: false)', () => {
+    mockStatus = { session, ads: ads({ available: false, canWatch: false, unavailableReason: 'ads_not_configured' }) };
+    expect(render(<AdBoostCard />).toJSON()).toBeNull();
+    // An older server sends no `available`: the card shows as before.
+    mockStatus = { session, ads: ads() };
+    render(<AdBoostCard />);
+    expect(screen.getByText('İzle · 1/3')).toBeTruthy();
+  });
+
   it('is hidden when the server’s daily limit is 0', () => {
     mockStatus = { session, ads: ads({ usedToday: 0, dailyLimit: 0 }) };
     expect(render(<AdBoostCard />).toJSON()).toBeNull();

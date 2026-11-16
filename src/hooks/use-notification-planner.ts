@@ -8,6 +8,7 @@ import { useSession } from '@/context/session';
 import { useSteps } from '@/context/steps';
 import { useI18n } from '@/i18n';
 import { getLeague } from '@/services/league-api';
+import { rewardedAdsOn } from '@/services/mining-api';
 import {
   LEAGUE_CACHE_MAX_AGE_MS,
   LeagueSnapshot,
@@ -67,6 +68,8 @@ export function useNotificationPlanner() {
   const endsAt = status?.session?.endsAt;
   const usedToday = status?.ads?.usedToday;
   const dailyLimit = status?.ads?.dailyLimit;
+  // The server says rewarded boosts are off (`available: false`): no boost reminder.
+  const adsOn = rewardedAdsOn(status?.ads);
   const stepsReady = availability === 'ready';
   const leagueEnd = league?.inLeague ? (league.weekEnd ?? 'next') : null;
 
@@ -79,7 +82,7 @@ export function useNotificationPlanner() {
       {
         streak: { streak, minedToday, streakExpiresAt, streakAtExpiry, session },
         session,
-        boost: boostOffered && usedToday !== undefined && dailyLimit !== undefined ? { usedToday, dailyLimit } : null,
+        boost: boostOffered && adsOn && usedToday !== undefined && dailyLimit !== undefined ? { usedToday, dailyLimit } : null,
         steps: stepsReady ? { sessionSteps: steps, perLevel: STEPS_PER_BONUS_UNIT, cap: STEP_BONUS_CAP_STEPS } : null,
         league: weekEndsAt ? { weekEndsAt } : null,
       },
@@ -97,6 +100,7 @@ export function useNotificationPlanner() {
     usedToday,
     dailyLimit,
     boostOffered,
+    adsOn,
     stepsReady,
     steps,
     leagueEnd,

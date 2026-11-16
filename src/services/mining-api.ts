@@ -87,6 +87,15 @@ export type MiningStatus = {
     clbPerHourBonus?: number;
     /** All running boosts together in CLB/h; missing from older servers. */
     activeClbPerHourBonus?: number;
+    /**
+     * False when rewarded ads are off on the server (e.g. no ad units configured): the boost card and
+     * the boost reminder are then left out entirely. Missing from older servers (treated as on).
+     */
+    available?: boolean;
+    /** Whether a view is allowed right now; missing from older servers. */
+    canWatch?: boolean;
+    /** Why `available` is false, e.g. "ads_not_configured". */
+    unavailableReason?: string | null;
   };
 };
 
@@ -123,4 +132,9 @@ export function startMining(token: string): Promise<MiningStatus> {
 /** Settles a session early. Not required - an expired session closes itself on the next status/start call. */
 export function completeSession(token: string, sessionId: string): Promise<CompletedSession> {
   return apiRequest(token, 'POST', `/mining/${sessionId}/complete`);
+}
+
+/** Rewarded boosts are on: the server sends its limits and hasn't said they're off (older servers don't say). */
+export function rewardedAdsOn(ads: MiningStatus['ads'] | null | undefined): ads is NonNullable<MiningStatus['ads']> {
+  return !!ads && ads.dailyLimit > 0 && ads.available !== false;
 }
