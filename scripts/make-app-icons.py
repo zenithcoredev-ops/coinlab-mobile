@@ -8,11 +8,12 @@ corners on black):
                                               transparent, inside the central ~66 % safe area
   assets/images/adaptive-icon-background.png  Android adaptive icon: dark ground and aurora
   assets/images/adaptive-icon-monochrome.png  Android 13 themed icon: one-colour mountain and flag
-  assets/images/splash.png                    the mountain symbol for the splash screen
+  assets/images/splash.png                    the mountain symbol with "Waligo" under it, for the splash screen
   assets/images/notification-icon.png         96x96 white mountain and flag on transparent
   assets/images/favicon.png                   48x48 web favicon
 
-Run again after changing the artwork (needs NumPy and OpenCV: pip install numpy opencv-python-headless):
+Run again after changing the artwork (needs NumPy, OpenCV and Pillow: pip install numpy opencv-python-headless pillow;
+the wordmark uses the app's Lexend Bold from node_modules/@expo-google-fonts/lexend):
 
     python3 scripts/make-app-icons.py
 """
@@ -20,6 +21,7 @@ import os
 
 import cv2
 import numpy as np
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 SRC = os.path.join(ROOT, 'assets', 'brand', 'waligo-app-icon.png')
@@ -29,6 +31,10 @@ SAFE = 0.66  # share of the adaptive icon the symbol fits in
 CUT_COLOUR = 880  # the symbol's lowest row (where the path ends) for the icon and splash
 CUT_NOTIFICATION = 740  # higher for the small notification shape
 GROUND_BGR = (16, 20, 11)  # #0B1410, the splash and icon ground
+FONT = os.path.join(ROOT, 'node_modules', '@expo-google-fonts', 'lexend', '700Bold', 'Lexend_700Bold.ttf')
+SPLASH_W = 800  # pixels; app.json shows it 144 dp wide (fits the Android 12+ splash circle; enough for 4x screens)
+WORDMARK_SHARE = 0.45  # "Waligo" is this share of the symbol's width
+NEON_RGB = (52, 227, 127)  # theme neon, for the wordmark's faint glow
 
 
 def bbox(mask):
@@ -104,6 +110,37 @@ def place(rgba, box, size=SIZE, share=SAFE):
     return canvas
 
 
+def with_wordmark(symbol_bgra):
+    """The symbol with "Waligo" centred under it: Lexend Bold, white, a faint green glow behind."""
+    sym = Image.fromarray(cv2.cvtColor(symbol_bgra, cv2.COLOR_BGRA2RGBA))
+    w, h = sym.size
+    target = WORDMARK_SHARE * w
+    size = 40
+    font = ImageFont.truetype(FONT, size)
+    while font.getbbox('Waligo')[2] - font.getbbox('Waligo')[0] < target:
+        size += 1
+        font = ImageFont.truetype(FONT, size)
+    left, top, right, bottom = font.getbbox('Waligo')
+    text_w, text_h = right - left, bottom - top
+    gap = round(h * 0.1)
+    glow = round(text_h * 0.35)  # room under the text for the glow, so it isn't cut
+    canvas = Image.new('RGBA', (w, h + gap + text_h + glow), (0, 0, 0, 0))
+    canvas.alpha_composite(sym, (0, 0))
+
+    mask = Image.new('L', canvas.size, 0)
+    ImageDraw.Draw(mask).text(((w - text_w) / 2 - left, h + gap - top), 'Waligo', font=font, fill=255)
+    halo = mask.filter(ImageFilter.GaussianBlur(text_h * 0.18)).point(lambda v: int(v * 0.45))
+    canvas.alpha_composite(Image.merge('RGBA', (*(Image.new('L', canvas.size, c) for c in NEON_RGB), halo)))
+    white = Image.new('RGBA', canvas.size, (255, 255, 255, 0))
+    white.putalpha(mask)
+    canvas.alpha_composite(white)
+    # A clear margin all round: nothing touches the image's edge.
+    pad = round(w * 0.03)
+    framed = Image.new('RGBA', (canvas.width + 2 * pad, canvas.height + 2 * pad), (0, 0, 0, 0))
+    framed.alpha_composite(canvas, (pad, pad))
+    return framed
+
+
 def main():
     src = cv2.imread(SRC)
     assert src.shape[:2] == (SIZE, SIZE), 'the artwork must be 1024x1024'
@@ -143,11 +180,12 @@ def main():
     white = np.full((SIZE, SIZE, 3), 255, np.uint8)
     cv2.imwrite(os.path.join(OUT, 'adaptive-icon-monochrome.png'), place(np.dstack([white, mono_alpha]), box))
 
-    # Splash: the symbol alone, trimmed, for a dark screen.
+    # Splash: the symbol, trimmed, with "Waligo" under it, on transparent (the splash screen's own
+    # #0B1410 shows around it, so no box ever shows at the edges).
     x0, y0, x1, y1 = box
     splash = symbol[y0:y1, x0:x1]
-    w = 800  # shown about 200 dp wide: enough for the densest screens
-    cv2.imwrite(os.path.join(OUT, 'splash.png'), cv2.resize(splash, (w, round(splash.shape[0] * w / splash.shape[1])), interpolation=cv2.INTER_AREA))
+    splash = cv2.resize(splash, (SPLASH_W, round(splash.shape[0] * SPLASH_W / splash.shape[1])), interpolation=cv2.INTER_AREA)
+    with_wordmark(splash).save(os.path.join(OUT, 'splash.png'), optimize=True)
 
     # Notification: a solid white mountain and flag (Android tints it), crisp, on transparent; cut
     # higher so the small shape is the peaks, not a wide base.

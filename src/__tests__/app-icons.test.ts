@@ -66,7 +66,7 @@ function readPng(file: string): Png {
 }
 
 const expo = app.expo;
-const splash = expo.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-splash-screen') as [string, { image: string; backgroundColor: string }];
+const splash = expo.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-splash-screen') as [string, { image: string; backgroundColor: string; imageWidth: number }];
 const notifications = expo.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-notifications') as [string, { icon: string }];
 const path = (p: string) => p.replace(/^\.\//, '');
 
@@ -146,5 +146,38 @@ describe('app icons', () => {
     }
     expect(png.pixel(0, 0)[3]).toBe(0);
     expect(shown).toBeGreaterThan(500);
+  });
+
+  it('the splash image: the mountain with "Waligo" under it, on transparent, inside the Android 12+ splash circle', () => {
+    const png = readPng(path(splash[1].image));
+    expect(png.channels).toBe(4);
+    // No box: every edge pixel is fully transparent (the splash screen's own #0B1410 shows there).
+    for (let x = 0; x < png.width; x += 8) {
+      expect(png.pixel(x, 0)[3]).toBe(0);
+      expect(png.pixel(x, png.height - 1)[3]).toBe(0);
+    }
+    for (let y = 0; y < png.height; y += 8) {
+      expect(png.pixel(0, y)[3]).toBe(0);
+      expect(png.pixel(png.width - 1, y)[3]).toBe(0);
+    }
+    // The wordmark: white, opaque pixels in the lower part, centred.
+    let white = 0;
+    let sumX = 0;
+    for (let y = Math.floor(png.height * 0.7); y < png.height; y++) {
+      for (let x = 0; x < png.width; x++) {
+        const [r, g, b, a] = png.pixel(x, y);
+        if (a > 240 && r > 240 && g > 240 && b > 240) {
+          white++;
+          sumX += x;
+        }
+      }
+    }
+    expect(white).toBeGreaterThan(2000);
+    expect(Math.abs(sumX / white - png.width / 2)).toBeLessThan(png.width * 0.05);
+    // Expo puts the image, contained in an imageWidth square, on a 288 dp canvas; Android 12+ shows
+    // only a centred circle 2/3 of that (192 dp) across, so the whole image must fit in it.
+    const w = splash[1].imageWidth;
+    const h = (w * png.height) / png.width;
+    expect(Math.hypot(w, h) / 2).toBeLessThanOrEqual(96);
   });
 });
