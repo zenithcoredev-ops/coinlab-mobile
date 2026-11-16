@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import LeagueScreen from '../(tabs)/league';
 
@@ -88,6 +88,20 @@ describe('League screen with production data', () => {
     });
     render(<LeagueScreen />);
     await waitFor(() => expect(screen.getByText('8 kişiden ilk 4 sonraki aşamaya geçer')).toBeTruthy());
+  });
+
+  it('says "no promotion this week" once, on the "Senin sıran" card only', async () => {
+    mockGetLeague.mockResolvedValue({
+      ...active,
+      groupSize: 2,
+      bands: { promoteCount: 0, demoteCount: 0, tournamentCount: 0 },
+      yourRank: 1,
+      standings: standings.slice(0, 2).map((s, i) => ({ ...s, rank: i + 1, isYou: i === 0, zone: null })),
+    });
+    render(<LeagueScreen />);
+    await waitFor(() => expect(screen.getByText('Bronz Lig')).toBeTruthy());
+    expect(screen.getAllByText('Bu kadar küçük bir grupta bu hafta terfi yok')).toHaveLength(1);
+    expect(within(screen.getByTestId('your-rank')).getByText('Bu kadar küçük bir grupta bu hafta terfi yok')).toBeTruthy();
   });
 
   it('copes with a lone member', async () => {

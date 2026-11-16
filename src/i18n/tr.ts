@@ -55,8 +55,7 @@ const tr: Record<TranslationKey, string> = {
   'streak.atRiskLocal_one': '{count} günlük serini korumak için gece yarısından önce toplamayı başlat',
   'streak.atRiskLocal_other': '{count} günlük serini korumak için gece yarısından önce toplamayı başlat',
 
-  'friends.title': 'Arkadaşlarını davet et',
-  'friends.subtitle': 'Toplamaya devam eden her arkadaşın hızına +{rate} Wago/saat ekler. Toplamayı bırakırsa bonusu da durur.',
+  'friends.title': "Arkadaşlar",
   'friends.loadFailed': 'Arkadaşların yüklenemedi',
   'friends.yourCode': 'Davet kodun',
   'friends.copy': 'Kopyala',
@@ -66,7 +65,7 @@ const tr: Record<TranslationKey, string> = {
   'friends.benefit': 'Her aktif arkadaşın sana +{rate} Wago/saat kazandırır. Kodunu giren arkadaşın +{bonus} Wago hoş geldin bonusu alır.',
   'friends.stat.invited': 'Davet edilen',
   'friends.stat.active': 'Şu an aktif',
-  'friends.stat.bonus': 'Bonus (Wago/saat)',
+  'friends.stat.bonus': "Bonus Wago/saat",
   'friends.how.title': 'Nasıl çalışır?',
   'friends.how.step1': 'Davet kodunu bir arkadaşınla paylaş.',
   'friends.how.step2': 'Arkadaşın kodu Waligo’da girer ve +{bonus} Wago hoş geldin bonusu alır.',
@@ -88,8 +87,8 @@ const tr: Record<TranslationKey, string> = {
   'league.locked.motivate': 'Her toplama oturumu seni Bronz Lig’e biraz daha yaklaştırıyor. 💪',
   'league.alone': 'Grubun dolmaya devam ediyor — şimdilik ilk sıradasın 🏆',
   'friends.empty': 'Kodunu paylaş; arkadaşların topladıkça ikiniz de kazanırsınız: sen hız bonusu, onlar hoş geldin bonusu. 🤝',
-  'friends.status.active': '● Aktif',
-  'friends.status.inactive': '○ Pasif, bonus durdu',
+  'friends.status.active': "Aktif",
+  'friends.status.inactive': "Pasif",
 
   'tabs.league': 'Lig',
   'league.title': 'Haftalık lig',
@@ -481,6 +480,7 @@ const tr: Record<TranslationKey, string> = {
   'profile.settings': "Ayarlar",
   'profile.notif.title': "Bildirimler",
   'ads.boost.unavailable': "Video ile hız artırma şu an kullanılamıyor.",
+  'friends.tagline': "Birlikte yürüyün, birlikte hızlanın.",
 };
 
 export default tr;

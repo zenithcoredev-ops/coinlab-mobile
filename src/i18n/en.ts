@@ -53,8 +53,7 @@ const en = {
   'streak.atRiskLocal_one': 'Start collecting before midnight to keep your {count}-day streak',
   'streak.atRiskLocal_other': 'Start collecting before midnight to keep your {count}-day streak',
 
-  'friends.title': 'Invite your friends',
-  'friends.subtitle': 'Every friend who keeps collecting adds +{rate} Wago/h to your speed. If they stop collecting, their bonus stops too.',
+  'friends.title': "Friends",
   'friends.loadFailed': 'Could not load your friends',
   'friends.yourCode': 'Your invite code',
   'friends.copy': 'Copy',
@@ -64,7 +63,7 @@ const en = {
   'friends.benefit': 'Each active friend earns you +{rate} Wago/h. The friend who enters your code gets a +{bonus} Wago welcome bonus.',
   'friends.stat.invited': 'Invited',
   'friends.stat.active': 'Active now',
-  'friends.stat.bonus': 'Bonus (Wago/h)',
+  'friends.stat.bonus': "Bonus Wago/h",
   'friends.how.title': 'How it works',
   'friends.how.step1': 'Share your invite code with a friend.',
   'friends.how.step2': 'They enter it in Waligo and get a +{bonus} Wago welcome bonus.',
@@ -86,8 +85,8 @@ const en = {
   'league.locked.motivate': 'Every collecting session brings you a little closer to Bronze League. 💪',
   'league.alone': 'Your group is still filling up — for now you’re in first place 🏆',
   'friends.empty': 'Share your code: your friends get a welcome bonus and you get a speed bonus while they collect. 🤝',
-  'friends.status.active': '● Active',
-  'friends.status.inactive': '○ Inactive, bonus paused',
+  'friends.status.active': "Active",
+  'friends.status.inactive': "Inactive",
 
   'tabs.league': 'League',
   'league.title': 'Weekly league',
@@ -479,6 +478,7 @@ const en = {
   'profile.settings': "Settings",
   'profile.notif.title': "Notifications",
   'ads.boost.unavailable': "Boosting with a video isn’t available right now.",
+  'friends.tagline': "Walk together, speed up together.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
