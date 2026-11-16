@@ -6,6 +6,7 @@ import { useAds } from '@/context/ads';
 import { useMining } from '@/context/mining';
 import { useSession } from '@/context/session';
 import { useNow } from '@/hooks/use-now';
+import { rewardedAdsOn } from '@/services/mining-api';
 import { adBoostClbPerHour } from '@/lib/mining-math';
 
 export type BoostPhase = 'watching' | 'verifying' | null;
@@ -33,8 +34,9 @@ export function useRewardedBoost() {
   const [closedHere, setClosedHere] = useState(false);
 
   const unit = adUnitId('rewardedBoost');
-  // No ads field, or a daily limit of 0, means rewarded boosts are off on the server.
-  const ads = status?.ads && status.ads.dailyLimit > 0 ? status.ads : null;
+  // No ads field, a daily limit of 0, or `available: false` means rewarded boosts are off on the
+  // server: the card is left out entirely, without a word.
+  const ads = rewardedAdsOn(status?.ads) ? status!.ads! : null;
   const visible = ADS_SUPPORTED && canRequestAds && !!unit && !!ads && !!status?.session && !unavailable;
   const limitReached = !!ads && ads.usedToday >= ads.dailyLimit;
   const waitMs = ads?.nextAllowedAt ? Math.max(0, Date.parse(ads.nextAllowedAt) - now) : 0;
