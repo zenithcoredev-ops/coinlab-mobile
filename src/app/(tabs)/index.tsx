@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AdBoostCard } from '@/components/ad-boost-card';
 import { CollectRing, RING_SIZE } from '@/components/home/collect-ring';
+import { HomeAmbience } from '@/components/home/home-ambience';
 import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '@/components/home/home-cards';
 import { NeonCard } from '@/components/neon-card';
 import { BACKGROUND_IMAGES, BACKGROUND_SHADES, HOME_BACKGROUND_FRAMING } from '@/components/home/backgrounds';
@@ -78,6 +79,9 @@ export default function MineScreen() {
           image={BACKGROUND_IMAGES.home}
           shade={BACKGROUND_SHADES.home}
           framing={HOME_BACKGROUND_FRAMING}
+          ambience={(rect) => (
+            <HomeAmbience rect={rect} ring={focus ? { x: focus.x, y: focus.y, radius: RING_SIZE / 2 } : null} animate={animate} />
+          )}
         />
         <ScreenHeader />
 

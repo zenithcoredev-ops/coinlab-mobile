@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { Image, ImageSourcePropType, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -52,6 +52,7 @@ export function ScreenBackground({
   framing,
   tint,
   parallax,
+  ambience,
 }: {
   variant?: BackgroundVariant;
   focus?: Point | null;
@@ -61,6 +62,8 @@ export function ScreenBackground({
   framing?: ImageFraming;
   tint?: { opacity: number; saturation: number };
   parallax?: SharedValue<number>;
+  /** Drawn over the framed picture and its shade (under the lines): given where the picture is. */
+  ambience?: (rect: { left: number; top: number; width: number; height: number }) => ReactNode;
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const lines = useMemo(() => (variant === 'neon' ? contourPaths(size.width, size.height) : []), [variant, size.width, size.height]);
@@ -117,6 +120,7 @@ export function ScreenBackground({
           </Svg>
         </>
       ) : null}
+      {image && framed && ambience ? ambience(framed) : null}
       {size.width > 0 && variant === 'neon' ? (
         <Svg width={size.width} height={size.height}>
           {lines.map((d, i) => (
