@@ -116,7 +116,7 @@ describe('MiningWidget', () => {
         expect.objectContaining({ format24Hour: 'd MMMM EEEE' }),
       ]);
       expect(texts(tree)).toEqual(['-3°', 'Hafif yağışlı', '348', 'adım', 'Bugün', 'Toplanıyor · 9sa kaldı', 'Oturumda 14.800 adım', 'Waligo']);
-      expect(art(tree)).toEqual(['card', 'weather', 'ring', 'pill-green', undefined, 'progress']); // undefined: the gem
+      expect(art(tree)).toEqual(['card', 'weather', 'ring', 'pill-green', 'bolt-green', 'progress']);
     });
 
     it('draws the session progress under the label while mining, and a gold label otherwise', () => {
@@ -125,6 +125,7 @@ describe('MiningWidget', () => {
       const start = draw('MiningLarge', mining({}, idle), big);
       expect(texts(start)).toContain('Toplamayı başlatmak için dokun');
       expect(art(start)).toContain('pill-gold');
+      expect(art(start)).toContain('bolt-gold');
       expect(art(start)).not.toContain('progress');
       expect(texts(draw('MiningLarge', buildWidgetModel({ signedOut: true, language: 'tr' }, 0), big))).toContain('Giriş yapmak için dokun');
     });
@@ -200,7 +201,9 @@ describe('MiningWidget', () => {
           .filter((n) => n.type === 'TextWidget' || n.type === 'SvgWidget')
           .map((n) =>
             n.type === 'SvgWidget'
-              ? 'icon'
+              ? /coinlab-bolt/.test(n.props.svgString ?? '')
+                ? 'bolt'
+                : 'icon'
               : n.props.text.startsWith(CLOCK_PREFIX)
                 ? JSON.parse(n.props.text.slice(CLOCK_PREFIX.length)).format24Hour
                 : n.props.text
@@ -212,7 +215,7 @@ describe('MiningWidget', () => {
       expect(rows(draw('MiningSmall', full(), { width: 260, height: 110 }))).toEqual([
         ['HH:mm', 'icon', '16°'],
         ['d MMM EEE', 'Parçalı bulutlu'],
-        ['1.444 adım', 'Toplanıyor · 9sa'],
+        ['1.444 adım', 'bolt', 'Toplanıyor · 9sa'],
       ]);
     });
 
@@ -227,7 +230,7 @@ describe('MiningWidget', () => {
         const r = at(width, height);
         expect(r[0][0]).toBe('HH:mm');
         expect(r[r.length - 1][0]).toBe('1.444 adım');
-        expect(r[r.length - 1][1]).toMatch(/9sa$/);
+        expect(r[r.length - 1].slice(1)).toEqual(['bolt', expect.stringMatching(/9sa$/)]);
       }
     });
 
@@ -236,24 +239,25 @@ describe('MiningWidget', () => {
       expect(rows(draw('MiningSmall', full(), { width: 181, height: 94 }))).toEqual([
         ['HH:mm', 'icon', '16°'],
         ['d MMM EEE', 'Parçalı'],
-        ['1.444 adım', 'Toplanıyor · 9sa'],
+        ['1.444 adım', 'bolt', 'Toplanıyor · 9sa'],
       ]);
     });
 
     it('shows the start text when not mining, and no steps without a count', () => {
       expect(rows(draw('MiningSmall', mining({ stepsToday: 1444, weather: partly }, idle), { width: 260, height: 110 }))[2]).toEqual([
         '1.444 adım',
+        'bolt',
         'Toplamayı başlat',
       ]);
-      expect(rows(draw('MiningSmall', mining({ weather: partly }), { width: 260, height: 110 }))[2]).toEqual(['Toplanıyor · 9sa']);
+      expect(rows(draw('MiningSmall', mining({ weather: partly }), { width: 260, height: 110 }))[2]).toEqual(['bolt', 'Toplanıyor · 9sa']);
     });
 
     it('too short for three rows: clock | weather and steps | mining; too short for two: clock | mining', () => {
       expect(rows(draw('MiningSmall', full(), { width: 260, height: 70 }))).toEqual([
         ['HH:mm', 'icon', '16°'],
-        ['1.444 adım', 'Toplanıyor · 9sa'],
+        ['1.444 adım', 'bolt', 'Toplanıyor · 9sa'],
       ]);
-      expect(rows(draw('MiningSmall', full(), { width: 110, height: 40 }))).toEqual([['HH:mm', '9sa']]);
+      expect(rows(draw('MiningSmall', full(), { width: 110, height: 40 }))).toEqual([['HH:mm', 'bolt', '9sa']]);
     });
 
     it('keeps the right column as far from the edge as the left one looks', () => {
@@ -276,10 +280,25 @@ describe('MiningWidget', () => {
       expect(large.props.padding.right).toBe(large.props.padding.left);
     });
 
-    it('draws no ring, pill or bar (plain text only)', () => {
+    it('draws no ring, pill or bar; only the bolt before the mining text, green while collecting and gold otherwise', () => {
       const pieces = art(draw('MiningSmall', full(), { width: 260, height: 110 }));
-      expect(pieces).toEqual(['card', 'weather']);
+      expect(pieces).toEqual(['card', 'weather', 'bolt-green']);
+      expect(art(draw('MiningSmall', mining({ stepsToday: 1444 }, idle), { width: 260, height: 110 }))).toEqual(['card', 'bolt-gold']);
+      expect(art(draw('MiningSmall', full(), { width: 110, height: 40 }))).toEqual(['card', 'bolt-green']);
     });
+  });
+
+  it.each(NAMES)('%s draws no gem or coin, only the bolt for collecting', (name) => {
+    for (const s of [snap, idle]) {
+      const svgs = walk(draw(name, buildWidgetModel(s, t0 + HOUR, 'tr', { stepsToday: 1444 }), sizes[name][0]))
+        .filter((n) => n.type === 'SvgWidget')
+        .map((n) => n.props.svgString as string);
+      expect(svgs.filter((svg) => /coinlab-bolt-(green|gold)/.test(svg))).toHaveLength(1);
+      for (const svg of svgs) {
+        expect(svg).not.toMatch(/gem|diamond|coin(?!lab)/i);
+        expect(svg).not.toContain('M7 4h10l4 5l-9 11L3 9z'); // the old faceted gem
+      }
+    }
   });
 
   it('labels the session time in English too', () => {

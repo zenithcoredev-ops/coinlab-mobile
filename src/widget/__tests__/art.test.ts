@@ -1,5 +1,5 @@
 import { translate } from '@/i18n/translate';
-import { cardFrameSvg, diamondSvg, pillSvg, progressBarSvg } from '../art';
+import { cardFrameSvg, boltSvg, pillSvg, progressBarSvg } from '../art';
 import { widgetDrawKey, buildWidgetModel } from '../model';
 import { stepsRingSvg } from '../steps-ring';
 import { WEATHER_CONDITION_KEYS, weatherConditionFor } from '../weather-conditions';
@@ -28,8 +28,14 @@ describe('widget art', () => {
       expectWellFormed(progressBarSvg(160, 4, p));
       expectWellFormed(stepsRingSvg(p));
     }
-    expectWellFormed(diamondSvg('#4ADE80'));
+    for (const tone of ['green', 'gold'] as const) expectWellFormed(boltSvg('#4ADE80', tone));
     for (const icon of ['clear-day', 'partly-night', 'rain', 'snow', 'thunder', 'fog'] as const) expectWellFormed(weatherIconSvg(icon));
+  });
+
+  it('draws the collect icon as a lightning bolt in its tone', () => {
+    const bolt = boltSvg('#F5B942', 'gold');
+    expect(bolt).toContain('id="coinlab-bolt-gold"');
+    expect(bolt).toContain('fill="#F5B942"');
   });
 
   it('fills the session bar in proportion, never past the end', () => {

@@ -9,7 +9,7 @@ import { formatClbPerHour } from '@/lib/mining-math';
 import type { PluralKey, TranslationKey } from '@/i18n/en';
 import { MINING_SESSION_MS } from '@/services/mining-api';
 import { theme } from '@/theme';
-import { cardFrameSvg, diamondSvg, GOLD, GREEN, pillSvg, progressBarSvg } from './art';
+import { boltSvg, cardFrameSvg, GOLD, GREEN, pillSvg, progressBarSvg } from './art';
 import { shownRemaining, WidgetModel } from './model';
 import { STEP_GOAL } from './steps';
 import { stepsRingSvg } from './steps-ring';
@@ -144,17 +144,38 @@ function WeatherRow({ model, temperature, width, height }: { model: WidgetModel;
   );
 }
 
-/** The mining label: a glowing capsule (green while mining, gold otherwise) with a gem and the text. */
+/** The app's lightning bolt, green while collecting and gold otherwise. */
+function Bolt({ active, size }: { active: boolean; size: number }) {
+  return <SvgWidget svg={boltSvg(active ? c.green : c.gold, active ? 'green' : 'gold')} style={{ width: size, height: size, marginRight: 3 }} />;
+}
+
+/**
+ * The small widget's collect text with the bolt just before it, the two right-aligned together. The
+ * text box is as wide as the text is estimated to be (at most what's left of the row).
+ */
+function BoltText({ text, active, width, height }: { text: string; active: boolean; width: number; height: number }) {
+  const bolt = Math.max(8, Math.round(height * 0.8));
+  const room = Math.max(10, width - bolt - 3);
+  const textW = Math.min(room, Math.ceil(text.length * Math.max(8, Math.floor(height / 1.35)) * 0.56));
+  return (
+    <FlexWidget style={{ width, height, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <Bolt active={active} size={bolt} />
+      <Line text={text} width={textW} height={height} color={active ? c.green : c.gold} bold align="right" />
+    </FlexWidget>
+  );
+}
+
+/** The mining label: a glowing capsule (green while mining, gold otherwise) with the bolt and the text. */
 function Pill({ text, active, width, height }: { text: string; active: boolean; width: number; height: number }) {
   const tone = active ? c.green : c.gold;
-  const gem = Math.round(height * 0.5);
+  const bolt = Math.round(height * 0.5);
   const sidePad = Math.round(height * 0.4);
-  const textW = Math.max(10, width - 2 * sidePad - gem - 4);
+  const textW = Math.max(10, width - 2 * sidePad - bolt - 3);
   return (
     <OverlapWidget style={{ width, height }}>
       <SvgWidget svg={pillSvg(width, height, active ? 'green' : 'gold')} style={{ width, height }} />
       <FlexWidget style={{ width, height, flexDirection: 'row', alignItems: 'center', paddingLeft: sidePad, paddingRight: sidePad }}>
-        <SvgWidget svg={diamondSvg(tone)} style={{ width: gem, height: gem, marginRight: 4 }} />
+        <Bolt active={active} size={bolt} />
         <Line text={text} width={textW} height={Math.round(height * 0.5)} color={tone} bold glow={tone} />
       </FlexWidget>
     </OverlapWidget>
@@ -185,8 +206,11 @@ export function MiningWidget({ name, model, size }: { name: MiningWidgetName; mo
   return name === 'MiningSmall' ? small(model, x, cardW, cardH) : large(model, x, cardW, cardH);
 }
 
+/** What the bolt and its gap take from the small widget's collect text (at the largest text height). */
+const BOLT_ROOM = 15;
+
 /**
- * Small (2x1), three rows, each split left | right:
+ * Small (2x1), a bolt before the mining text, three rows, each split left | right:
  *   clock            | weather icon + temperature
  *   short date       | weather condition
  *   today's steps    | mining text ("Kazılıyor · 10sa")
@@ -203,13 +227,13 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
   const innerW = cardW - pad - padRight;
   const innerH = cardH - pad * 2;
   const gap = 6;
-  const miningColor = x.active ? c.green : c.gold;
   const half = (w: number) => Math.floor((w - gap) / 2);
   // A long short date ("31 Eki Cmt", "Wed, 30 Oct") and the room it needs to stay readable.
   const DATE_SAMPLE = '31 Eki Cmt';
   const DATE_MIN = 58;
   // The mining text: the short form when it stays readable (small type is fine), else "10sa" / "Başlat".
-  const mining = (width: number) => (readable(x.labelShort, width, 8, 0.45) ? x.labelShort : x.labelTiny);
+  // Measured against the room the bolt leaves.
+  const mining = (width: number) => (readable(x.labelShort, width - BOLT_ROOM, 8, 0.45) ? x.labelShort : x.labelTiny);
 
   if (innerH < 26) {
     const clockW = Math.floor(innerW * 0.42);
@@ -219,7 +243,7 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
         <FlexWidget style={{ width: innerW, height: innerH, flexDirection: 'row', alignItems: 'center' }}>
           <Line text={timeClock()} width={clockW} height={innerH} color={c.text} bold />
           <FlexWidget style={{ width: gap, height: 1 }} />
-          <Line text={mining(miningW)} width={miningW} height={Math.min(innerH, 14)} color={miningColor} bold align="right" />
+          <BoltText text={mining(miningW)} active={x.active} width={miningW} height={Math.min(innerH, 14)} />
         </FlexWidget>
       </Card>
     );
@@ -280,7 +304,7 @@ function small(model: WidgetModel, x: Texts, cardW: number, cardH: number) {
         [
           x.steps ? <Line key="steps" text={x.steps} width={stepsW} height={textH} color={c.gold} bold /> : null,
           x.steps ? <FlexWidget key="gap" style={{ width: gap, height: 1 }} /> : null,
-          <Line key="mining" text={mining(miningW)} width={miningW} height={textH} color={miningColor} bold align="right" />,
+          <BoltText key="mining" text={mining(miningW)} active={x.active} width={miningW} height={textH} />,
         ]
       )}
     </Card>
