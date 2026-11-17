@@ -78,13 +78,16 @@ export function progressBarSvg(w: number, h: number, progress: number): string {
   );
 }
 
-/** The faceted gem used in the mining label. */
-export function diamondSvg(color: string): string {
+/**
+ * The lightning bolt of the collect label (the app's "flash" icon): a soft glow under the solid bolt.
+ * The id carries the tone (coinlab-bolt-green / -gold).
+ */
+export function boltSvg(color: string, tone: 'green' | 'gold'): string {
+  const bolt = 'M13.5 2L4.5 13.5h6.5L9.5 22l10-12.5h-6.5L14.5 2z';
   return (
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
-    `<path d="M7 4h10l4 5l-9 11L3 9z" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/>` +
-    `<path d="M3 9h18M9 4l-2 5l5 11l5-11l-2-5" fill="none" stroke="${color}" stroke-width="1" stroke-linejoin="round"/>` +
-    `<path d="M19.5 1.5v3M18 3h3" stroke="${GOLD_LIGHT}" stroke-width="1.1" stroke-linecap="round"/>` +
+    `<svg id="coinlab-bolt-${tone}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">` +
+    `<path d="${bolt}" fill="none" stroke="${color}" stroke-opacity="0.25" stroke-width="3" stroke-linejoin="round"/>` +
+    `<path d="${bolt}" fill="${color}" stroke="${color}" stroke-width="0.8" stroke-linejoin="round"/>` +
     '</svg>'
   );
 }
