@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AdBoostCard } from '@/components/ad-boost-card';
 import { CollectRing, RING_SIZE } from '@/components/home/collect-ring';
 import { HomeAmbience } from '@/components/home/home-ambience';
-import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '@/components/home/home-cards';
+import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayLine } from '@/components/home/home-cards';
 import { NeonCard } from '@/components/neon-card';
 import { BACKGROUND_IMAGES, BACKGROUND_SHADES, HOME_BACKGROUND_FRAMING } from '@/components/home/backgrounds';
 import { ScanLight, ScreenBackground } from '@/components/home/screen-background';
@@ -36,7 +36,7 @@ import { theme } from '@/theme';
 // If this screen throws while drawing, the tab shows a retry screen instead of the app closing.
 export { ScreenError as ErrorBoundary } from '@/components/screen-error';
 
-const RING_PAD = theme.spacing.xl;
+const RING_PAD = theme.spacing.sm;
 
 export default function MineScreen() {
   const { t, language } = useI18n();
@@ -85,7 +85,8 @@ export default function MineScreen() {
         />
         <ScreenHeader />
 
-        <NeonCard grid testID="balance-card">
+        {/* Compact so the whole screen fits on a common phone (~392x850dp) without scrolling. */}
+        <NeonCard grid testID="balance-card" style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>{t('mine.balance')}</Text>
           <View style={styles.balanceRow}>
             <Text style={styles.balanceValue} adjustsFontSizeToFit numberOfLines={1}>
@@ -93,11 +94,15 @@ export default function MineScreen() {
             </Text>
             <Text style={styles.balanceUnit}>{t('mine.clb')}</Text>
           </View>
+          {/* The speed and today's total share a line where it fits; otherwise today's goes under it. */}
           <View style={styles.balanceSub}>
-            <Text style={[styles.rateText, isMining && styles.rateActive]}>{isMining ? t('mine.rateActive', { rate }) : t('mine.rateStopped')}</Text>
-            <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
-              <Ionicons name="information-circle-outline" size={16} color={theme.colors.tabInactive} />
-            </Pressable>
+            <View style={styles.rateRow}>
+              <Text style={[styles.rateText, isMining && styles.rateActive]}>{isMining ? t('mine.rateActive', { rate }) : t('mine.rateStopped')}</Text>
+              <Pressable onPress={() => setRateOpen(true)} hitSlop={12} accessibilityLabel={t('rate.title')}>
+                <Ionicons name="information-circle-outline" size={16} color={theme.colors.tabInactive} />
+              </Pressable>
+            </View>
+            <TodayLine collectedToday={collectedToday} />
           </View>
         </NeonCard>
 
@@ -131,8 +136,6 @@ export default function MineScreen() {
           </TextScrim>
         </View>
 
-        <TodayStrip collectedToday={collectedToday} />
-
         <View style={styles.pair}>
           <StepsMiniCard />
           <LeagueMiniCard balance={balance} />
@@ -154,33 +157,44 @@ const greenGlow = { textShadowColor: theme.colors.neonGlow, textShadowRadius: 14
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgDeep },
-  scroll: { padding: theme.spacing.xl, paddingBottom: theme.spacing.xxl },
+  scroll: { paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.sm, paddingBottom: theme.spacing.lg },
+  balanceCard: { paddingVertical: theme.spacing.md },
   balanceLabel: {
     color: theme.colors.tabInactive,
     fontFamily: theme.fonts.displayMedium,
-    fontSize: theme.fontSizes.xs,
+    fontSize: theme.fontSizes.sm,
     textTransform: 'uppercase',
     letterSpacing: 1.4,
-    marginBottom: 6,
+    marginBottom: 2,
   },
   balanceRow: { flexDirection: 'row', alignItems: 'baseline', gap: theme.spacing.sm },
   balanceValue: {
     flexShrink: 1,
     color: theme.colors.text,
     fontFamily: theme.fonts.display,
-    fontSize: theme.fontSizes.xxl + 6,
+    fontSize: theme.fontSizes.xxl + 2,
     fontVariant: ['tabular-nums'],
     ...greenGlow,
   },
   balanceUnit: { color: theme.colors.accent, fontFamily: theme.fonts.displayMedium, fontSize: theme.fontSizes.lg },
-  balanceSub: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: theme.spacing.sm },
+  balanceSub: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: theme.spacing.md,
+    rowGap: theme.spacing.xs,
+    marginTop: theme.spacing.xs,
+  },
+  rateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rateText: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
   rateActive: { color: theme.colors.neon },
   mineZone: { alignItems: 'center', justifyContent: 'center', paddingVertical: RING_PAD },
-  statusScrim: { marginTop: theme.spacing.lg, maxWidth: '100%' },
-  timeLeft: { alignItems: 'center' },
+  statusScrim: { marginTop: theme.spacing.sm, maxWidth: '100%' },
+  // "Kalan süre 08:12:33" on one line.
+  timeLeft: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: theme.spacing.sm },
   timeLeftLabel: { color: theme.colors.tabInactive, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm },
-  timeLeftValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, fontVariant: ['tabular-nums'], marginTop: 2, ...greenGlow },
+  timeLeftValue: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.xl, fontVariant: ['tabular-nums'], ...greenGlow },
   status: {
     color: theme.colors.tabInactive,
     fontFamily: theme.fonts.body,

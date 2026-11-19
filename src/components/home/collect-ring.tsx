@@ -19,9 +19,10 @@ import { theme } from '@/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export const RING_SIZE = 236;
+// About 17 % smaller than the first design (236 / 150) so the Collect screen fits without scrolling.
+export const RING_SIZE = 196;
 const STROKE = 7;
-const CORE = 150;
+const CORE = 124;
 
 type Props = {
   /** 0..1 of the session already run. */
@@ -125,7 +126,7 @@ export function CollectRing({ progress, collecting, rate, busy, disabled, onStar
       {collecting ? (
         <View style={[styles.core, styles.coreActive]} accessible accessibilityLabel={`${t('mine.active')}, ${rate}`}>
           <View style={styles.bolt}>
-            <Ionicons name="flash" size={22} color={theme.colors.neonInk} />
+            <Ionicons name="flash" size={19} color={theme.colors.neonInk} />
           </View>
           <Text style={styles.activeLabel}>{t('mine.active')}</Text>
           <Text style={styles.rate}>{rate}</Text>
@@ -142,7 +143,7 @@ export function CollectRing({ progress, collecting, rate, busy, disabled, onStar
               <ActivityIndicator color={theme.colors.neonInk} />
             ) : (
               <>
-                <Ionicons name="flash" size={30} color={theme.colors.neonInk} />
+                <Ionicons name="flash" size={26} color={theme.colors.neonInk} />
                 <Text style={styles.startLabel}>{t('mine.startLabel')}</Text>
               </>
             )}
@@ -163,13 +164,13 @@ function Spark({ index, clock, tipAngle, r, center }: { index: number; clock: Sh
 
 const styles = StyleSheet.create({
   box: { width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' },
-  core: { width: CORE, height: CORE, borderRadius: CORE / 2, alignItems: 'center', justifyContent: 'center', gap: 4, padding: theme.spacing.sm },
+  core: { width: CORE, height: CORE, borderRadius: CORE / 2, alignItems: 'center', justifyContent: 'center', gap: 3, padding: theme.spacing.sm },
   coreActive: { borderWidth: 2, borderColor: theme.colors.neon, backgroundColor: theme.colors.glass },
   coreIdle: { backgroundColor: theme.colors.neon },
   bolt: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: theme.colors.neon,
     alignItems: 'center',
     justifyContent: 'center',

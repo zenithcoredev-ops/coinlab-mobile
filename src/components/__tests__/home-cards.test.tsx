@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react-native';
 
 import { CollectRing } from '../home/collect-ring';
-import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayStrip } from '../home/home-cards';
+import { DailyTasksCard, LeagueMiniCard, StepsMiniCard, TodayLine } from '../home/home-cards';
 
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 jest.mock('@/i18n', () => ({ useI18n: () => ({ language: 'tr', t: (k: string, p?: object) => require('@/i18n/translate').translate('tr', k, p) }) }));
@@ -24,24 +24,31 @@ beforeEach(() => {
   mockSnapshot = null;
 });
 
-describe('TodayStrip', () => {
+describe('TodayLine', () => {
   it('shows what was collected today in gold, and hides without the server’s figure', () => {
-    render(<TodayStrip collectedToday={1.84} />);
+    render(<TodayLine collectedToday={1.84} />);
     expect(screen.getByText('Bugün toplanan')).toBeTruthy();
     expect(screen.getByText('+1,84 Wago')).toBeTruthy();
-    expect(render(<TodayStrip collectedToday={undefined} />).toJSON()).toBeNull();
-    expect(render(<TodayStrip collectedToday={null} />).toJSON()).toBeNull();
+    expect(render(<TodayLine collectedToday={undefined} />).toJSON()).toBeNull();
+    expect(render(<TodayLine collectedToday={null} />).toJSON()).toBeNull();
     // A new day starts from zero and still shows.
-    render(<TodayStrip collectedToday={0} />);
+    render(<TodayLine collectedToday={0} />);
     expect(screen.getByText('+0,00 Wago')).toBeTruthy();
   });
 });
 
 describe('StepsMiniCard', () => {
-  it('shows today’s steps and what the session’s steps add', () => {
+  it('shows today’s steps and, on one line, what the session’s steps add', () => {
     render(<StepsMiniCard />);
-    expect(screen.getByText('6.240 adım · bugün')).toBeTruthy();
-    expect(screen.getByText('Oturumda 2.100 adım\n+0,01 Wago/saat')).toBeTruthy();
+    expect(screen.getByText('6.240 adım')).toBeTruthy();
+    expect(screen.getByText('+0,01 Wago/saat')).toBeTruthy();
+  });
+
+  it('says the count is today’s when no session adds to it', () => {
+    mockSteps = { availability: 'ready', steps: 0, todaySteps: 300, bonusClbPerHour: 0 };
+    render(<StepsMiniCard />);
+    expect(screen.getByText('300 adım')).toBeTruthy();
+    expect(screen.getByText('Bugün')).toBeTruthy();
   });
 
   it('asks to connect when steps aren’t available', () => {
@@ -57,7 +64,7 @@ describe('LeagueMiniCard', () => {
     render(<LeagueMiniCard balance={40} />);
     expect(screen.getByText('Bronz Lig')).toBeTruthy();
     expect(screen.getByText('12. sıra')).toBeTruthy();
-    expect(screen.getByText(/^Terfi için 3 sıra · Pzt \d\d:\d\d$/)).toBeTruthy();
+    expect(screen.getByText('Terfi için 3 sıra')).toBeTruthy();
   });
 
   it('says how much is left to join', () => {
@@ -68,7 +75,7 @@ describe('LeagueMiniCard', () => {
 });
 
 describe('DailyTasksCard', () => {
-  it('shows done/total and the next task', async () => {
+  it('is one line: done/total, a short bar and a chevron', async () => {
     mockGetTasks.mockResolvedValue({
       tasks: [
         { id: 'mine', reward: 0.05, progress: 1, target: 1, isComplete: true, claimed: true },
@@ -78,7 +85,8 @@ describe('DailyTasksCard', () => {
     });
     render(<DailyTasksCard />);
     await waitFor(() => expect(screen.getByText('Günlük görevler 2/3')).toBeTruthy());
-    expect(screen.getByText('Kalan: 5.000 adım at · +0,12 Wago')).toBeTruthy();
+    expect(screen.queryByText(/Kalan:/)).toBeNull();
+    expect(screen.getByTestId('progress-fill')).toHaveStyle({ width: `${(2 / 3) * 100}%` });
   });
 
   it('stays hidden until tasks arrive', () => {
@@ -103,5 +111,28 @@ describe('CollectRing', () => {
     expect(screen.getByLabelText('Toplamayı başlat')).toBeTruthy();
     expect(screen.queryByTestId('ring-tip')).toBeNull();
     expect(screen.queryByTestId('ring-progress')).toBeNull();
+  });
+});
+
+describe('readable at a glance', () => {
+  it('no text on the Collect cards is smaller than 12sp', async () => {
+    mockSnapshot = { inLeague: true, weekEnd: null, savedAt: 0, state: 'active', league: 0, rank: 12, promoteCount: 9, entryRequired: 30 };
+    mockGetTasks.mockResolvedValue({ tasks: [{ id: 'mine', reward: 0.05, progress: 0, target: 1, isComplete: false, claimed: false }] });
+    const view = render(
+      <>
+        <TodayLine collectedToday={1.41} />
+        <StepsMiniCard />
+        <LeagueMiniCard balance={40} />
+        <DailyTasksCard />
+        <CollectRing progress={0.4} rate="0,13 Wago/saat" busy={false} disabled={false} onStart={jest.fn()} collecting animate={false} />
+      </>
+    );
+    await waitFor(() => expect(screen.getByText('Günlük görevler 0/1')).toBeTruthy());
+    const texts = view.UNSAFE_root.findAll((n) => (n.type as unknown) === 'Text' && typeof n.props.children !== 'undefined');
+    expect(texts.length).toBeGreaterThan(8);
+    for (const node of texts) {
+      const style = Object.assign({}, ...[node.props.style].flat(Infinity).filter(Boolean));
+      if (style.fontSize !== undefined) expect(style.fontSize).toBeGreaterThanOrEqual(12);
+    }
   });
 });
