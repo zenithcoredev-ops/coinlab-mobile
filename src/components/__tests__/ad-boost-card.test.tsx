@@ -94,7 +94,8 @@ describe('AdBoostCard', () => {
     const running = { startsAt: 'a', endsAt: 'b', boostThs: 0.5, clbPerHourBonus: 0.05 };
     mockStatus = { session, ads: ads({ activeBoosts: [running, running], clbPerHourBonus: 0.05, activeClbPerHourBonus: 0.1 }) };
     render(<AdBoostCard />);
-    expect(screen.getByText('Her reklam: +0,05 Wago/saat, bir süreliğine')).toBeTruthy();
+    // The per-ad figure goes to screen readers; the one-line strip shows what runs.
+    expect(screen.getByLabelText(/Her reklam: \+0,05 Wago\/saat, bir süreliğine/)).toBeTruthy();
     expect(screen.getByText('2 takviye aktif: +0,10 Wago/saat')).toBeTruthy();
   });
 

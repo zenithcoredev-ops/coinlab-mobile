@@ -81,8 +81,12 @@ export const TASKS_TINT = { opacity: 0.14, saturation: 0.55 };
  * is shifted so that point sits on the centre of the collecting ring. `scale` zooms in slightly;
  * `maxScale` caps the extra zoom used to reach the top of the screen (above that the picture fades in
  * from the background instead, behind the header).
+ *
+ * The ring shrank by about 17 % (236 → 196 dp) and moved up, so the zoom shrank with it (at most 1.08,
+ * was 1.3): the peak keeps the same size relative to the ring, and the picture still starts about as
+ * far below the top as before.
  */
-export const HOME_BACKGROUND_FRAMING: ImageFraming = { scale: 1.12, anchorY: 0.23, maxScale: 1.3 };
+export const HOME_BACKGROUND_FRAMING: ImageFraming = { scale: 1, anchorY: 0.23, maxScale: 1.08 };
 
 /** Largest a background picture may be, in bytes. */
 export const BACKGROUND_MAX_BYTES = 400 * 1024;

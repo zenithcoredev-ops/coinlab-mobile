@@ -43,43 +43,53 @@ export function AdBoostCard() {
   const hint = limitReached ? t('ads.boost.limit') : waitMs > 0 ? t('ads.boost.wait', { time: formatDuration(waitMs) }) : null;
   const label = phase === 'verifying' ? t('ads.boost.verifying') : t('ads.boost.watchCount', { used: ads.usedToday, limit: ads.dailyLimit });
 
+  // One line under the title at most: a fresh result first, then why the button waits, then what runs.
+  const activeText =
+    activeCount > 0
+      ? activeRate !== null && activeRate > 0
+        ? t('ads.boost.activeRate', { count: activeCount, rate: rate(activeRate) })
+        : t('ads.boost.active', { count: activeCount })
+      : null;
+  const messageText = message
+    ? message === 'granted' && grantedClbPerHour !== null
+      ? t('ads.boost.grantedRate', { rate: rate(grantedClbPerHour) })
+      : t(MESSAGES[message])
+    : null;
+  const sub = messageText ?? hint ?? activeText;
+  const perAdText = perAd !== null ? t('ads.boost.perAd', { rate: rate(perAd) }) : null;
+
+  // A one-line strip: "Hızını artır" and the watch button ("İzle · 0/6 ›").
   return (
-    <NeonCard style={styles.card} testID="ad-boost-card">
+    <NeonCard style={styles.strip} testID="ad-boost-card">
       <View style={styles.row}>
         <View style={styles.play}>
-          <Ionicons name="play" size={18} color={theme.colors.neonInk} />
+          <Ionicons name="play" size={14} color={theme.colors.neonInk} />
         </View>
-        <View style={styles.texts}>
-          <Text style={styles.title}>{t('home.boost.title')}</Text>
-          <Text style={styles.body}>{t('ads.boost.body')}</Text>
+        <View style={styles.texts} accessible accessibilityLabel={[t('home.boost.title'), t('ads.boost.body'), perAdText].filter(Boolean).join('. ')}>
+          <Text style={styles.title} numberOfLines={1}>
+            {t('home.boost.title')}
+          </Text>
         </View>
+        <Pressable
+          onPress={watch}
+          disabled={!canWatch}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ disabled: !canWatch, busy: phase === 'watching' }}
+          style={({ pressed }) => [styles.button, !canWatch && styles.buttonDisabled, pressed && { opacity: 0.85 }]}>
+          {/* The spinner only covers loading the ad; while the server confirms the reward the (disabled) button says so. */}
+          {phase === 'watching' ? (
+            <ActivityIndicator color={theme.colors.neonInk} />
+          ) : (
+            <>
+              <Text style={styles.buttonText}>{label}</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.colors.neonInk} />
+            </>
+          )}
+        </Pressable>
       </View>
-      {perAd !== null && <Text style={styles.hint}>{t('ads.boost.perAd', { rate: rate(perAd) })}</Text>}
-      {hint && <Text style={styles.hint}>{hint}</Text>}
-      {activeCount > 0 && (
-        <Text style={styles.hint}>
-          {activeRate !== null && activeRate > 0
-            ? t('ads.boost.activeRate', { count: activeCount, rate: rate(activeRate) })
-            : t('ads.boost.active', { count: activeCount })}
-        </Text>
-      )}
-      <Pressable
-        onPress={watch}
-        disabled={!canWatch}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        accessibilityState={{ disabled: !canWatch, busy: phase === 'watching' }}
-        style={({ pressed }) => [styles.button, !canWatch && styles.buttonDisabled, pressed && { opacity: 0.85 }]}>
-        {/* The spinner only covers loading the ad; while the server confirms the reward the (disabled) button says so. */}
-        {phase === 'watching' ? <ActivityIndicator color={theme.colors.neonInk} /> : <Text style={styles.buttonText}>{label}</Text>}
-      </Pressable>
-      {message && (
-        <Text style={message === 'granted' ? styles.ok : styles.note}>
-          {message === 'granted' && grantedClbPerHour !== null
-            ? t('ads.boost.grantedRate', { rate: rate(grantedClbPerHour) })
-            : t(MESSAGES[message])}
-        </Text>
-      )}
+      {sub && <Text style={messageText && message !== 'granted' ? styles.note : styles.hint}>{sub}</Text>}
       {message && message !== 'granted' ? code : null}
     </NeonCard>
   );
@@ -87,24 +97,26 @@ export function AdBoostCard() {
 
 const styles = StyleSheet.create({
   card: { marginTop: theme.spacing.md },
-  row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
-  play: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.neon, alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
+  strip: { marginTop: theme.spacing.md, paddingVertical: theme.spacing.sm + 2 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  play: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.neon, alignItems: 'center', justifyContent: 'center', paddingLeft: 2 },
   texts: { flex: 1 },
-  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md + 1 },
-  body: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs + 0.5, marginTop: 4, lineHeight: 17 },
-  hint: { color: theme.colors.neon, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
+  title: { color: theme.colors.text, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
+  body: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: 4, lineHeight: 17 },
+  hint: { color: theme.colors.neon, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.xs },
   button: {
-    marginTop: theme.spacing.md,
-    minHeight: 46,
+    flexDirection: 'row',
+    gap: 2,
+    minHeight: 34,
     borderRadius: theme.radius.pill,
     backgroundColor: theme.colors.neon,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.lg,
+    paddingLeft: theme.spacing.md,
+    paddingRight: theme.spacing.sm,
   },
   buttonDisabled: { opacity: 0.45 },
-  buttonText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.md },
-  ok: { color: theme.colors.neon, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
-  code: { color: theme.colors.tabInactive, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.xs, marginTop: 4 },
-  note: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.xs, marginTop: theme.spacing.sm },
+  buttonText: { color: theme.colors.neonInk, fontFamily: theme.fonts.display, fontSize: theme.fontSizes.sm + 0.5 },
+  code: { color: theme.colors.tabInactive, fontFamily: theme.fonts.mono, fontSize: theme.fontSizes.sm, marginTop: 4 },
+  note: { color: theme.colors.text, fontFamily: theme.fonts.body, fontSize: theme.fontSizes.sm, marginTop: theme.spacing.xs },
 });

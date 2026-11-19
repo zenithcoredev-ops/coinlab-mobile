@@ -15,9 +15,13 @@ import {
   twinkle,
 } from '../home-ambience';
 import { HOME_BACKGROUND_FRAMING } from '@/components/home/backgrounds';
+import { RING_SIZE } from '@/components/home/collect-ring';
 
-// The Collect picture as the screen places it (1056x2208, ring centre at y=360 on a 390 dp phone).
-const rect = framedImageRect(390, 360, 2208 / 1056, HOME_BACKGROUND_FRAMING);
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+// The Collect picture as the screen places it (1056x2208, ring centre at about y=300 on a 390 dp phone).
+const RING_Y = 300;
+const rect = framedImageRect(390, RING_Y, 2208 / 1056, HOME_BACKGROUND_FRAMING);
 
 describe('home ambience geometry', () => {
   it('the path runs from the tents up to the peak, and the flag sits at the framing anchor', () => {
@@ -41,7 +45,7 @@ describe('home ambience geometry', () => {
 
   it('the light climbs once per period, then is gone, and fades out before the collecting ring', () => {
     const p = pathOnScreen(rect);
-    const ring = { x: 195, y: 360, radius: 118 };
+    const ring = { x: 195, y: RING_Y, radius: RING_SIZE / 2 };
     expect(pathLight(0, p.xs, p.ys, p.along, ring).opacity).toBe(0);
     const climbing = pathLight(PATH_RUN_S * 0.4, p.xs, p.ys, p.along, ring);
     expect(climbing.opacity).toBeGreaterThan(0);
